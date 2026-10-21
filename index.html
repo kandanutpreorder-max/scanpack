@@ -1179,7 +1179,7 @@ async function doImport() {
     const r = await api('importVrich', { orders: im.orders, items: im.items, products: im.products, by: S.staff });
     await refresh(true);
     S.products = null;
-    toast("\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E41\u0E25\u0E49\u0E27: \u0E43\u0E2B\u0E21\u0E48 " + r.added + " \u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15 " + r.updated + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C", 'ok');
+    toast("\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E41\u0E25\u0E49\u0E27: \u0E43\u0E2B\u0E21\u0E48 " + r.added + " \u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15 " + r.updated + " ออเดอร์" + (r.archived ? " · ย้ายเข้าคลัง " + r.archived : "") + (r.skipped ? " · ข้าม " + r.skipped + " ที่แพ็คไปแล้ว" : ""), 'ok');
     S.imp = null;S.more = null;go('orders');
   } catch (e) {im.busy = false;toast('นำเข้าไม่สำเร็จ: ' + errMsg(e), 'bad');render();}
 }
