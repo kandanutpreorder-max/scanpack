@@ -1,0 +1,17 @@
+{
+  "name": "สแกนแพ็ค",
+  "short_name": "สแกนแพ็ค",
+  "description": "จัดของ สแกน แพ็คออเดอร์",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EEF0F4",
+  "theme_color": "#18213A",
+  "lang": "th",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

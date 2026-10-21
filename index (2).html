@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#18213A">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="สแกนแพ็ค">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>สแกนแพ็ค</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<script>
+/* แสดงสาเหตุบนจอ ถ้าโหลดไม่ขึ้น (โค้ดวางไม่ครบ / เซิร์ฟเวอร์ไม่ตอบ) */
+(function () {
+  function show(title, msg) {
+    var el = document.getElementById('loading');
+    if (!el) return;
+    el.innerHTML = '<div style="max-width:360px;padding:16px;font:14px/1.6 sans-serif;color:#161C2B"><b style="font-size:16px">' + title +
+      '</b><p style="color:#5B6476;word-break:break-word">' + String(msg).replace(/[<>&]/g, '') + '</p>' +
+      '<button onclick="location.reload()" style="padding:8px 16px;border-radius:8px;border:0;background:#2741A6;color:#fff">ลองใหม่</button></div>';
+  }
+  window.__bootFail = show;
+  window.addEventListener('error', function (e) {
+    if (!e || !e.message) return;
+    var ctx = '';
+    try {
+      var lines = document.documentElement.outerHTML.split('\n');
+      var i = e.lineno - 1;
+      for (var k = Math.max(0, i - 5); k <= Math.min(lines.length - 1, i + 1); k++) ctx += '[' + (k + 1) + '] ' + lines[k].trim().slice(0, 160) + '\n';
+    } catch (x) {}
+    show('โค้ดหน้าเว็บมีข้อผิดพลาด', e.message + ' (บรรทัด ' + e.lineno + ' / รวม ' + (document.documentElement.outerHTML.split('\n').length) + ' บรรทัด)');
+    var el = document.getElementById('loading');
+    if (el && ctx) {
+      var pre = document.createElement('pre');
+      pre.style.cssText = 'white-space:pre-wrap;font:12px/1.5 monospace;background:#fff;border:1px solid #ccc;padding:8px;max-width:360px;text-align:left;color:#000';
+      pre.textContent = ctx;
+      el.firstChild.appendChild(pre);
+    }
+  });
+  setTimeout(function () {
+    if (!window.__booted) show('โหลดนานผิดปกติ', window.__apiCalled
+      ? 'หน้าเว็บส่งคำขอไปที่ชีตแล้วแต่ยังไม่ได้คำตอบ เปิด Apps Script → การดำเนินการ (Executions) ดูว่า getBootstrap ขึ้นข้อผิดพลาดอะไร'
+      : 'โค้ดส่วนหลักของหน้าเว็บไม่ทำงาน ไฟล์ Index อาจวางไม่ครบ หรือยังไม่ได้ Deploy เวอร์ชันใหม่หลังวางโค้ด');
+  }, 30000);
+})();
+</script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+/* หน้าจอมือถือ: แถบหัว + แผงกล้องคงที่ด้านบน (เฉพาะหน้าจัด/แพ็ค) + เนื้อหาเลื่อนได้ + แถบเมนูล่าง */
+:root{
+  --bg:#EEF0F4; --surface:#FFFFFF; --sunk:#E3E6EC; --ink:#161C2B; --muted:#5B6476; --line:#D4D8E1;
+  --ai:#2741A6; --ai-ink:#FFFFFF; --ai-soft:#E2E7F7;
+  --ok:#17784A; --ok-soft:#DDF2E6; --bad:#B42318; --bad-soft:#FBE4E1; --warn:#9A5B00; --warn-soft:#FCEFD6;
+  --bar:#18213A; --bar-ink:#F2F4FA;
+  --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  --f-code:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0F131C; --surface:#181E2B; --sunk:#222A3A; --ink:#E9ECF3; --muted:#9AA3B5; --line:#2D3648;
+    --ai:#8FA5F5; --ai-ink:#0F131C; --ai-soft:#222C4A;
+    --ok:#5CC98E; --ok-soft:#16301F; --bad:#F2877B; --bad-soft:#3A1916; --warn:#EBB65A; --warn-soft:#352813;
+    --bar:#0A0D14; --bar-ink:#E9ECF3; color-scheme:dark; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);-webkit-tap-highlight-color:transparent;
+  display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--ai);outline-offset:2px}
+.code{font-family:var(--f-code);font-weight:600;letter-spacing:.01em}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+[hidden]{display:none!important}
+
+/* หัว */
+header{background:var(--bar);color:var(--bar-ink);padding:calc(env(safe-area-inset-top,0px) + 8px) max(14px,env(safe-area-inset-right,0px)) 8px max(14px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;gap:10px;flex:none}
+.logo{width:32px;height:32px;flex:none;border-radius:8px}
+.brand{font-weight:700;font-size:17px;letter-spacing:.01em}
+.brand small{display:block;font-weight:400;font-size:11px;opacity:.65;letter-spacing:.04em;margin-top:-3px}
+.who{margin-left:auto;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:0;border-radius:999px;padding:5px 12px 5px 6px;color:inherit;font-size:13px}
+.who i{width:22px;height:22px;border-radius:50%;background:var(--ai);color:var(--ai-ink);display:grid;place-items:center;font-style:normal;font-weight:700;font-size:12px}
+.sync{font-size:11px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.1);white-space:nowrap}
+.sync.err{background:var(--bad);color:#fff}
+.sync.busy{background:rgba(255,255,255,.18)}
+
+/* กล้อง */
+#camPanel{flex:none;background:#000;position:relative;height:min(30vh,260px);overflow:hidden}
+#cam{width:100%;height:100%}
+#cam video{width:100%!important;height:100%!important;object-fit:cover}
+#cam img{display:none}
+#camOverlay{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#fff;padding:16px;background:#0B0E15}
+#camOverlay p{margin:0 0 10px;opacity:.8;font-size:13px}
+.camBtns{position:absolute;top:8px;right:8px;display:flex;gap:6px;z-index:3}
+.camBtns button{background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 11px;font-size:12px}
+#camFb{position:absolute;left:8px;right:8px;bottom:8px;z-index:3;border-radius:10px;padding:8px 12px;color:#fff;
+  background:rgba(0,0,0,.6);transition:opacity .25s;opacity:0;pointer-events:none}
+#camFb.show{opacity:1}
+#camFb.ok{background:rgba(18,110,64,.93)} #camFb.bad{background:rgba(170,30,20,.94)} #camFb.warn{background:rgba(150,92,0,.94)}
+#camFb b{display:block;font-size:20px;line-height:1.25}
+#camFb span{font-size:13px;opacity:.9}
+#camPanel.flash-ok{box-shadow:inset 0 0 0 5px #2FBF71} #camPanel.flash-bad{box-shadow:inset 0 0 0 5px #F04438}
+.manual{flex:none;display:flex;gap:6px;padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));background:var(--surface);border-bottom:1px solid var(--line)}
+.manual input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 12px}
+.manual button{border:0;border-radius:10px;padding:0 14px;background:var(--ai);color:var(--ai-ink);font-weight:600}
+
+/* เนื้อหา */
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px max(12px,env(safe-area-inset-right,0px)) 18px max(12px,env(safe-area-inset-left,0px))}
+.stack{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+h2{font-size:16px;margin:4px 2px 0;font-weight:700}
+.sec{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin:8px 2px 0}
+.empty{text-align:center;color:var(--muted);padding:26px 12px}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+
+/* แถบเมนูล่าง */
+nav{flex:none;display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);
+  padding:4px max(6px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 4px) max(6px,env(safe-area-inset-left,0px))}
+nav button{border:0;background:none;padding:6px 2px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);font-size:12px;font-weight:500}
+nav button svg{width:22px;height:22px}
+nav button[aria-current="true"]{color:var(--ai);background:var(--ai-soft)}
+nav .badge{position:absolute;margin-left:20px;margin-top:-4px;background:var(--bad);color:#fff;border-radius:999px;font-size:10px;padding:0 5px;line-height:16px}
+
+/* ชิป */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.ai{background:var(--ai-soft);color:var(--ai)}
+.chip.ink{background:var(--ink);color:var(--surface)}
+
+/* ตัวกรอง */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 6px;text-align:center;border-width:1px}
+.tile b{display:block;font-size:20px;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile span{font-size:11px;color:var(--muted)}
+.tile.on{border-color:var(--ai);box-shadow:inset 0 0 0 1px var(--ai)}
+.search{display:flex;gap:6px}
+.search input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px}
+.fgroup{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.fgroup::-webkit-scrollbar{display:none}
+.fgroup label{font-size:12px;color:var(--muted);align-self:center;white-space:nowrap;min-width:34px}
+.seg{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:13px;white-space:nowrap}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.selrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+select{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;width:100%;min-width:0}
+
+/* การ์ดออเดอร์ */
+.ord{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:10px 12px}
+.ord-top{display:flex;align-items:baseline;gap:8px}
+.ord-no{font-family:var(--f-code);font-weight:600;font-size:15px}
+.ord-name{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ord-amt{font-variant-numeric:tabular-nums;font-weight:600}
+.ord-meta{font-size:12px;color:var(--muted);margin:2px 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{height:5px;background:var(--sunk);border-radius:3px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--ai);border-radius:3px}
+.bar.done i{background:var(--ok)}
+
+/* หน้าจัด/แพ็ค */
+.head{display:flex;flex-direction:column;gap:6px}
+.head-top{display:flex;align-items:center;gap:8px}
+.head .ord-no{font-size:20px}
+.head .x{margin-left:auto;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 12px;font-size:13px}
+.addr{font-size:13px;color:var(--muted)}
+.note{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:500}
+.alert{border-radius:10px;padding:10px 12px;font-weight:600;font-size:14px;display:flex;gap:8px;align-items:center}
+.alert.bad{background:var(--bad-soft);color:var(--bad)} .alert.ok{background:var(--ok-soft);color:var(--ok)} .alert.warn{background:var(--warn-soft);color:var(--warn)}
+.alert button{margin-left:auto;border:0;border-radius:8px;padding:6px 12px;background:currentColor}
+.alert button span{color:var(--surface)}
+.prog{display:flex;align-items:baseline;gap:8px}
+.prog b{font-size:26px;font-variant-numeric:tabular-nums;line-height:1}
+.items{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.it{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);min-height:58px}
+.it:first-child{border-top:0}
+.it .tick{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:700;color:transparent}
+.it.done{background:var(--ok-soft)}
+.it.done .tick{background:var(--ok);border-color:var(--ok);color:#fff}
+.it.part .tick{border-color:var(--ai);color:var(--ai);font-size:12px}
+.it.skip{opacity:.55}
+.it .code{font-size:17px}
+.it .nm{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.it .min{min-width:0;border:0;background:none;text-align:left;padding:0}
+.qty{display:flex;align-items:center;gap:4px}
+.qty b{min-width:44px;text-align:center;font-variant-numeric:tabular-nums;font-size:16px}
+.qty button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:20px;line-height:1;display:grid;place-items:center}
+.qty button.plus{background:var(--ai);border-color:var(--ai);color:var(--ai-ink)}
+.it.flash{animation:fl .6s}
+@keyframes fl{from{background:#9BE3BC}to{background:transparent}}
+@media (prefers-reduced-motion:reduce){.it.flash{animation:none}}
+.choose{display:flex;flex-direction:column;gap:6px}
+
+.field{display:flex;flex-direction:column;gap:4px}
+.field>span{font-size:12px;font-weight:600;color:var(--muted)}
+.field input,.field textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 12px;width:100%;min-width:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.photos{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ph{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--sunk);max-width:100%}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .st{position:absolute;left:4px;bottom:4px;font-size:10px;padding:0 6px;border-radius:999px;background:rgba(0,0,0,.65);color:#fff}
+.ph .rm{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:1}
+.ph.add{border:2px dashed var(--ai);background:var(--ai-soft);color:var(--ai);display:grid;place-items:center;text-align:center;font-size:12px;font-weight:600;cursor:pointer}
+.ph.add svg{width:26px;height:26px;display:block;margin:0 auto 2px}
+.big{width:100%;border:0;border-radius:14px;padding:15px;font-size:17px;font-weight:700;background:var(--ai);color:var(--ai-ink)}
+.big.ok{background:var(--ok);color:#fff} .big.warn{background:var(--warn);color:#fff}
+.big:disabled{opacity:.5}
+.stickyBtn{position:sticky;bottom:0;box-shadow:0 -10px 16px var(--bg)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 14px;font-weight:600}
+.btn.pri{background:var(--ai);border-color:var(--ai);color:var(--ai-ink)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.trk{display:flex;align-items:center;gap:6px;font-size:13px}
+
+/* แผ่นล่าง */
+.sheetBg{position:fixed;inset:0;background:rgba(10,14,22,.5);z-index:20;display:flex;align-items:flex-end}
+.sheet{background:var(--bg);width:100%;max-height:88vh;overflow-y:auto;border-radius:18px 18px 0 0;
+  padding:14px max(14px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 16px) max(14px,env(safe-area-inset-left,0px))}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+
+.list{display:flex;flex-direction:column;gap:6px}
+.lrow{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.lrow input[type=checkbox]{width:20px;height:20px;accent-color:var(--ai)}
+.lrow .grow{flex:1;min-width:0}
+.menu{display:flex;flex-direction:column;gap:8px}
+.menu button{display:flex;align-items:center;gap:12px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:12px 14px}
+.menu button b{display:block}
+.menu button span{font-size:12px;color:var(--muted)}
+.menu svg{width:26px;height:26px;color:var(--ai);flex:none}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.toggle input{width:22px;height:22px;accent-color:var(--ai)}
+table.sum{width:100%;border-collapse:collapse;font-size:14px}
+table.sum th,table.sum td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}
+table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 76px);z-index:40;
+  background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:12px;font-size:14px;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
+#toast.bad{background:var(--bad);color:#fff} #toast.ok{background:var(--ok);color:#fff}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:50;text-align:center}
+#printArea{display:none}
+
+/* พิมพ์ฉลาก */
+@media print{
+  body{display:block;overflow:visible;background:#fff;height:auto}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block}
+  .lbl{page-break-inside:avoid;break-inside:avoid;display:flex;gap:2mm;align-items:center;color:#000;overflow:hidden;font-family:var(--f-body)}
+  .lbl img{flex:none}
+  .lbl .t{min-width:0}
+  .lbl .c{font-family:var(--f-code);font-weight:700;line-height:1.05}
+  .lbl .n{line-height:1.15;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .lbl .p{font-weight:700}
+  .s5030 .lbl{width:50mm;height:30mm;padding:2mm;page-break-after:always;break-after:page}
+  .s5030 .lbl img{width:24mm;height:24mm} .s5030 .c{font-size:14pt} .s5030 .n{font-size:7pt} .s5030 .p{font-size:9pt}
+  .sA4{display:grid!important;grid-template-columns:repeat(3,63.5mm);grid-auto-rows:38.1mm;justify-content:center}
+  .sA4 .lbl{padding:3mm;border:0.2mm dashed #bbb}
+  .sA4 .lbl img{width:30mm;height:30mm} .sA4 .c{font-size:15pt} .sA4 .n{font-size:8pt} .sA4 .p{font-size:10pt}
+}
+</style>
+</head>
+<body>
+<div id="loading"><div><svg class="logo" style="width:72px;height:72px;margin:0 auto 10px;display:block" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#2741A6"/><g fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round"><path d="M118 176v-44a14 14 0 0 1 14-14h44M336 118h44a14 14 0 0 1 14 14v44M394 336v44a14 14 0 0 1-14 14h-44M176 394h-44a14 14 0 0 1-14-14v-44"/></g><g stroke="#fff" stroke-width="18" stroke-linejoin="round"><path d="M256 170l86 38v96l-86 38-86-38v-96z" fill="#3E5BD6"/><path d="M170 208l86 38 86-38M256 246v96" fill="none"/></g><path d="M213 189l86 38v30" fill="none" stroke="#F5B53D" stroke-width="16" stroke-linecap="round"/><circle cx="352" cy="352" r="52" fill="#2FBF71" stroke="#fff" stroke-width="14"/><path d="M330 352l16 16 30-32" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="brand" style="color:var(--ink)">สแกนแพ็ค</div><p class="muted">กำลังโหลดออเดอร์…</p></div></div>
+
+<header>
+  <svg class="logo" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#2741A6"/><g fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round"><path d="M118 176v-44a14 14 0 0 1 14-14h44M336 118h44a14 14 0 0 1 14 14v44M394 336v44a14 14 0 0 1-14 14h-44M176 394h-44a14 14 0 0 1-14-14v-44"/></g><g stroke="#fff" stroke-width="18" stroke-linejoin="round"><path d="M256 170l86 38v96l-86 38-86-38v-96z" fill="#3E5BD6"/><path d="M170 208l86 38 86-38M256 246v96" fill="none"/></g><path d="M213 189l86 38v30" fill="none" stroke="#F5B53D" stroke-width="16" stroke-linecap="round"/><circle cx="352" cy="352" r="52" fill="#2FBF71" stroke="#fff" stroke-width="14"/><path d="M330 352l16 16 30-32" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div class="brand">สแกนแพ็ค<small>จัดของ · แพ็คของ</small></div>
+  <span class="sync" id="sync">พร้อม</span>
+  <button class="who" id="whoBtn" data-act="pickStaff"><i id="whoI">?</i><span id="whoName">เลือกชื่อ</span></button>
+</header>
+
+<div id="camWrap" hidden>
+  <div id="camPanel">
+    <div id="cam"></div>
+    <div id="camOverlay"><div><p id="camOvMsg">แตะเพื่อเปิดกล้องสแกน</p><button class="btn pri" data-act="camOn">เปิดกล้อง</button>
+      <div style="margin-top:10px"><button class="btn" data-act="photoScan" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.35)">ถ่ายรูปบาร์โค้ดแทน</button></div></div></div>
+    <div class="camBtns"><button data-act="photoScan">ถ่ายรูป</button><button data-act="camToggle" id="camToggle">ปิดกล้อง</button></div>
+    <div id="camFb"><b></b><span></span></div>
+  </div>
+  <form class="manual" id="manualForm" autocomplete="off">
+    <input id="manual" inputmode="text" enterkeyhint="go" placeholder="พิมพ์เลขออเดอร์ / เลขพัสดุ / รหัสสินค้า">
+    <button type="submit">ตกลง</button>
+  </form>
+</div>
+
+<main id="main"></main>
+
+<nav id="nav">
+  <button data-act="go" data-v="orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>ออเดอร์</button>
+  <button data-act="go" data-v="pick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M8 9v6M11 9v6M14 9v6M17 9v6"/></svg>จัดของ</button>
+  <button data-act="go" data-v="pack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8l9-4 9 4v8l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v8"/></svg>แพ็ค</button>
+  <button data-act="go" data-v="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>เพิ่มเติม</button>
+</nav>
+
+<div id="sheetRoot"></div>
+<div id="toast" hidden></div>
+<div id="camFileBox" hidden></div>
+<input type="file" id="fileScan" accept="image/*" capture="environment" hidden>
+<input type="file" id="filePhoto" accept="image/*" capture="environment" hidden>
+<input type="file" id="fileImport" accept=".xlsx,.xls,.csv" hidden>
+<div id="printArea"></div>
+
+<script>
+
+/* ================= ข้อมูลและสถานะ ================= */
+const PICK = { none: 'ยังไม่จัด', part: 'จัดบางส่วน', done: 'จัดแล้ว' };
+const PACK = { none: 'ยังไม่แพ็ค', done: 'แพ็คแล้ว' };
+const PAY = { paid: 'โอนแล้ว', none: 'ยังไม่โอน', part: 'โอนไม่ครบ' };
+
+const S = {
+  view: 'orders', staff: '', staffList: [], carriers: [], sheetUrl: '',
+  orders: [], itemsBy: {}, byNo: {}, byTrack: {}, codeIdx: {},
+  f: { pick: 'all', pack: 'all', pay: 'all', picker: '', packer: '', date: '', q: '' },
+  pickNo: null, pickChoices: null,
+  pk: null, packChoices: null,
+  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', labelOnlyOpen: true, labelSize: 's5030',
+  set: { sound: true, autoCam: true, requirePhoto: false, lastCarrier: '' }
+};
+
+const LS = {
+  get(k, d) {try {const v = localStorage.getItem('sp_' + k);return v == null ? d : JSON.parse(v);} catch (e) {return d;}},
+  set(k, v) {try {localStorage.setItem('sp_' + k, JSON.stringify(v));} catch (e) {}},
+  del(k) {try {localStorage.removeItem('sp_' + k);} catch (e) {}}
+};
+
+const norm = (s) => String(s == null ? '' : s).trim().toUpperCase().replace(/\s+/g, '').replace(/^#/, '');
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&' + '#39;' })[c]);
+const baht = (n) => '฿' + (Number(n) || 0).toLocaleString('th-TH');
+const qtyOf = (i) => Number(i.qty) || 0;
+const isSkip = (i) => {const s = String(i.skip).trim().toUpperCase();return i.skip === true || s === 'ใช่' || s === 'TRUE' || s === 'Y';};
+const pickedOf = (i) => Math.max(0, Math.min(qtyOf(i), Number(i.pickedQty) || 0));
+const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+const nowStr = () => {const d = new Date();return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' }) + ' ' + d.toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });};
+const uid = () => Math.random().toString(36).slice(2, 10);
+const $ = (id) => document.getElementById(id);
+
+function cleanScan(t) {
+  t = String(t || '').trim();
+  if (/%[0-9A-F]{2}/i.test(t)) {try {t = decodeURIComponent(t);} catch (e) {}}
+  return t;
+}
+
+/* การเชื่อมต่อ: เปิดจากหน้าเว็บภายนอก (เช่น GitHub Pages) เพื่อให้ใช้กล้องได้ แล้วส่งคำขอไปที่ลิงก์ /exec ของ Google Sheet */
+const hasGas = () => !!(window.google && google.script && google.script.run);
+function getCfg() { return LS.get('cfg', null); }
+function readHashCfg() {
+  const h = location.hash.replace(/^#/, '');
+  if (!/(^|&)u=/.test(h)) return;
+  const p = {};
+  h.split('&').forEach(kv => { const i = kv.indexOf('='); if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); });
+  if (p.u) LS.set('cfg', { url: p.u.trim(), key: (p.k || '').trim() });
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+}
+function shareLink() {
+  const c = getCfg(); if (!c) return '';
+  return location.origin + location.pathname + '#u=' + encodeURIComponent(c.url) + '&k=' + encodeURIComponent(c.key);
+}
+function api(fn, ...args) {
+  if (hasGas()) {
+    return new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+  }
+  if (window.MockApi) return new Promise((res, rej) => setTimeout(() => {try {res(MockApi[fn](...JSON.parse(JSON.stringify(args))));} catch (e) {rej(e);}}, 150));
+  const c = getCfg();
+  if (!c || !c.url) return Promise.reject(new Error('NEED_CFG'));
+  return fetch(c.url, {
+    method: 'POST', redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ fn: fn, args: args, key: c.key })
+  }).then(r => r.text()).then(t => {
+    let j;
+    try { j = JSON.parse(t); } catch (e) {
+      throw new Error('ลิงก์ /exec ตอบกลับไม่ใช่ข้อมูล: ตรวจว่า Deploy ตั้ง "ผู้ที่มีสิทธิ์เข้าถึง" เป็น "ทุกคน" และวางโค้ด Code.gs เวอร์ชันล่าสุดแล้ว Deploy เวอร์ชันใหม่');
+    }
+    if (!j.ok) throw new Error(j.error || 'เกิดข้อผิดพลาด');
+    return j.data;
+  }, e => { throw new Error('เชื่อมต่อ Google Sheet ไม่ได้ ตรวจอินเทอร์เน็ต หรือลิงก์ /exec (' + errMsg(e) + ')'); });
+}
+function showConnect(msg) {
+  const c = getCfg() || { url: '', key: '' };
+  $('loading').innerHTML = '<form class="card stack" id="connectForm" style="max-width:380px;width:calc(100% - 32px);text-align:left">' +
+    '<b style="font-size:17px">เชื่อมต่อกับ Google Sheet</b>' +
+    (msg ? '<div class="alert bad" style="font-size:13px">' + esc(msg) + '</div>' : '') +
+    '<label class="field"><span>ลิงก์เว็บแอป (/exec) หรือวาง "ลิงก์สำหรับพนักงาน" ทั้งลิงก์</span><input id="cfgUrl" value="' + esc(c.url) + '" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off"></label>' +
+    '<label class="field"><span>รหัสเข้าแอป (ดูในชีต Settings)</span><input id="cfgKey" value="' + esc(c.key) + '" autocomplete="off"></label>' +
+    '<button class="big" type="submit">เชื่อมต่อ</button>' +
+    '<div class="muted" style="font-size:12px">พนักงานไม่ต้องกรอกเอง: เจ้าของร้านส่ง "ลิงก์สำหรับพนักงาน" จากเมนู เพิ่มเติม ให้กดเปิดได้เลย</div></form>';
+  $('connectForm').addEventListener('submit', e => {
+    e.preventDefault();
+    let url = $('cfgUrl').value.trim(), key = $('cfgKey').value.trim();
+    const mm = url.match(/#u=([^&]+)(?:&k=([^&]*))?/);
+    if (mm) { url = decodeURIComponent(mm[1]); if (mm[2] && !key) key = decodeURIComponent(mm[2]); }
+    if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url) || !/\/exec(\?|$)/.test(url)) { showConnect('ลิงก์ต้องขึ้นต้นด้วย https://script.google.com/ และลงท้ายด้วย /exec'); return; }
+    LS.set('cfg', { url: url, key: key });
+    location.reload();
+  });
+}
+const errMsg = (e) => e && e.message ? e.message : String(e);
+
+/* ---------- ดัชนีค้นหาในเครื่อง ---------- */
+function itemsOf(o) {return S.itemsBy[norm(o.orderNo)] || [];}
+function rebuild() {
+  S.byNo = {};S.byTrack = {};S.codeIdx = {};
+  S.orders.forEach((o) => {
+    const k = norm(o.orderNo);
+    S.byNo[k] = o;
+    [o.vrichTracking, o.tracking].forEach((t) => {if (norm(t)) S.byTrack[norm(t)] = o;});
+  });
+  Object.keys(S.itemsBy).forEach((k) => S.itemsBy[k].forEach((i) => {
+    const c = norm(i.code);
+    (S.codeIdx[c] = S.codeIdx[c] || []).includes(k) || S.codeIdx[c].push(k);
+  }));
+}
+function setData(d) {
+  S.orders = (d.orders || []).slice();
+  S.itemsBy = {};
+  (d.items || []).forEach((i) => {const k = norm(i.orderNo);(S.itemsBy[k] = S.itemsBy[k] || []).push(i);});
+  rebuild();
+}
+function findOrder(code) {const k = norm(code);return S.byNo[k] || S.byTrack[k] || null;}
+function recalc(o) {
+  const phys = itemsOf(o).filter((i) => !isSkip(i));
+  const total = phys.reduce((s, i) => s + qtyOf(i), 0);
+  const picked = phys.reduce((s, i) => s + pickedOf(i), 0);
+  o.itemQty = total;o.pickedQty = picked;
+  const prev = o.pickStatus;
+  o.pickStatus = picked <= 0 ? PICK.none : picked >= total ? PICK.done : PICK.part;
+  if (o.pickStatus === PICK.done && prev !== PICK.done) o.pickedAt = nowStr();
+  if (o.pickStatus !== PICK.done) o.pickedAt = '';
+}
+function applyBundle(b) {
+  if (!b || !b.order) return;
+  const k = norm(b.order.orderNo);
+  const idx = S.orders.findIndex((o) => norm(o.orderNo) === k);
+  if (idx >= 0) Object.assign(S.orders[idx], b.order);else S.orders.unshift(b.order);
+  S.itemsBy[k] = b.items || [];
+  rebuild();
+}
+
+/* ================= คิวบันทึก (สแกนแล้วไปต่อทันที บันทึกลงชีตเบื้องหลัง) ================= */
+const Q = { list: LS.get('queue', []), busy: false, timer: null, fails: 0 };
+function qSave() {LS.set('queue', Q.list);syncBadge();}
+function enqueue(op) {
+  const last = Q.list[Q.list.length - 1];
+  if (op.type === 'pick' && last && last.type === 'pick' && !last.sent && last.orderNo === op.orderNo && last.staff === op.staff) {
+    Object.keys(op.deltas).forEach((c) => {last.deltas[c] = (last.deltas[c] || 0) + op.deltas[c];});
+  } else Q.list.push(Object.assign({ id: uid() }, op));
+  qSave();qKick(450);
+}
+function qKick(ms) {clearTimeout(Q.timer);Q.timer = setTimeout(qRun, ms || 0);}
+async function qRun() {
+  if (Q.busy) return;
+  Q.busy = true;
+  while (Q.list.length) {
+    const op = Q.list[0];
+    op.sent = true;syncBadge();
+    try {
+      let b;
+      if (op.type === 'pick') {
+        const changes = Object.keys(op.deltas).filter((c) => op.deltas[c]).map((c) => ({ code: c, delta: op.deltas[c] }));
+        b = changes.length ? await api('savePick', op.orderNo, changes, op.staff) : null;
+      } else if (op.type === 'pack') b = await api('savePack', op.orderNo, op.payload);else
+      if (op.type === 'reset') b = await api('resetStatus', op.orderNo, op.which, op.staff);
+      Q.list.shift();Q.fails = 0;qSave();
+      if (b && !Q.list.some((x) => x.orderNo === op.orderNo)) {applyBundle(b);softRender();}
+    } catch (e) {
+      op.sent = false;Q.fails++;qSave();
+      const m = errMsg(e);
+      if (/ไม่พบออเดอร์/.test(m)) {Q.list.shift();qSave();toast(m, 'bad');continue;}
+      $('sync').className = 'sync err';$('sync').textContent = 'บันทึกไม่ได้ ลองใหม่…';
+      Q.busy = false;qKick(Math.min(20000, 2500 * Q.fails));return;
+    }
+  }
+  Q.busy = false;syncBadge();
+}
+function syncBadge() {
+  const el = $('sync');const n = Q.list.length;
+  if (!n) {el.className = 'sync';el.textContent = 'บันทึกแล้ว';} else
+  if (Q.fails) {el.className = 'sync err';el.textContent = 'รอส่ง ' + n;} else
+  {el.className = 'sync busy';el.textContent = 'กำลังบันทึก ' + n;}
+}
+
+/* ================= เสียง / สั่น / ข้อความ ================= */
+let AC = null;
+document.addEventListener('pointerdown', () => {try {AC = AC || new (window.AudioContext || window.webkitAudioContext)();AC.resume();} catch (e) {}}, { once: true });
+function beep(kind) {
+  if (S.set.sound && AC) {
+    try {
+      const o = AC.createOscillator(),g = AC.createGain();
+      o.type = 'square';o.frequency.value = kind === 'ok' ? 1400 : kind === 'warn' ? 700 : 240;
+      g.gain.value = 0.06;o.connect(g);g.connect(AC.destination);
+      o.start();o.stop(AC.currentTime + (kind === 'ok' ? 0.08 : 0.3));
+    } catch (e) {}
+  }
+  if (navigator.vibrate) navigator.vibrate(kind === 'ok' ? 35 : [90, 60, 90]);
+}
+let fbT = null;
+function feedback(r) {
+  if (!r) return;
+  const kind = r.kind || (r.ok ? 'ok' : 'bad');
+  beep(kind);
+  if (!$('camWrap').hidden) {
+    const fb = $('camFb');
+    fb.className = 'show ' + kind;
+    fb.querySelector('b').textContent = r.msg || '';
+    fb.querySelector('span').textContent = r.sub || '';
+    const p = $('camPanel');p.classList.remove('flash-ok', 'flash-bad');void p.offsetWidth;
+    p.classList.add(kind === 'ok' ? 'flash-ok' : 'flash-bad');
+    clearTimeout(fbT);fbT = setTimeout(() => {fb.className = '';p.classList.remove('flash-ok', 'flash-bad');}, kind === 'ok' ? 1500 : 2600);
+  } else toast(r.msg + (r.sub ? ' · ' + r.sub : ''), kind === 'ok' ? 'ok' : 'bad');
+}
+let toastT = null;
+function toast(m, kind) {
+  const t = $('toast');t.textContent = m;t.className = kind || '';t.hidden = false;
+  clearTimeout(toastT);toastT = setTimeout(() => {t.hidden = true;}, 2600);
+}
+
+/* ================= กล้องสแกน ================= */
+const Cam = { inst: null, on: false, starting: false, last: '', lastAt: 0 };
+async function camStart() {
+  if (Cam.on || Cam.starting) return;
+  if (!window.Html5Qrcode) {$('camOvMsg').textContent = 'โหลดตัวสแกนไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วเปิดใหม่';return;}
+  Cam.starting = true;$('camOvMsg').textContent = 'กำลังเปิดกล้อง…';
+  try {
+    const F = Html5QrcodeSupportedFormats;
+    Cam.inst = Cam.inst || new Html5Qrcode('cam', {
+      verbose: false,
+      formatsToSupport: [F.QR_CODE, F.CODE_128, F.CODE_39, F.EAN_13, F.EAN_8, F.UPC_A, F.ITF],
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    });
+    await Cam.inst.start({ facingMode: 'environment' }, {
+      fps: 15, disableFlip: true,
+      qrbox: (w, h) => ({ width: Math.max(160, Math.floor(w * 0.88)), height: Math.max(120, Math.floor(h * 0.7)) })
+    }, onDecoded, () => {});
+    Cam.on = true;$('camOverlay').hidden = true;$('camToggle').textContent = 'ปิดกล้อง';
+  } catch (e) {
+    $('camOverlay').hidden = false;
+    $('camOvMsg').textContent = 'เปิดกล้องไม่ได้ (' + errMsg(e).slice(0, 80) + ') ' +
+      (hasGas() ? 'ลิงก์ /exec ของ Google ใช้กล้องไม่ได้ ให้เปิดแอปจากลิงก์หน้าเว็บของร้าน (เช่น github.io) แทน' : 'ตรวจว่าอนุญาตกล้องให้เบราว์เซอร์แล้ว หรือใช้ปุ่มถ่ายรูป/พิมพ์รหัสแทน');
+  } finally {Cam.starting = false;}
+}
+async function camStop() {
+  if (Cam.inst && Cam.on) {try {await Cam.inst.stop();} catch (e) {}}
+  Cam.on = false;$('camOverlay').hidden = false;$('camOvMsg').textContent = 'กล้องปิดอยู่';$('camToggle').textContent = 'เปิดกล้อง';
+}
+function onDecoded(text) {
+  const now = Date.now();
+  if (text === Cam.last && now - Cam.lastAt < 1300) return;
+  Cam.last = text;Cam.lastAt = now;
+  handleScan(text);
+}
+// เครื่องยิงบาร์โค้ดบลูทูธ/USB (พิมพ์เร็วแล้วกด Enter)
+const KB = { buf: '', t: 0 };
+document.addEventListener('keydown', (e) => {
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  const now = Date.now();
+  if (now - KB.t > 90) KB.buf = '';
+  KB.t = now;
+  if (e.key === 'Enter') {if (KB.buf.length >= 2) handleScan(KB.buf);KB.buf = '';return;}
+  if (e.key.length === 1) KB.buf += e.key;
+});
+
+/* ================= ตัวจัดการผลสแกน ================= */
+function handleScan(raw) {
+  const code = cleanScan(raw);
+  if (!code) return;
+  let r;
+  if (S.view === 'pick') r = pickScan(code);else
+  if (S.view === 'pack') r = packScan(code);else
+  {
+    const o = findOrder(code);
+    if (o) {openDetail(o.orderNo);r = { ok: true, msg: '#' + o.orderNo, sub: o.customer };} else
+    {S.f.q = code;render();r = { ok: false, msg: 'ค้นหา ' + code };}
+  }
+  feedback(r);
+}
+
+/* ---------- จัดของ ---------- */
+function needStaff() {
+  if (S.staff) return null;
+  openStaff();
+  return { ok: false, msg: 'เลือกชื่อผู้ใช้งานก่อน', sub: 'เพื่อบันทึกว่าใครจัด/ใครแพ็ค' };
+}
+function openPick(no, silent) {
+  const o = S.byNo[norm(no)];
+  if (!o) return null;
+  S.pickNo = norm(no);S.pickChoices = null;
+  go('pick');
+  if (silent) return o;
+  return null;
+}
+function pickWarn(o) {
+  if (o.payStatus === PAY.none) return { kind: 'warn', msg: '#' + o.orderNo + ' ยังไม่โอน', sub: o.customer + ' · ' + baht(o.total) };
+  if (o.payStatus === PAY.part) return { kind: 'warn', msg: '#' + o.orderNo + ' โอนไม่ครบ', sub: 'โอน ' + baht(o.paid) + ' จาก ' + baht(o.total) };
+  if (o.packStatus === PACK.done) return { kind: 'warn', msg: '#' + o.orderNo + ' แพ็คไปแล้ว', sub: 'โดย ' + (o.packedBy || '-') };
+  return { ok: true, msg: '#' + o.orderNo, sub: o.customer + ' · ' + (o.itemQty || 0) + ' ชิ้น' };
+}
+function pickInc(o, it, d) {
+  const ns = needStaff();if (ns) return ns;
+  const p = pickedOf(it),q = qtyOf(it);
+  if (d > 0 && p >= q) return { ok: false, msg: it.code + ' ครบแล้ว', sub: 'ต้องการ ' + q + ' ชิ้น' };
+  if (d < 0 && p <= 0) return null;
+  it.pickedQty = p + d;it.pickedBy = S.staff;
+  recalc(o);
+  if (o.pickStatus !== PICK.none) o.pickedBy = S.staff;else o.pickedBy = '';
+  enqueue({ type: 'pick', orderNo: String(o.orderNo), staff: S.staff, deltas: { [it.code]: d } });
+  S.flashCode = d > 0 ? norm(it.code) : null;
+  softRender();
+  if (o.pickStatus === PICK.done) return { ok: true, msg: 'จัดครบ #' + o.orderNo + ' ✓', sub: 'สแกนเลขพัสดุออเดอร์ถัดไปได้เลย' };
+  return { ok: true, msg: it.code + '  ' + (p + d) + '/' + q, sub: 'เหลือ ' + (o.itemQty - o.pickedQty) + ' ชิ้น · ' + (it.name || '') };
+}
+function pickScan(code) {
+  const k = norm(code);
+  const cur = S.pickNo && S.byNo[S.pickNo];
+  if (cur) {
+    const it = itemsOf(cur).find((i) => norm(i.code) === k && !isSkip(i));
+    if (it) return pickInc(cur, it, 1);
+  }
+  const o = findOrder(k);
+  if (o) {openPick(o.orderNo);return pickWarn(o);}
+  const owners = (S.codeIdx[k] || []).map((n) => S.byNo[n]).filter((x) => x && x.packStatus !== PACK.done &&
+  itemsOf(x).some((i) => norm(i.code) === k && !isSkip(i) && pickedOf(i) < qtyOf(i)));
+  if (cur && cur.pickStatus !== PICK.done) {
+    return { ok: false, msg: code + ' ไม่อยู่ในออเดอร์นี้', sub: owners.length ? 'อยู่ใน #' + owners.map((x) => x.orderNo).join(', #') : 'ไม่พบในออเดอร์ที่ค้างจัด' };
+  }
+  if (owners.length === 1) {
+    openPick(owners[0].orderNo);
+    const it = itemsOf(owners[0]).find((i) => norm(i.code) === k && !isSkip(i));
+    return pickInc(owners[0], it, 1);
+  }
+  if (owners.length > 1) {
+    S.pickNo = null;S.pickChoices = { code: code, nos: owners.map((x) => norm(x.orderNo)) };render();
+    return { kind: 'warn', msg: code + ' มี ' + owners.length + ' ออเดอร์', sub: 'แตะเลือกออเดอร์ที่จะใส่' };
+  }
+  if (S.codeIdx[k]) return { ok: false, msg: code + ' จัดครบทุกออเดอร์แล้ว' };
+  remoteFind(code, 'pick');
+  return { kind: 'warn', msg: 'กำลังค้นหา ' + code, sub: 'ไม่มีในเครื่อง กำลังถามจากชีต…' };
+}
+
+/* ---------- แพ็ค ---------- */
+function packDraftKey(no) {return 'pk_' + norm(no);}
+function openPack(no) {
+  const o = S.byNo[norm(no)];
+  if (!o) return;
+  const saved = LS.get(packDraftKey(no), null);
+  const packed = {};
+  itemsOf(o).forEach((i) => {packed[i.code] = Number(i.packedQty) || 0;});
+  S.pk = saved || {
+    no: norm(no), packed: packed, photos: [],
+    carrier: o.carrier || o.vrichCarrier || S.set.lastCarrier || S.carriers[0] || '',
+    tracking: String(o.tracking || o.vrichTracking || ''), labelOk: null, note: o.packNote || '', confirm: null
+  };
+  if (o.packStatus === PACK.done && !saved) {
+    S.pk.photos = String(o.photos || '').split('\n').filter(Boolean).map((u) => ({ lid: uid(), url: u, status: 'ok' }));
+  }
+  S.pk.confirm = null;S.packChoices = null;
+  go('pack');
+}
+function packSave() {if (S.pk) LS.set(packDraftKey(S.pk.no), Object.assign({}, S.pk, { photos: S.pk.photos.filter((p) => p.status === 'ok') }));}
+function packCounts(o) {
+  const phys = itemsOf(o).filter((i) => !isSkip(i));
+  const total = phys.reduce((s, i) => s + qtyOf(i), 0);
+  const done = phys.reduce((s, i) => s + Math.min(qtyOf(i), S.pk.packed[i.code] || 0), 0);
+  return { total, done };
+}
+function packWarn(o) {
+  if (o.packStatus === PACK.done) return { kind: 'warn', msg: '#' + o.orderNo + ' แพ็คไปแล้ว', sub: 'โดย ' + (o.packedBy || '-') + ' ' + (o.packedAt || '') };
+  if (o.pickStatus !== PICK.done) return { kind: 'warn', msg: '#' + o.orderNo + ' ยังจัดไม่ครบ', sub: 'จัดแล้ว ' + (o.pickedQty || 0) + '/' + (o.itemQty || 0) + ' ชิ้น' };
+  if (o.payStatus !== PAY.paid) return { kind: 'warn', msg: '#' + o.orderNo + ' ' + o.payStatus, sub: o.customer };
+  return { ok: true, msg: '#' + o.orderNo, sub: o.customer + ' · ' + (o.itemQty || 0) + ' ชิ้น' };
+}
+function packScan(code) {
+  const k = norm(code);
+  const cur = S.pk && S.byNo[S.pk.no];
+  if (cur) {
+    const it = itemsOf(cur).find((i) => norm(i.code) === k && !isSkip(i));
+    if (it) {
+      const n = S.pk.packed[it.code] || 0,q = qtyOf(it);
+      if (n >= q) return { ok: false, msg: it.code + ' ครบแล้ว', sub: 'ต้องการ ' + q + ' ชิ้น' };
+      S.pk.packed[it.code] = n + 1;S.pk.confirm = null;packSave();
+      S.flashCode = norm(it.code);softRender();
+      const c = packCounts(cur);
+      const warnPick = pickedOf(it) < n + 1 ? ' (หน้าจัดยังไม่ได้ติ๊ก)' : '';
+      return { ok: true, msg: it.code + '  ' + (n + 1) + '/' + q, sub: (c.done >= c.total ? 'ครบทุกชิ้นแล้ว ถ่ายรูปแล้วกดแพ็คเสร็จ' : 'เหลือ ' + (c.total - c.done) + ' ชิ้น') + warnPick };
+    }
+    const trks = [cur.vrichTracking, cur.tracking].map(norm).filter(Boolean);
+    if (trks.includes(k)) {
+      S.pk.labelOk = true;S.pk.tracking = code;packSave();softRender();
+      return { ok: true, msg: 'ใบปะหน้าตรงกับออเดอร์ ✓', sub: code };
+    }
+    const other = findOrder(k);
+    if (other && other !== cur) {
+      const c = packCounts(cur);
+      if (c.done === 0 && !S.pk.photos.length) {openPack(other.orderNo);return packWarn(other);}
+      S.packChoices = { switchTo: norm(other.orderNo) };softRender();
+      return { ok: false, msg: 'เป็นของออเดอร์ #' + other.orderNo, sub: 'ใบปะหน้า/ออเดอร์ไม่ตรง ถ้าจะสลับให้กดปุ่มด้านล่าง' };
+    }
+    if (/^[A-Z0-9]{10,}$/.test(k) && !S.codeIdx[k]) {
+      S.pk.tracking = code;S.pk.labelOk = trks.length ? false : null;packSave();softRender();
+      return trks.length ? { ok: false, msg: 'เลขพัสดุไม่ตรงกับ Vrich', sub: 'Vrich: ' + (cur.vrichTracking || '-') } :
+      { ok: true, msg: 'ใส่เลขพัสดุแล้ว', sub: code };
+    }
+    return { ok: false, msg: code + ' ไม่อยู่ในออเดอร์นี้', sub: S.codeIdx[k] ? 'อยู่ใน #' + S.codeIdx[k].join(', #') : '' };
+  }
+  const o = findOrder(k);
+  if (o) {openPack(o.orderNo);return packWarn(o);}
+  const owners = (S.codeIdx[k] || []).map((n) => S.byNo[n]).filter((x) => x && x.packStatus !== PACK.done);
+  if (owners.length === 1) {openPack(owners[0].orderNo);return packScan(code);}
+  if (owners.length > 1) {
+    S.packChoices = { code: code, nos: owners.map((x) => norm(x.orderNo)) };render();
+    return { kind: 'warn', msg: code + ' มี ' + owners.length + ' ออเดอร์', sub: 'แตะเลือกออเดอร์ที่จะแพ็ค' };
+  }
+  remoteFind(code, 'pack');
+  return { kind: 'warn', msg: 'กำลังค้นหา ' + code, sub: 'ไม่มีในเครื่อง กำลังถามจากชีต…' };
+}
+// ออเดอร์ที่คนอื่นเพิ่งนำเข้า หรือเก่ากว่า 14 วัน: ถามจากชีตโดยตรง
+async function remoteFind(code, mode) {
+  try {
+    const b = await api('getOrder', code);
+    if (!b) return feedback({ ok: false, msg: 'ไม่พบ ' + code, sub: 'ไม่ใช่เลขออเดอร์ เลขพัสดุ หรือรหัสสินค้าในระบบ' });
+    applyBundle(b);
+    const no = norm(b.order.orderNo);
+    if (mode === 'pick') {openPick(no);feedback(pickWarn(S.byNo[no]));} else
+    {openPack(no);feedback(packWarn(S.byNo[no]));}
+  } catch (e) {feedback({ ok: false, msg: 'ค้นหาไม่ได้', sub: errMsg(e) });}
+}
+function finishPack() {
+  const o = S.byNo[S.pk.no];
+  const c = packCounts(o);
+  const ns = needStaff();if (ns) return feedback(ns);
+  const uploading = S.pk.photos.some((p) => p.status === 'up');
+  if (uploading) return toast('รออัปโหลดรูปให้เสร็จก่อน');
+  const photos = S.pk.photos.filter((p) => p.status === 'ok');
+  if (S.set.requirePhoto && !photos.length) return feedback({ ok: false, msg: 'ต้องถ่ายรูปกล่องก่อน', sub: 'ตั้งค่าให้บังคับถ่ายรูป' });
+  const issues = [];
+  if (c.done < c.total) issues.push('ยังขาด ' + (c.total - c.done) + ' ชิ้น');
+  if (!photos.length) issues.push('ยังไม่มีรูป');
+  if (S.pk.labelOk === false) issues.push('เลขพัสดุไม่ตรง');
+  const sig = issues.join('|');
+  if (issues.length && S.pk.confirm !== sig) {S.pk.confirm = sig;softRender();beep('warn');return;}
+  const payload = {
+    packed: itemsOf(o).map((i) => ({ code: i.code, packedQty: S.pk.packed[i.code] || 0 })),
+    carrier: S.pk.carrier, tracking: S.pk.tracking, staff: S.staff, note: S.pk.note,
+    photos: photos.map((p) => p.url), forced: issues.length > 0
+  };
+  itemsOf(o).forEach((i) => {i.packedQty = S.pk.packed[i.code] || 0;});
+  Object.assign(o, { packStatus: PACK.done, packedBy: S.staff, packedAt: nowStr(), carrier: payload.carrier, tracking: payload.tracking, photos: payload.photos.join('\n'), packNote: payload.note });
+  rebuild();
+  enqueue({ type: 'pack', orderNo: String(o.orderNo), payload: payload });
+  S.set.lastCarrier = S.pk.carrier;LS.set('set', S.set);
+  LS.del(packDraftKey(S.pk.no));
+  S.pk = null;
+  feedback({ ok: true, msg: 'แพ็ค #' + o.orderNo + ' เสร็จ ✓', sub: 'สแกนออเดอร์ถัดไปได้เลย' });
+  render();
+}
+async function addPhotos(files) {
+  if (!S.pk) return;
+  const no = S.pk.no;
+  for (const f of files) {
+    const p = { lid: uid(), status: 'up', thumb: '' };
+    S.pk.photos.push(p);softRender();
+    try {
+      const img = await loadImg(f);
+      p.thumb = drawScaled(img, 240, 0.7);
+      softRender();
+      const data = drawScaled(img, 1600, 0.78);
+      const r = await api('uploadPhoto', S.byNo[no].orderNo, data, S.staff);
+      Object.assign(p, { status: 'ok', url: r.url, id: r.id });
+    } catch (e) {p.status = 'err';p.err = errMsg(e);p.file = f;}
+    if (S.pk && S.pk.no === no) {S.pk.confirm = null;packSave();}
+    softRender();
+  }
+}
+function loadImg(file) {
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(file);const im = new Image();
+    im.onload = () => {res(im);setTimeout(() => URL.revokeObjectURL(u), 1000);};
+    im.onerror = () => rej(new Error('เปิดรูปไม่ได้'));
+    im.src = u;
+  });
+}
+function drawScaled(img, max, q) {
+  const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.naturalWidth * s);c.height = Math.round(img.naturalHeight * s);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', q);
+}
+
+/* ================= การแสดงผล ================= */
+function go(v) {
+  S.view = v;
+  document.querySelectorAll('#nav button').forEach((b) => b.setAttribute('aria-current', String(b.dataset.v === v)));
+  const scanning = v === 'pick' || v === 'pack';
+  $('camWrap').hidden = !scanning;
+  if (scanning && S.set.autoCam) camStart();else if (!scanning && Cam.on) camStop();
+  render();
+  $('main').scrollTop = 0;
+}
+let rT = null;
+function softRender() {cancelAnimationFrame(rT);rT = requestAnimationFrame(render);}
+function render() {
+  const m = $('main');
+  const keepScroll = m.scrollTop;
+  if (S.view === 'orders') m.innerHTML = vOrders();else
+  if (S.view === 'pick') m.innerHTML = vPick();else
+  if (S.view === 'pack') m.innerHTML = vPack();else
+  m.innerHTML = vMore();
+  m.scrollTop = keepScroll;
+  if (S.view === 'orders') renderOrderList();
+  if (S.flashCode) {
+    const el = m.querySelector('[data-code="' + CSS.escape(S.flashCode) + '"]');
+    if (el) {el.classList.add('flash');el.scrollIntoView({ block: 'nearest' });}
+    S.flashCode = null;
+  }
+  const w = S.staff;
+  $('whoName').textContent = w || 'เลือกชื่อ';$('whoI').textContent = w ? w.slice(0, 1) : '?';
+}
+
+function payChip(o) {
+  const c = o.payStatus === PAY.paid ? 'ok' : o.payStatus === PAY.part ? 'warn' : 'bad';
+  return "<span class=\"chip " + c + "\">" + esc(o.payStatus || '-') + "</span>";
+}
+function pickChip(o) {
+  const c = o.pickStatus === PICK.done ? 'ok' : o.pickStatus === PICK.part ? 'ai' : '';
+  return "<span class=\"chip " + c + "\">" + esc(o.pickStatus || PICK.none) + (o.pickStatus !== PICK.none ? ' ' + (o.pickedQty || 0) + '/' + (o.itemQty || 0) : '') + "</span>";
+}
+function packChip(o) {return o.packStatus === PACK.done ? '<span class="chip ink">แพ็คแล้ว</span>' : '';}
+
+/* ---------- หน้าออเดอร์ ---------- */
+function filtered() {
+  const f = S.f,q = norm(f.q);
+  return S.orders.filter((o) => {
+    if (f.pick !== 'all' && o.pickStatus !== f.pick) return false;
+    if (f.pack !== 'all' && (o.packStatus || PACK.none) !== f.pack) return false;
+    if (f.pay !== 'all' && o.payStatus !== f.pay) return false;
+    if (f.picker && o.pickedBy !== f.picker) return false;
+    if (f.packer && o.packedBy !== f.packer) return false;
+    if (f.date && String(o.date || '').slice(0, 10) !== f.date) return false;
+    if (q) {
+      const hay = norm([o.orderNo, o.customer, o.fbName, o.phone, o.vrichTracking, o.tracking].join('|'));
+      if (!hay.includes(q) && !itemsOf(o).some((i) => norm(i.code) === q)) return false;
+    }
+    return true;
+  }).sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0) || String(a.orderNo).localeCompare(String(b.orderNo)));
+}
+function vOrders() {
+  const all = S.orders;
+  const cnt = (fn) => all.filter(fn).length;
+  const t = today();
+  const tiles = [
+  ['ยังไม่จัด', cnt((o) => o.pickStatus === PICK.none), { pick: PICK.none, pack: 'all', pay: 'all' }],
+  ['จัดแล้ว รอแพ็ค', cnt((o) => o.pickStatus === PICK.done && o.packStatus !== PACK.done), { pick: PICK.done, pack: PACK.none, pay: 'all' }],
+  ['แพ็ควันนี้', cnt((o) => o.packStatus === PACK.done && String(o.packedAt).slice(0, 10) === t), { pick: 'all', pack: PACK.done, pay: 'all' }],
+  ['ยังไม่โอน', cnt((o) => o.payStatus === PAY.none), { pick: 'all', pack: 'all', pay: PAY.none }]];
+
+  const f = S.f;
+  const seg = (key, val, label) => "<button class=\"seg\" data-act=\"filt\" data-k=\"" + key + "\" data-val=\"" + esc(val) + "\" aria-pressed=\"" + (f[key] === val) + "\">" + label + "</button>";
+  const people = S.staffList.slice();
+  S.orders.forEach((o) => {[o.pickedBy, o.packedBy].forEach((p) => {if (p && !people.includes(p)) people.push(p);});});
+  const dates = [...new Set(S.orders.map((o) => String(o.date || '').slice(0, 10)).filter(Boolean))].sort().reverse();
+  const opt = (arr, cur, all) => "<option value=\"\">" + all + "</option>" + arr.map((x) => "<option " + (x === cur ? 'selected' : '') + ">" + esc(x) + "</option>").join('');
+  if (!all.length) return "<div class=\"stack\"><div class=\"empty card\"><b>\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E31\u0E14\u0E02\u0E2D\u0E07<div style=\"margin-top:12px\"><button class=\"btn pri\" data-act=\"startImport\">\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E44\u0E1F\u0E25\u0E4C Vrich</button></div></div></div>";
+  return "<div class=\"stack\">\n    <div class=\"tiles\">" +
+  tiles.map(([l, n, set]) => "<button class=\"tile\" data-act=\"tile\" data-set='" + JSON.stringify(set) + "'><b>" + n + "</b><span>" + l + "</span></button>").join('') + "</div>\n    <div class=\"search\"><input id=\"q\" type=\"search\" placeholder=\"\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E0A\u0E37\u0E48\u0E2D \u0E40\u0E1A\u0E2D\u0E23\u0E4C \u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38 \u0E23\u0E2B\u0E31\u0E2A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\" value=\"" +
+  esc(f.q) + "\"></div>\n    <div class=\"fgroup\"><label>\u0E08\u0E31\u0E14</label>" +
+  seg('pick', 'all', 'ทั้งหมด') + seg('pick', PICK.none, PICK.none) + seg('pick', PICK.part, PICK.part) + seg('pick', PICK.done, PICK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E41\u0E1E\u0E47\u0E04</label>" +
+  seg('pack', 'all', 'ทั้งหมด') + seg('pack', PACK.none, PACK.none) + seg('pack', PACK.done, PACK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E42\u0E2D\u0E19</label>" +
+  seg('pay', 'all', 'ทั้งหมด') + seg('pay', PAY.paid, PAY.paid) + seg('pay', PAY.none, PAY.none) + seg('pay', PAY.part, PAY.part) + "</div>\n    <div class=\"selrow\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
+
+  opt(people, f.picker, 'จัดโดย') + "</select>\n      <select id=\"fPacker\" aria-label=\"\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22\">" +
+  opt(people, f.packer, 'แพ็คโดย') + "</select>\n      <select id=\"fDate\" aria-label=\"\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\">" +
+  opt(dates, f.date, 'ทุกวัน') + "</select>\n    </div>\n    <div class=\"sec\" id=\"olCount\"></div>\n    <div class=\"stack\" id=\"olist\"></div>\n  </div>";
+
+
+
+
+}
+function renderOrderList() {
+  const el = $('olist');if (!el) return;
+  const list = filtered();
+  $('olCount').textContent = list.length + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \xB7 " + list.reduce((s, o) => s + (Number(o.itemQty) || 0), 0) + " \u0E0A\u0E34\u0E49\u0E19";
+  el.innerHTML = list.length ? list.map((o) => {
+    const pct = o.itemQty ? Math.round((o.pickedQty || 0) / o.itemQty * 100) : 0;
+    return "<button class=\"ord\" data-act=\"detail\" data-no=\"" + esc(norm(o.orderNo)) + "\">\n      <div class=\"ord-top\"><span class=\"ord-no\">#" +
+    esc(o.orderNo) + "</span><span class=\"ord-name\">" + esc(o.customer || o.fbName || '-') + "</span><span class=\"ord-amt\">" + baht(o.total) + "</span></div>\n      <div class=\"ord-meta\">" +
+    esc(o.vrichCarrier || 'ยังไม่ระบุขนส่ง') + (o.vrichTracking ? ' · <span class="code">' + esc(o.vrichTracking) + '</span>' : '') + " \xB7 " + (o.itemQty || 0) + " \u0E0A\u0E34\u0E49\u0E19</div>\n      <div class=\"chips\">" +
+    pickChip(o) + packChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + (Number(o.hold) ? '<span class="chip ai">มีของฝาก</span>' : '') + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
+    pct >= 100 ? 'done' : '') + "\"><i style=\"width:" + pct + "%\"></i></div>\n    </button>";
+
+  }).join('') : "<div class=\"empty\">\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E15\u0E32\u0E21\u0E15\u0E31\u0E27\u0E01\u0E23\u0E2D\u0E07\u0E19\u0E35\u0E49</div>";
+}
+
+/* ---------- หน้าจัดของ ---------- */
+function orderHead(o, mode) {
+  return "<div class=\"card head\">\n    <div class=\"head-top\"><span class=\"ord-no\">#" +
+  esc(o.orderNo) + "</span>" + payChip(o) + "<button class=\"x\" data-act=\"" + (mode === 'pick' ? 'closePick' : 'closePack') + "\">\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E2D\u0E37\u0E48\u0E19</button></div>\n    <div><b>" +
+  esc(o.customer || '-') + "</b> <span class=\"muted\">\xB7 " + esc(o.fbName || '') + "</span></div>\n    <div class=\"addr\">" +
+  esc(o.phone || '') + " \xB7 " + esc(o.province || '') + " \xB7 " + esc(o.vrichCarrier || 'ไม่ระบุขนส่ง') + " " + (o.vrichTracking ? '<span class="code">' + esc(o.vrichTracking) + '</span>' : '') + "</div>\n    " + (
+  o.note ? "<div class=\"note\">\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38: " + esc(o.note) + "</div>" : '') + "\n    " + (
+  Number(o.hold) ? "<div class=\"note\">\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E21\u0E35\u0E02\u0E2D\u0E07\u0E1D\u0E32\u0E01\u0E44\u0E27\u0E49</div>" : '') + "\n    " + (
+  o.payStatus !== PAY.paid ? "<div class=\"alert " + (o.payStatus === PAY.none ? 'bad' : 'warn') + "\">" + esc(o.payStatus) + " \xB7 \u0E42\u0E2D\u0E19 " + baht(o.paid) + " \u0E08\u0E32\u0E01 " + baht(o.total) + "</div>" : '') + "\n  </div>";
+
+}
+function waitingList(filterFn, mode, title) {
+  const list = S.orders.filter(filterFn).sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0));
+  return "<div class=\"sec\">" + title + " (" + list.length + ")</div>\n    <div class=\"stack\">" + (
+  list.slice(0, 60).map((o) => "<button class=\"ord\" data-act=\"" + mode + "\" data-no=\"" + esc(norm(o.orderNo)) + "\">\n      <div class=\"ord-top\"><span class=\"ord-no\">#" +
+  esc(o.orderNo) + "</span><span class=\"ord-name\">" + esc(o.customer || '-') + "</span><span class=\"muted num\">" + (o.pickedQty || 0) + "/" + (o.itemQty || 0) + "</span></div>\n      <div class=\"chips\" style=\"margin-top:4px\">" +
+  pickChip(o) + payChip(o) + (o.vrichTracking ? '<span class="chip code">' + esc(o.vrichTracking) + '</span>' : '<span class="chip">ไม่มีเลขพัสดุ</span>') + "</div></button>").join('') || '<div class="empty">ไม่มีออเดอร์ค้าง</div>') + "</div>";
+}
+function vPick() {
+  const o = S.pickNo && S.byNo[S.pickNo];
+  if (!o) {
+    let ch = '';
+    if (S.pickChoices) {
+      ch = "<div class=\"card\"><b>\u0E23\u0E2B\u0E31\u0E2A <span class=\"code\">" + esc(S.pickChoices.code) + "</span> \u0E21\u0E35\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E08\u0E30\u0E43\u0E2A\u0E48</b><div class=\"choose\" style=\"margin-top:8px\">" + S.pickChoices.nos.map((n) => S.byNo[n]).filter(Boolean).map((x) => "<button class=\"ord\" data-act=\"pickChoose\" data-no=\"" +
+      esc(norm(x.orderNo)) + "\"><div class=\"ord-top\"><span class=\"ord-no\">#" + esc(x.orderNo) + "</span><span class=\"ord-name\">" + esc(x.customer) + "</span>" + payChip(x) + "</div></button>").join('') + "</div></div>";
+    }
+    return "<div class=\"stack\">" + ch + "\n      <div class=\"card\"><b>\u0E2A\u0E41\u0E01\u0E19\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38 \u0E2B\u0E23\u0E37\u0E2D\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</b><div class=\"muted\" style=\"font-size:13px\">\u0E2B\u0E23\u0E37\u0E2D\u0E2A\u0E41\u0E01\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E2B\u0E32\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2A\u0E48\u0E43\u0E2B\u0E49</div></div>\n      " +
+
+    waitingList((x) => x.pickStatus !== PICK.done && x.packStatus !== PACK.done, 'openPick', 'รอจัด') + "</div>";
+  }
+  const items = itemsOf(o).slice().sort((a, b) => isSkip(a) - isSkip(b) || (pickedOf(a) >= qtyOf(a)) - (pickedOf(b) >= qtyOf(b)));
+  const total = o.itemQty || 0,done = o.pickedQty || 0;
+  return "<div class=\"stack\">\n    " +
+  orderHead(o, 'pick') + "\n    <div class=\"prog\"><b>" +
+  done + "/" + total + "</b><span class=\"muted\">\u0E0A\u0E34\u0E49\u0E19 \u0E08\u0E31\u0E14\u0E41\u0E25\u0E49\u0E27</span>" + (o.pickedBy ? "<span class=\"chip\" style=\"margin-left:auto\">\u0E42\u0E14\u0E22 " + esc(o.pickedBy) + "</span>" : '') + "</div>\n    <div class=\"bar " + (
+  done >= total && total ? 'done' : '') + "\" style=\"margin-top:-4px\"><i style=\"width:" + (total ? done / total * 100 : 0) + "%\"></i></div>\n    " + (
+  o.pickStatus === PICK.done ? "<div class=\"alert ok\">\u0E08\u0E31\u0E14\u0E04\u0E23\u0E1A\u0E41\u0E25\u0E49\u0E27 \u2713<button data-act=\"toPack\" data-no=\"" + esc(norm(o.orderNo)) + "\"><span>\u0E44\u0E1B\u0E41\u0E1E\u0E47\u0E04</span></button></div>" : '') + "\n    <div class=\"items\">" +
+  items.map((i) => itemRow(i, pickedOf(i), 'pick')).join('') + "</div>\n    <div class=\"btns\"><button class=\"btn danger\" data-act=\"resetPick\" data-no=\"" +
+  esc(norm(o.orderNo)) + "\">" + (S.confirmReset === 'pick' + norm(o.orderNo) ? 'แตะอีกครั้งเพื่อล้างการจัดทั้งหมด' : 'ล้างการจัด') + "</button></div>\n  </div>";
+
+}
+function itemRow(i, n, mode) {
+  const q = qtyOf(i);
+  if (isSkip(i)) return "<div class=\"it skip\"><span class=\"tick\">\u2013</span><div class=\"min\"><div class=\"code\">" + esc(i.code) + "</div><div class=\"nm\">" + esc(i.name) + " \xB7 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14</div></div><span class=\"num muted\">" + baht(i.price) + "</span></div>";
+  const st = n >= q ? 'done' : n > 0 ? 'part' : '';
+  const extra = mode === 'pack' ? "<div class=\"nm\">\u0E08\u0E31\u0E14\u0E41\u0E25\u0E49\u0E27 " + pickedOf(i) + "/" + q + (pickedOf(i) < q ? ' ⚠' : '') + "</div>" : '';
+  return "<div class=\"it " + st + "\" data-code=\"" + esc(norm(i.code)) + "\">\n    <span class=\"tick\">" + (
+  n >= q ? '✓' : n > 0 ? n : '') + "</span>\n    <button class=\"min\" data-act=\"" +
+  mode + "Inc\" data-c=\"" + esc(i.code) + "\" data-d=\"1\"><div class=\"code\">" + esc(i.code) + (q > 1 ? " <span class=\"chip ai\">x" + q + "</span>" : '') + "</div><div class=\"nm\">" + esc(i.name) + " \xB7 " + baht(i.price) + "</div>" + extra + "</button>\n    <div class=\"qty\"><button data-act=\"" +
+  mode + "Inc\" data-c=\"" + esc(i.code) + "\" data-d=\"-1\" aria-label=\"\u0E25\u0E14\">\u2212</button><b>" + n + "/" + q + "</b><button class=\"plus\" data-act=\"" + mode + "Inc\" data-c=\"" + esc(i.code) + "\" data-d=\"1\" aria-label=\"\u0E40\u0E1E\u0E34\u0E48\u0E21\">+</button></div>\n  </div>";
+
+}
+
+/* ---------- หน้าแพ็ค ---------- */
+function vPack() {
+  if (!S.pk || !S.byNo[S.pk.no]) {
+    S.pk = null;
+    let ch = '';
+    if (S.packChoices && S.packChoices.nos) {
+      ch = "<div class=\"card\"><b>\u0E23\u0E2B\u0E31\u0E2A <span class=\"code\">" + esc(S.packChoices.code) + "</span> \u0E21\u0E35\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</b><div class=\"choose\" style=\"margin-top:8px\">" + S.packChoices.nos.map((n) => S.byNo[n]).filter(Boolean).map((x) => "<button class=\"ord\" data-act=\"openPack\" data-no=\"" +
+      esc(norm(x.orderNo)) + "\"><div class=\"ord-top\"><span class=\"ord-no\">#" + esc(x.orderNo) + "</span><span class=\"ord-name\">" + esc(x.customer) + "</span>" + pickChip(x) + "</div></button>").join('') + "</div></div>";
+    }
+    return "<div class=\"stack\">" + ch + "\n      <div class=\"card\"><b>\u0E2A\u0E41\u0E01\u0E19\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38\u0E1A\u0E19\u0E43\u0E1A\u0E1B\u0E30\u0E2B\u0E19\u0E49\u0E32 \u0E2B\u0E23\u0E37\u0E2D\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</b><div class=\"muted\" style=\"font-size:13px\">\u0E41\u0E25\u0E49\u0E27\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E43\u0E2A\u0E48\u0E01\u0E25\u0E48\u0E2D\u0E07</div></div>\n      " +
+
+    waitingList((x) => x.pickStatus === PICK.done && x.packStatus !== PACK.done, 'openPack', 'จัดแล้ว รอแพ็ค') + "\n      " +
+    waitingList((x) => x.pickStatus === PICK.part && x.packStatus !== PACK.done, 'openPack', 'จัดยังไม่ครบ') + "</div>";
+  }
+  const o = S.byNo[S.pk.no],pk = S.pk;
+  const c = packCounts(o);
+  const items = itemsOf(o).slice().sort((a, b) => isSkip(a) - isSkip(b) || ((pk.packed[a.code] || 0) >= qtyOf(a)) - ((pk.packed[b.code] || 0) >= qtyOf(b)));
+  const carriers = S.carriers.slice();if (pk.carrier && !carriers.includes(pk.carrier)) carriers.unshift(pk.carrier);
+  const label = pk.labelOk === true ? '<span class="chip ok">ใบปะหน้าตรง ✓</span>' : pk.labelOk === false ? '<span class="chip bad">ไม่ตรงกับ Vrich</span>' :
+  o.vrichTracking ? '<span class="chip">สแกนใบปะหน้าเพื่อตรวจ</span>' : '';
+  const photos = pk.photos.map((p) => "<div class=\"ph\">" + (p.thumb ? "<img src=\"" + p.thumb + "\" alt=\"\">" : p.url ? "<a href=\"" + esc(p.url) + "\" target=\"_blank\" style=\"display:grid;place-items:center;height:100%;font-size:12px\">\u0E40\u0E1B\u0E34\u0E14\u0E23\u0E39\u0E1B</a>" : '') + "\n    <span class=\"st\">" + (
+  p.status === 'up' ? 'กำลังส่ง…' : p.status === 'err' ? 'ส่งไม่ได้' : 'บันทึกแล้ว') + "</span>\n    " + (
+  p.status === 'err' ? "<button class=\"rm\" data-act=\"retryPhoto\" data-l=\"" + p.lid + "\" aria-label=\"\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E21\u0E48\">\u21BB</button>" : "<button class=\"rm\" data-act=\"rmPhoto\" data-l=\"" + p.lid + "\" aria-label=\"\u0E25\u0E1A\u0E23\u0E39\u0E1B\">\xD7</button>") + "</div>").join('');
+  const issues = (pk.confirm || '').split('|').filter(Boolean);
+  const btnTxt = issues.length ? 'ยืนยันแพ็ค (' + issues.join(', ') + ')' : 'แพ็คเสร็จ';
+  return "<div class=\"stack\">\n    " +
+  orderHead(o, 'pack') + "\n    " + (
+  o.packStatus === PACK.done ? "<div class=\"alert warn\">\u0E41\u0E1E\u0E47\u0E04\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E42\u0E14\u0E22 " + esc(o.packedBy || '-') + " " + esc(o.packedAt || '') + "</div>" : '') + "\n    " + (
+  o.pickStatus !== PICK.done ? "<div class=\"alert warn\">\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E31\u0E14\u0E02\u0E2D\u0E07\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E04\u0E23\u0E1A (" + (o.pickedQty || 0) + "/" + (o.itemQty || 0) + ")</div>" : '') + "\n    " + (
+  S.packChoices && S.packChoices.switchTo ? "<div class=\"alert bad\">\u0E2A\u0E41\u0E01\u0E19\u0E40\u0E08\u0E2D\u0E02\u0E2D\u0E07\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C #" + esc(S.byNo[S.packChoices.switchTo].orderNo) + "<button data-act=\"openPack\" data-no=\"" + esc(S.packChoices.switchTo) + "\"><span>\u0E2A\u0E25\u0E31\u0E1A</span></button></div>" : '') + "\n    <div class=\"prog\"><b>" +
+  c.done + "/" + c.total + "</b><span class=\"muted\">\u0E0A\u0E34\u0E49\u0E19 \u0E2A\u0E41\u0E01\u0E19\u0E25\u0E07\u0E01\u0E25\u0E48\u0E2D\u0E07\u0E41\u0E25\u0E49\u0E27</span></div>\n    <div class=\"bar " + (
+  c.done >= c.total && c.total ? 'done' : '') + "\" style=\"margin-top:-4px\"><i style=\"width:" + (c.total ? c.done / c.total * 100 : 0) + "%\"></i></div>\n    <div class=\"items\">" +
+  items.map((i) => itemRow(i, Math.min(qtyOf(i), pk.packed[i.code] || 0), 'pack')).join('') + "</div>\n    <div class=\"card stack\">\n      <div class=\"row2\">\n        <label class=\"field\"><span>\u0E02\u0E19\u0E2A\u0E48\u0E07</span><select id=\"pkCarrier\">" +
+
+
+  carriers.map((x) => "<option " + (x === pk.carrier ? 'selected' : '') + ">" + esc(x) + "</option>").join('') + "</select></label>\n        <label class=\"field\"><span>\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38</span><input id=\"pkTrack\" value=\"" +
+  esc(pk.tracking) + "\" class=\"code\" autocomplete=\"off\"></label>\n      </div>\n      <div class=\"trk\">" +
+
+  label + "</div>\n      <div class=\"field\"><span>\u0E23\u0E39\u0E1B\u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19\u0E01\u0E32\u0E23\u0E41\u0E1E\u0E47\u0E04 " + (
+  S.set.requirePhoto ? '(บังคับ)' : '') + "</span>\n        <div class=\"photos\">" +
+  photos + "<label class=\"ph add\" for=\"filePhoto\"><span><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 8h3l2-3h6l2 3h3v11H4z\"/><circle cx=\"12\" cy=\"13\" r=\"3.5\"/></svg>\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</span></label></div>\n      </div>\n      <label class=\"field\"><span>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</span><input id=\"pkNote\" value=\"" +
+
+  esc(pk.note) + "\" placeholder=\"\u0E40\u0E0A\u0E48\u0E19 \u0E43\u0E2A\u0E48\u0E01\u0E25\u0E48\u0E2D\u0E07 M+, \u0E2B\u0E48\u0E2D\u0E1A\u0E31\u0E1A\u0E40\u0E1A\u0E34\u0E49\u0E25\"></label>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22 <b style=\"color:var(--ink)\">" +
+  esc(S.staff || 'ยังไม่เลือกชื่อ') + "</b></div>\n    </div>\n    <button class=\"big stickyBtn " + (
+
+  issues.length ? 'warn' : 'ok') + "\" data-act=\"finishPack\">" + esc(btnTxt) + "</button>\n    " + (
+  o.packStatus === PACK.done ? "<button class=\"btn danger\" data-act=\"resetPack\" data-no=\"" + esc(norm(o.orderNo)) + "\">" + (S.confirmReset === 'pack' + norm(o.orderNo) ? 'แตะอีกครั้งเพื่อยกเลิกสถานะแพ็ค' : 'ยกเลิกสถานะแพ็ค') + "</button>" : '') + "\n  </div>";
+
+}
+
+/* ---------- รายละเอียดออเดอร์ (แผ่นล่าง) ---------- */
+function openDetail(no) {
+  const o = S.byNo[norm(no)];if (!o) return;
+  const items = itemsOf(o);
+  const photos = String(o.photos || '').split('\n').filter(Boolean);
+  $('sheetRoot').innerHTML = "<div class=\"sheetBg\" data-act=\"closeSheet\"><div class=\"sheet\" data-stop=\"1\">\n    <div class=\"grab\"></div>\n    <div class=\"stack\">\n      <div class=\"head-top\"><span class=\"ord-no\" style=\"font-size:20px\">#" +
+
+
+  esc(o.orderNo) + "</span>" + payChip(o) + pickChip(o) + packChip(o) + "</div>\n      <dl class=\"kv\">\n        <dt>\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32</dt><dd>" +
+
+  esc(o.customer) + " (" + esc(o.fbName) + ")</dd>\n        <dt>\u0E42\u0E17\u0E23</dt><dd>" +
+  esc(o.phone) + "</dd>\n        <dt>\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48</dt><dd>" +
+  esc(o.address) + "</dd>\n        <dt>\u0E22\u0E2D\u0E14</dt><dd>" +
+  baht(o.amount) + " + \u0E2A\u0E48\u0E07 " + baht(o.shipping) + " \u2212 \u0E25\u0E14 " + baht(o.discount) + " = <b>" + baht(o.total) + "</b> \xB7 \u0E42\u0E2D\u0E19 " + baht(o.paid) + "</dd>\n        <dt>Vrich</dt><dd>" +
+  esc(o.vrichCarrier || '-') + " <span class=\"code\">" + esc(o.vrichTracking || '') + "</span></dd>\n        " + (
+  o.note ? "<dt>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</dt><dd>" + esc(o.note) + "</dd>" : '') + "\n        <dt>\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22</dt><dd>" +
+  esc(o.pickedBy || '-') + " " + esc(o.pickedAt || '') + "</dd>\n        <dt>\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22</dt><dd>" +
+  esc(o.packedBy || '-') + " " + esc(o.packedAt || '') + "</dd>\n        " + (
+  o.packStatus === PACK.done ? "<dt>\u0E2A\u0E48\u0E07\u0E14\u0E49\u0E27\u0E22</dt><dd>" + esc(o.carrier || '-') + " <span class=\"code\">" + esc(o.tracking || '') + "</span></dd>" : '') + "\n        " + (
+  photos.length ? "<dt>\u0E23\u0E39\u0E1B</dt><dd>" + photos.map((u, i) => "<a href=\"" + esc(u) + "\" target=\"_blank\">\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48 " + (i + 1) + "</a>").join(' · ') + "</dd>" : '') + "\n        " + (
+  o.packNote ? "<dt>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E41\u0E1E\u0E47\u0E04</dt><dd>" + esc(o.packNote) + "</dd>" : '') + "\n      </dl>\n      <div class=\"items\">" +
+
+  items.map((i) => "<div class=\"it " + (isSkip(i) ? 'skip' : pickedOf(i) >= qtyOf(i) ? 'done' : pickedOf(i) ? 'part' : '') + "\"><span class=\"tick\">" + (isSkip(i) ? '–' : pickedOf(i) >= qtyOf(i) ? '✓' : pickedOf(i) || '') + "</span>\n        <div class=\"min\"><div class=\"code\">" +
+  esc(i.code) + "</div><div class=\"nm\">" + esc(i.name) + " \xB7 " + baht(i.price) + (isSkip(i) ? ' · ไม่ต้องจัด' : '') + "</div></div><b class=\"num\">" + pickedOf(i) + "/" + qtyOf(i) + "</b></div>").join('') + "</div>\n      <div class=\"row2\"><button class=\"btn pri\" data-act=\"sheetPick\" data-no=\"" +
+  esc(norm(o.orderNo)) + "\">\u0E08\u0E31\u0E14\u0E02\u0E2D\u0E07</button><button class=\"btn pri\" data-act=\"sheetPack\" data-no=\"" + esc(norm(o.orderNo)) + "\">\u0E41\u0E1E\u0E47\u0E04</button></div>\n    </div></div></div>";
+
+}
+function closeSheet() {$('sheetRoot').innerHTML = '';}
+
+/* ---------- เลือกผู้ใช้งาน ---------- */
+function openStaff() {
+  $('sheetRoot').innerHTML = "<div class=\"sheetBg\" data-act=\"closeSheet\"><div class=\"sheet\" data-stop=\"1\"><div class=\"grab\"></div>\n    <div class=\"stack\"><h2>\u0E43\u0E04\u0E23\u0E01\u0E33\u0E25\u0E31\u0E07\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19?</h2><div class=\"muted\" style=\"font-size:13px\">\u0E0A\u0E37\u0E48\u0E2D\u0E19\u0E35\u0E49\u0E08\u0E30\u0E16\u0E39\u0E01\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19\u0E04\u0E19\u0E08\u0E31\u0E14/\u0E04\u0E19\u0E41\u0E1E\u0E47\u0E04 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E0A\u0E37\u0E48\u0E2D\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E0A\u0E35\u0E15 Staff</div>\n    <div class=\"list\">" + (
+
+  S.staffList.map((n) => "<button class=\"lrow\" data-act=\"setStaff\" data-n=\"" + esc(n) + "\" style=\"font-weight:600;font-size:16px\">" + esc(n) + (n === S.staff ? ' ✓' : '') + "</button>").join('') || '<div class="empty">ยังไม่มีรายชื่อในชีต Staff</div>') + "</div></div></div></div>";
+}
+
+/* ---------- เพิ่มเติม ---------- */
+function vMore() {
+  if (S.more === 'import') return vImport();
+  if (S.more === 'labels') return vLabels();
+  if (S.more === 'summary') return vSummary();
+  if (S.more === 'settings') return vSettings();
+  const ic = (p) => "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\">" + p + "</svg>";
+  return "<div class=\"stack\"><div class=\"menu\">\n    <button data-act=\"startImport\">" +
+  ic('<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>') + "<div><b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E08\u0E32\u0E01 Vrich</b><span>\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich (\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E42\u0E2D\u0E19/\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38\u0E44\u0E14\u0E49 \u0E44\u0E21\u0E48\u0E25\u0E49\u0E32\u0E07\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14)</span></div></button>\n    <button data-act=\"more\" data-m=\"labels\">" +
+  ic('<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>') + "<div><b>\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E09\u0E25\u0E32\u0E01 QR \u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</b><span>\u0E15\u0E34\u0E14\u0E17\u0E35\u0E48\u0E16\u0E38\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u0E2A\u0E41\u0E01\u0E19\u0E44\u0E14\u0E49\u0E40\u0E23\u0E47\u0E27\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E23\u0E2B\u0E31\u0E2A</span></div></button>\n    <button data-act=\"more\" data-m=\"summary\">" +
+  ic('<path d="M5 20V10M12 20V4M19 20v-7"/>') + "<div><b>\u0E2A\u0E23\u0E38\u0E1B\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49</b><span>\u0E43\u0E04\u0E23\u0E08\u0E31\u0E14/\u0E41\u0E1E\u0E47\u0E04\u0E44\u0E1B\u0E01\u0E35\u0E48\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</span></div></button>\n    <button data-act=\"more\" data-m=\"settings\">" +
+  ic('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>') + "<div><b>\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32</b><span>\u0E40\u0E2A\u0E35\u0E22\u0E07, \u0E01\u0E25\u0E49\u0E2D\u0E07, \u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</span></div></button>\n    <button data-act=\"refresh\">" +
+  ic('<path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/>') + "<div><b>\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14</b><span>" + (Q.list.length ? 'รอส่งอีก ' + Q.list.length + ' รายการ' : 'ข้อมูลตรงกับชีตแล้ว') + "</span></div></button>\n    " + (
+  S.sheetUrl ? "<a class=\"lrow\" href=\"" + esc(S.sheetUrl) + "\" target=\"_blank\" style=\"text-decoration:none;color:inherit;padding:12px 14px\">" + ic('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>') + "<div><b>\u0E40\u0E1B\u0E34\u0E14 Google Sheet</b><div class=\"muted\" style=\"font-size:12px\">\u0E14\u0E39\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 \u0E41\u0E01\u0E49\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19/\u0E02\u0E19\u0E2A\u0E48\u0E07</div></div></a>" : '') + (getCfg() && !hasGas() ? '<button data-act="share">' + ic('<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 11l7.6-4M8.2 13l7.6 4"/>') + '<div><b>ลิงก์สำหรับพนักงาน</b><span>ส่งให้พนักงานกดเปิด เข้าใช้ได้ทันทีไม่ต้องกรอกอะไร</span></div></button>' +
+    '<button data-act="reconnect">' + ic('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>') + '<div><b>เปลี่ยนการเชื่อมต่อ</b><span>ใส่ลิงก์ /exec หรือรหัสเข้าแอปใหม่</span></div></button>' : '') + "\n  </div></div>";
+
+}
+function back() {return "<button class=\"btn\" data-act=\"more\" data-m=\"\">\u2190 \u0E01\u0E25\u0E31\u0E1A</button>";}
+
+function vImport() {
+  const im = S.imp;
+  if (!im) return "<div class=\"stack\">" + back() + "<div class=\"card\">\u0E01\u0E33\u0E25\u0E31\u0E07\u0E2D\u0E48\u0E32\u0E19\u0E44\u0E1F\u0E25\u0E4C\u2026</div></div>";
+  if (im.error) return "<div class=\"stack\">" + back() + "<div class=\"alert bad\">" + esc(im.error) + "</div><button class=\"btn pri\" data-act=\"startImport\">\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E1F\u0E25\u0E4C\u0E43\u0E2B\u0E21\u0E48</button></div>";
+  const known = im.orders.filter((o) => S.byNo[norm(o.orderNo)]).length;
+  return "<div class=\"stack\">" + back() + "\n    <div class=\"card stack\"><h2>" +
+  esc(im.fileName) + "</h2>\n      <dl class=\"kv\"><dt>\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</dt><dd><b>" +
+  im.orders.length + "</b> (\u0E43\u0E2B\u0E21\u0E48 " + (im.orders.length - known) + ", \u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15 " + known + ")</dd>\n      <dt>\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</dt><dd>" +
+  im.items.length + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \xB7 \u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14 " + im.items.filter((i) => i.price >= 0).reduce((s, i) => s + i.qty, 0) + " \u0E0A\u0E34\u0E49\u0E19</dd>\n      <dt>\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14</dt><dd>" +
+  im.items.filter((i) => i.price < 0).length + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 (\u0E2A\u0E48\u0E27\u0E19\u0E25\u0E14/\u0E23\u0E32\u0E04\u0E32\u0E15\u0E34\u0E14\u0E25\u0E1A)</dd>\n      <dt>\u0E42\u0E2D\u0E19</dt><dd>\u0E42\u0E2D\u0E19\u0E41\u0E25\u0E49\u0E27 " +
+  im.orders.filter((o) => o.total <= 0 || o.paid >= o.total).length + " \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E42\u0E2D\u0E19 " + im.orders.filter((o) => o.total > 0 && !o.paid).length + " \xB7 \u0E44\u0E21\u0E48\u0E04\u0E23\u0E1A " + im.orders.filter((o) => o.total > 0 && o.paid > 0 && o.paid < o.total).length + "</dd>\n      <dt>\u0E2A\u0E15\u0E47\u0E2D\u0E01\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</dt><dd>" +
+  im.products.length + " \u0E23\u0E2B\u0E31\u0E2A (\u0E43\u0E0A\u0E49\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E09\u0E25\u0E32\u0E01)</dd></dl>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27\u0E08\u0E30\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \u0E22\u0E2D\u0E14\u0E42\u0E2D\u0E19 \u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38 \u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E25\u0E49\u0E32\u0E07\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E08\u0E31\u0E14/\u0E41\u0E1E\u0E47\u0E04\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27</div>\n      <button class=\"big\" data-act=\"doImport\" " + (
+
+  im.busy ? 'disabled' : '') + ">" + (im.busy ? 'กำลังนำเข้า…' : 'นำเข้า ' + im.orders.length + ' ออเดอร์') + "</button>\n    </div></div>";
+
+}
+function vSummary() {
+  const t = today(),rows = {};
+  S.orders.forEach((o) => {
+    if (o.pickStatus === PICK.done && String(o.pickedAt).slice(0, 10) === t && o.pickedBy) {const r = rows[o.pickedBy] = rows[o.pickedBy] || { p: 0, pq: 0, k: 0, kq: 0 };r.p++;r.pq += Number(o.itemQty) || 0;}
+    if (o.packStatus === PACK.done && String(o.packedAt).slice(0, 10) === t && o.packedBy) {const r = rows[o.packedBy] = rows[o.packedBy] || { p: 0, pq: 0, k: 0, kq: 0 };r.k++;r.kq += Number(o.itemQty) || 0;}
+  });
+  const names = Object.keys(rows);
+  return "<div class=\"stack\">" + back() + "<div class=\"card\"><h2>\u0E2A\u0E23\u0E38\u0E1B\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48 " + t + "</h2>\n    " + (
+  names.length ? "<table class=\"sum\"><thead><tr><th>\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19</th><th class=\"n\">\u0E08\u0E31\u0E14\u0E40\u0E2A\u0E23\u0E47\u0E08</th><th class=\"n\">\u0E41\u0E1E\u0E47\u0E04</th></tr></thead><tbody>\n    " +
+  names.map((n) => "<tr><td>" + esc(n) + "</td><td class=\"n\">" + rows[n].p + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C<br><span class=\"muted\">" + rows[n].pq + " \u0E0A\u0E34\u0E49\u0E19</span></td><td class=\"n\">" + rows[n].k + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C<br><span class=\"muted\">" + rows[n].kq + " \u0E0A\u0E34\u0E49\u0E19</span></td></tr>").join('') + "</tbody></table>" : '<div class="empty">วันนี้ยังไม่มีการจัด/แพ็ค</div>') + "\n    <div class=\"muted\" style=\"font-size:12px;margin-top:8px\">\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E17\u0E38\u0E01\u0E01\u0E32\u0E23\u0E2A\u0E41\u0E01\u0E19\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E0A\u0E35\u0E15 Log</div></div></div>";
+
+}
+function vSettings() {
+  const t = (k, l, d) => "<label class=\"toggle card\"><span><b>" + l + "</b><br><span class=\"muted\" style=\"font-size:12px\">" + d + "</span></span><input type=\"checkbox\" data-set=\"" + k + "\" " + (S.set[k] ? 'checked' : '') + "></label>";
+  return "<div class=\"stack\">" + back() + "\n    " +
+  t('sound', 'เสียงบี๊บ + สั่น', 'ดัง/สั่นทุกครั้งที่สแกน เสียงต่ำ = ผิด') + "\n    " +
+  t('autoCam', 'เปิดกล้องอัตโนมัติ', 'เข้าหน้าจัดของ/แพ็คแล้วเปิดกล้องทันที') + "\n    " +
+  t('requirePhoto', 'บังคับถ่ายรูปก่อนแพ็คเสร็จ', 'กดแพ็คเสร็จไม่ได้ถ้ายังไม่มีรูป') + "\n    <div class=\"card muted\" style=\"font-size:13px\">\u0E43\u0E0A\u0E49\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E1A\u0E32\u0E23\u0E4C\u0E42\u0E04\u0E49\u0E14\u0E1A\u0E25\u0E39\u0E17\u0E39\u0E18\u0E01\u0E31\u0E1A\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49 \u0E22\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E23\u0E31\u0E1A\u0E17\u0E31\u0E19\u0E17\u0E35\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C (\u0E15\u0E31\u0E49\u0E07\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1B\u0E49\u0E19\u0E20\u0E32\u0E29\u0E32\u0E2D\u0E31\u0E07\u0E01\u0E24\u0E29 \u0E41\u0E25\u0E30\u0E2A\u0E48\u0E07 Enter \u0E17\u0E49\u0E32\u0E22\u0E23\u0E2B\u0E31\u0E2A)</div>\n  </div>";
+
+
+}
+
+/* ---------- ฉลาก QR ---------- */
+function vLabels() {
+  if (!S.products) return "<div class=\"stack\">" + back() + "<div class=\"card\">\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u2026</div></div>";
+  const openCodes = new Set();
+  S.orders.forEach((o) => {if (o.packStatus !== PACK.done) itemsOf(o).forEach((i) => {if (!isSkip(i)) openCodes.add(norm(i.code));});});
+  const q = norm(S.labelQ);
+  const list = labelList().filter((p) => (!S.labelOnlyOpen || openCodes.has(norm(p.code))) && (!q || norm(p.code + '|' + p.name).includes(q)));
+  S._labelList = list;
+  const sel = S.labelSel;
+  return "<div class=\"stack\">" + back() + "\n    <div class=\"card stack\">\n      <div class=\"row2\"><label class=\"field\"><span>\u0E02\u0E19\u0E32\u0E14\u0E09\u0E25\u0E32\u0E01</span><select id=\"lblSize\"><option value=\"s5030\" " + (
+
+  S.labelSize === 's5030' ? 'selected' : '') + ">50\xD730 \u0E21\u0E21.</option><option value=\"sA4\" " + (S.labelSize === 'sA4' ? 'selected' : '') + ">A4 21 \u0E14\u0E27\u0E07</option></select></label>\n      <label class=\"field\"><span>\u0E04\u0E49\u0E19\u0E2B\u0E32</span><input id=\"lblQ\" value=\"" +
+  esc(S.labelQ) + "\" placeholder=\"\u0E23\u0E2B\u0E31\u0E2A/\u0E0A\u0E37\u0E48\u0E2D\"></label></div>\n      <label class=\"toggle\"><span>\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E43\u0E19\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E41\u0E1E\u0E47\u0E04</span><input type=\"checkbox\" id=\"lblOpen\" " + (
+  S.labelOnlyOpen ? 'checked' : '') + "></label>\n      <div class=\"btns\"><button class=\"btn\" data-act=\"lblAll\">\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 (" +
+  list.length + ")</button><button class=\"btn\" data-act=\"lblNone\">\u0E25\u0E49\u0E32\u0E07</button>\n      <button class=\"btn pri\" data-act=\"lblPrint\" " + (
+  sel.size ? '' : 'disabled') + ">\u0E1E\u0E34\u0E21\u0E1E\u0E4C " + sel.size + " \u0E14\u0E27\u0E07</button></div>\n    </div>\n    <div class=\"list\">" + (
+
+  list.slice(0, 400).map((p) => "<label class=\"lrow\"><input type=\"checkbox\" data-lbl=\"" + esc(p.code) + "\" " + (sel.has(p.code) ? 'checked' : '') + ">\n      <span class=\"code\" style=\"min-width:56px\">" +
+  esc(p.code) + "</span><span class=\"grow nm\" style=\"font-size:13px\">" + esc(p.name) + "</span><span class=\"num muted\">" + baht(p.price) + "</span></label>").join('') || '<div class="empty">ไม่พบสินค้า</div>') + "</div>\n  </div>";
+
+}
+function labelList() {
+  const m = {};
+  (S.products || []).forEach((p) => {m[norm(p.code)] = { code: String(p.code), name: p.name || '', price: p.price };});
+  Object.values(S.itemsBy).forEach((arr) => arr.forEach((i) => {if (!isSkip(i) && !m[norm(i.code)]) m[norm(i.code)] = { code: String(i.code), name: i.name || '', price: i.price };}));
+  return Object.values(m).sort((a, b) => a.code.localeCompare(b.code, 'th', { numeric: true }));
+}
+let qrLib = null;
+function loadScript(src) {return new Promise((res, rej) => {const s = document.createElement('script');s.src = src;s.onload = res;s.onerror = () => rej(new Error('โหลดไม่สำเร็จ ' + src));document.head.appendChild(s);});}
+async function printLabels() {
+  if (!window.qrcode) await loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js');
+  const all = labelList().filter((p) => S.labelSel.has(p.code));
+  const html = all.map((p) => {
+    const qr = qrcode(0, 'M');qr.addData(encodeURIComponent(p.code));qr.make();
+    return "<div class=\"lbl\"><img src=\"" + qr.createDataURL(4, 0) + "\" alt=\"\"><div class=\"t\"><div class=\"c\">" + esc(p.code) + "</div><div class=\"n\">" + esc(p.name) + "</div><div class=\"p\">" + baht(p.price) + "</div></div></div>";
+  }).join('');
+  const pa = $('printArea');pa.className = S.labelSize;pa.innerHTML = html;
+  let st = $('pageStyle');if (!st) {st = document.createElement('style');st.id = 'pageStyle';document.head.appendChild(st);}
+  st.textContent = S.labelSize === 's5030' ? '@page{size:50mm 30mm;margin:0}' : '@page{size:A4;margin:10mm 0}';
+  setTimeout(() => window.print(), 300);
+}
+
+/* ---------- นำเข้า Vrich ---------- */
+async function readVrich(file) {
+  S.more = 'import';S.imp = null;go('more');
+  try {
+    if (!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+    let orderRows = null,stockRows = [];
+    wb.SheetNames.forEach((n) => {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[n], { defval: '' });
+      if (!rows.length) return;
+      const keys = Object.keys(rows[0]);
+      if (keys.includes('เลขที่ Order') && keys.includes('รหัสสินค้า')) orderRows = rows;else
+      if (keys.includes('รหัสสินค้า') && keys.includes('ยอดคงเหลือ')) stockRows = rows;
+    });
+    if (!orderRows) throw new Error('ไม่พบชีตออเดอร์ (ต้องมีคอลัมน์ "เลขที่ Order" และ "รหัสสินค้า") ใช้ไฟล์ export ออเดอร์จาก Vrich');
+    const d = (v) => v instanceof Date ? v.toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' }) : String(v || '').slice(0, 10);
+    const str = (v) => String(v == null ? '' : v).trim();
+    const phone = (v) => {let s = str(v).replace(/\D/g, '');if (s.length === 9) s = '0' + s;return s;};
+    const n = (v) => Number(String(v).replace(/,/g, '')) || 0;
+    const orders = {},items = {};
+    orderRows.forEach((r) => {
+      const no = str(r['เลขที่ Order']);if (!no) return;
+      if (!orders[no]) orders[no] = {
+        orderNo: no, date: d(r['วันที่']), fbName: str(r['ชื่อ Facebook']), customer: str(r['ชื่อลูกค้า']),
+        phone: phone(r['โทรศัพท์']), address: str(r['ที่อยู่']), province: str(r['จังหวัด']), zip: str(r['รหัสไปรษณีย์']),
+        note: str(r['หมายเหตุ']), hold: n(r['มีของฝาก']), vrichCarrier: str(r['ขนส่ง']), vrichTracking: str(r['เลขพัสดุ']),
+        amount: n(r['จำนวนเงิน']), discount: n(r['ส่วนลด']), shipping: n(r['ค่าส่ง']), total: n(r['รวม']), paid: n(r['โอนแล้ว'])
+      };
+      const code = str(r['รหัสสินค้า']);if (!code) return;
+      const key = no + '|' + norm(code);
+      if (items[key]) items[key].qty += n(r['จำนวน']) || 1;else
+      items[key] = { orderNo: no, code: code, name: str(r['รายละเอียด']), qty: n(r['จำนวน']) || 1, price: n(r['ราคา']) };
+    });
+    const products = stockRows.map((r) => ({ code: str(r['รหัสสินค้า']), stockCode: str(r['รหัสสต็อก']), name: str(r['รายละเอียด']), price: n(r['ราคา']), qty: n(r['จำนวน']), sold: n(r['ขายไป']), remain: n(r['ยอดคงเหลือ']) })).filter((p) => p.code);
+    S.imp = { fileName: file.name, orders: Object.values(orders), items: Object.values(items), products: products };
+  } catch (e) {S.imp = { error: errMsg(e) };}
+  render();
+}
+async function doImport() {
+  const im = S.imp;if (!im || im.busy) return;
+  im.busy = true;render();
+  try {
+    const r = await api('importVrich', { orders: im.orders, items: im.items, products: im.products, by: S.staff });
+    await refresh(true);
+    S.products = null;
+    toast("\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E41\u0E25\u0E49\u0E27: \u0E43\u0E2B\u0E21\u0E48 " + r.added + " \u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15 " + r.updated + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C", 'ok');
+    S.imp = null;S.more = null;go('orders');
+  } catch (e) {im.busy = false;toast('นำเข้าไม่สำเร็จ: ' + errMsg(e), 'bad');render();}
+}
+
+async function refresh(quiet) {
+  if (Q.list.length) {qKick();if (!quiet) toast('ยังมีข้อมูลรอส่ง ' + Q.list.length + ' รายการ ส่งให้ครบก่อนแล้วค่อยดึงใหม่');return;}
+  try {
+    const d = await api('getActive');
+    if (Q.list.length) return;
+    setData(d);softRender();
+    if (!quiet) toast('อัปเดตข้อมูลแล้ว', 'ok');
+  } catch (e) {if (!quiet) toast('ดึงข้อมูลไม่ได้: ' + errMsg(e), 'bad');}
+}
+
+/* ================= เหตุการณ์ ================= */
+const ACT = {
+  go: (d) => {if (d.v === 'more') S.more = null;go(d.v);},
+  pickStaff: openStaff,
+  setStaff: (d) => {S.staff = d.n;LS.set('staff', d.n);closeSheet();render();},
+  closeSheet: () => closeSheet(),
+  camOn: () => camStart(),
+  camToggle: () => Cam.on ? camStop() : camStart(),
+  photoScan: () => $('fileScan').click(),
+  filt: (d) => {S.f[d.k] = d.val;render();},
+  tile: (d, el) => {Object.assign(S.f, JSON.parse(el.dataset.set));render();},
+  detail: (d) => openDetail(d.no),
+  sheetPick: (d) => {closeSheet();openPick(d.no);const o = S.byNo[d.no];if (o) feedback(pickWarn(o));},
+  sheetPack: (d) => {closeSheet();openPack(d.no);},
+  openPick: (d) => {openPick(d.no);const o = S.byNo[d.no];if (o) feedback(pickWarn(o));},
+  pickChoose: (d) => {const code = S.pickChoices.code;openPick(d.no);const o = S.byNo[d.no];const it = itemsOf(o).find((i) => norm(i.code) === norm(code));feedback(pickInc(o, it, 1));},
+  closePick: () => {S.pickNo = null;S.pickChoices = null;render();},
+  pickInc: (d) => {const o = S.byNo[S.pickNo];const it = itemsOf(o).find((i) => i.code === d.c);const r = pickInc(o, it, Number(d.d));if (r && !r.ok) feedback(r);else if (r && Number(d.d) > 0) beep('ok');},
+  toPack: (d) => openPack(d.no),
+  resetPick: (d) => {
+    if (S.confirmReset !== 'pick' + d.no) {S.confirmReset = 'pick' + d.no;render();return;}
+    S.confirmReset = null;const o = S.byNo[d.no];
+    itemsOf(o).forEach((i) => {i.pickedQty = 0;i.pickedBy = '';i.packedQty = 0;});o.pickedBy = '';o.packStatus = PACK.none;o.packedBy = '';recalc(o);
+    enqueue({ type: 'reset', orderNo: String(o.orderNo), which: 'pick', staff: S.staff });render();
+  },
+  openPack: (d) => {openPack(d.no);const o = S.byNo[d.no];if (o) feedback(packWarn(o));},
+  closePack: () => {S.pk = null;S.packChoices = null;render();},
+  packInc: (d) => {
+    const o = S.byNo[S.pk.no];const it = itemsOf(o).find((i) => i.code === d.c);
+    const n = S.pk.packed[it.code] || 0,q = qtyOf(it),dd = Number(d.d);
+    S.pk.packed[it.code] = Math.max(0, Math.min(q, n + dd));S.pk.confirm = null;packSave();render();
+    if (dd > 0 && n < q) beep('ok');
+  },
+  finishPack: () => finishPack(),
+  rmPhoto: (d) => {const i = S.pk.photos.findIndex((p) => p.lid === d.l);if (i < 0) return;const p = S.pk.photos.splice(i, 1)[0];if (p.id) api('deletePhoto', p.id).catch(() => {});packSave();render();},
+  retryPhoto: (d) => {const i = S.pk.photos.findIndex((p) => p.lid === d.l);if (i < 0) return;const p = S.pk.photos.splice(i, 1)[0];if (p.file) addPhotos([p.file]);},
+  resetPack: (d) => {
+    if (S.confirmReset !== 'pack' + d.no) {S.confirmReset = 'pack' + d.no;render();return;}
+    S.confirmReset = null;const o = S.byNo[d.no];
+    itemsOf(o).forEach((i) => {i.packedQty = 0;});Object.assign(o, { packStatus: PACK.none, packedBy: '', packedAt: '' });
+    LS.del(packDraftKey(d.no));enqueue({ type: 'reset', orderNo: String(o.orderNo), which: 'pack', staff: S.staff });openPack(d.no);
+  },
+  more: (d) => {S.more = d.m || null;if (d.m === 'labels' && !S.products) loadProducts();render();$('main').scrollTop = 0;},
+  startImport: () => $('fileImport').click(),
+  doImport: () => doImport(),
+  refresh: () => refresh(),
+  lblAll: () => {(S._labelList || []).forEach((p) => S.labelSel.add(p.code));render();},
+  lblNone: () => {S.labelSel.clear();render();},
+  share: () => {
+    const link = shareLink();
+    $('sheetRoot').innerHTML = '<div class="sheetBg" data-act="closeSheet"><div class="sheet" data-stop="1"><div class="grab"></div><div class="stack">' +
+      '<h2>ลิงก์สำหรับพนักงาน</h2><div class="muted" style="font-size:13px">ส่งทางแชตส่วนตัวหรือกลุ่มร้านเท่านั้น ใครมีลิงก์นี้จะเห็นข้อมูลออเดอร์ได้ ถ้าลิงก์หลุด ให้เปลี่ยนรหัสในชีต Settings</div>' +
+      '<textarea id="shareTxt" readonly rows="4" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface);font-size:12px">' + esc(link) + '</textarea>' +
+      '<button class="big" data-act="copyShare">คัดลอกลิงก์</button></div></div></div>';
+  },
+  copyShare: () => {
+    const t = $('shareTxt');
+    const done = () => toast('คัดลอกแล้ว', 'ok');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(done, () => { t.select(); document.execCommand('copy'); done(); });
+    else { t.select(); document.execCommand('copy'); done(); }
+  },
+  reconnect: () => { closeSheet(); $('main').innerHTML = ''; const l = document.createElement('div'); l.id = 'loading'; document.body.appendChild(l); showConnect(''); },
+  lblPrint: () => printLabels().catch((e) => toast(errMsg(e), 'bad'))
+};
+async function loadProducts() {try {S.products = await api('getProducts');} catch (e) {S.products = [];toast('โหลดสินค้าไม่ได้: ' + errMsg(e), 'bad');}render();}
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  if (el.classList.contains('sheetBg') && e.target !== el) return;
+  e.preventDefault();
+  const fn = ACT[el.dataset.act];
+  if (fn) fn(el.dataset, el, e);
+});
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.id === 'q') {S.f.q = t.value;renderOrderList();} else
+  if (t.id === 'pkTrack' && S.pk) {
+    S.pk.tracking = t.value.trim();
+    const o = S.byNo[S.pk.no];const v = norm(t.value);
+    S.pk.labelOk = !v ? null : o && o.vrichTracking ? norm(o.vrichTracking) === v : null;
+    S.pk.confirm = null;packSave();
+  } else
+  if (t.id === 'pkNote' && S.pk) {S.pk.note = t.value;packSave();} else
+  if (t.id === 'lblQ') {S.labelQ = t.value;clearTimeout(S._lq);S._lq = setTimeout(() => {render();const i = $('lblQ');if (i) {i.focus();i.setSelectionRange(i.value.length, i.value.length);}}, 250);}
+});
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.id === 'fPicker') {S.f.picker = t.value;renderOrderList();} else
+  if (t.id === 'fPacker') {S.f.packer = t.value;renderOrderList();} else
+  if (t.id === 'fDate') {S.f.date = t.value;renderOrderList();} else
+  if (t.id === 'pkCarrier' && S.pk) {S.pk.carrier = t.value;packSave();} else
+  if (t.id === 'pkTrack') softRender();else
+  if (t.dataset.set) {S.set[t.dataset.set] = t.checked;LS.set('set', S.set);} else
+  if (t.dataset.lbl !== undefined && t.dataset.lbl !== '') {t.checked ? S.labelSel.add(t.dataset.lbl) : S.labelSel.delete(t.dataset.lbl);softRender();} else
+  if (t.id === 'lblOpen') {S.labelOnlyOpen = t.checked;render();} else
+  if (t.id === 'lblSize') {S.labelSize = t.value;} else
+  if (t.id === 'filePhoto') {const f = [...t.files];t.value = '';addPhotos(f);} else
+  if (t.id === 'fileImport') {const f = t.files[0];t.value = '';if (f) readVrich(f);} else
+  if (t.id === 'fileScan') {
+    const f = t.files[0];t.value = '';if (!f) return;
+    const wasOn = Cam.on;
+    (async () => {
+      if (wasOn) await camStop();
+      try {const r = new Html5Qrcode('camFileBox', { verbose: false });const txt = await r.scanFile(f, false);handleScan(txt);}
+      catch (err) {feedback({ ok: false, msg: 'อ่านบาร์โค้ดจากรูปไม่ได้', sub: 'ถ่ายให้ชัด ใกล้ขึ้น และมีแสงพอ' });}
+      if (wasOn) camStart();
+    })();
+  }
+});
+$('manualForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = $('manual').value;$('manual').value = '';
+  if (v.trim()) handleScan(v);
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {if (Cam.on) {camStop();Cam.resume = true;}} else
+  {if (Cam.resume && (S.view === 'pick' || S.view === 'pack')) camStart();Cam.resume = false;if (Q.list.length) qKick();}
+});
+setInterval(() => {if (!document.hidden && !Q.list.length && !Q.busy && S.view === 'orders') refresh(true);}, 60000);
+
+/* ================= เริ่มทำงาน ================= */
+(async function boot() {
+  Object.assign(S.set, LS.get('set', {}));
+  S.staff = LS.get('staff', '');
+  syncBadge();
+  readHashCfg();
+  if (!hasGas() && !window.MockApi && !getCfg()) { window.__booted = true; showConnect(''); return; }
+  try {
+    window.__apiCalled = true;
+    const b = await api('getBootstrap');
+    if (!b) throw new Error('ชีตส่งข้อมูลกลับมาว่างเปล่า ตรวจว่าสร้างโค้ดจากเมนู ส่วนขยาย → Apps Script ของ Google Sheet (ไม่ใช่โปรเจกต์แยก)');
+    S.staffList = b.staff || [];S.carriers = b.carriers || [];S.sheetUrl = b.sheetUrl || '';
+    setData(b);
+    if (S.staff && !S.staffList.includes(S.staff)) S.staff = '';
+  } catch (e) {
+    window.__booted = true;
+    if (!hasGas() && !window.MockApi) { showConnect(errMsg(e)); return; }
+    $('loading').innerHTML = "<div class=\"card\" style=\"max-width:340px\"><b>\u0E40\u0E1B\u0E34\u0E14\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49</b><p class=\"muted\">" + esc(errMsg(e)) + "</p><button class=\"btn pri\" onclick=\"location.reload()\">\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48</button></div>";
+    return;
+  }
+  window.__booted = true;
+  $('loading').remove();
+  go('orders');
+  if (!S.staff) openStaff();
+  if (Q.list.length) qKick(500);
+})();
+</script>
+</body>
+</html>
