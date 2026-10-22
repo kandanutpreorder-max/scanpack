@@ -243,6 +243,60 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
   background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:12px;font-size:14px;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
 #toast.bad{background:var(--bad);color:#fff} #toast.ok{background:var(--ok);color:#fff}
 #loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:50;text-align:center}
+
+/* ---- ฟีเจอร์ชุดที่ 2: สต็อก · สินค้าขาด · รอบหยิบรวม · จำนวนฉลาก ---- */
+#camFb.bigfb b{font-size:30px;line-height:1.15}
+.entry{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:12px 14px}
+.entry>svg{width:28px;height:28px;color:var(--ai);flex:none}
+.entry .min{flex:1;min-width:0;display:flex;flex-direction:column}
+.entry .min span{font-size:12px;color:var(--muted)}
+.srow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:10px 12px}
+.srow .min{flex:1;min-width:0}
+.srow .code{font-size:16px}
+.srow .nm{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.srow input[type=checkbox]{width:20px;height:20px;accent-color:var(--ai);flex:none}
+.sthumb{width:52px;height:52px;border-radius:10px;object-fit:cover;flex:none;background:var(--sunk)}
+.ph0{display:grid;place-items:center;color:var(--muted)}
+.ph0 svg{width:26px;height:26px}
+.need{display:flex;flex-direction:column;align-items:flex-end;flex:none}
+.need b{font-size:22px;font-variant-numeric:tabular-nums;line-height:1}
+.need span{font-size:11px;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.kpis>div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
+.kpis span{display:block;font-size:11px;color:var(--muted)}
+.kpis b{font-size:22px;font-variant-numeric:tabular-nums}
+.kpis .bad{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
+.kpis .ok{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
+.qty.qbig{flex-wrap:wrap;gap:6px}
+.qty.qbig input{width:72px;height:44px;text-align:center;font-size:20px;font-weight:700;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-variant-numeric:tabular-nums}
+.qty.qbig>button{width:44px;height:44px}
+.qty.qbig .btn{width:auto;height:44px;padding:0 12px;font-size:13px}
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.steps button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center}
+.steps button small{color:var(--muted);font-variant-numeric:tabular-nums}
+.steps button[aria-pressed="true"]{background:var(--ai);border-color:var(--ai);color:var(--ai-ink)}
+.steps button[aria-pressed="true"] small{color:inherit;opacity:.85}
+.bgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.bk{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;min-width:0}
+.bk .min{flex:1;min-width:0;display:flex;flex-direction:column}
+.bk .min span{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk .num{font-size:12px;color:var(--muted)}
+.bkn{width:34px;height:34px;border-radius:8px;background:var(--sunk);display:grid;place-items:center;font-weight:700;font-size:17px;flex:none;font-variant-numeric:tabular-nums}
+.bk.done{background:var(--ok-soft);border-color:transparent}
+.bk.done .bkn{background:var(--ok);color:#fff}
+.bk.hit{border-color:var(--ai);box-shadow:inset 0 0 0 2px var(--ai)}
+.bk.hit .bkn{background:var(--ai);color:var(--ai-ink)}
+.putbig{display:flex;align-items:center;gap:14px;background:var(--ai);color:var(--ai-ink);border-radius:var(--r);padding:12px 16px}
+.putbig>span{font-size:13px;opacity:.85;writing-mode:vertical-rl;transform:rotate(180deg)}
+.putbig>b{font-size:56px;line-height:1;font-variant-numeric:tabular-nums}
+.putbig div{font-size:14px}
+.lrow .lpick{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.lq{display:flex;align-items:center;gap:2px;flex:none}
+.lq button{width:30px;height:32px;border:1px solid var(--line);background:var(--bg);border-radius:8px;font-size:16px;line-height:1}
+.lq input{width:44px;height:32px;text-align:center;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-variant-numeric:tabular-nums}
+.poq{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none;font-size:11px;color:var(--muted)}
+.poq input{width:56px;height:36px;text-align:center;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:16px;font-weight:700}
+.holdBtn{margin-top:-2px}
 #printArea{display:none}
 
 /* พิมพ์ฉลาก */
@@ -256,6 +310,22 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
   .lbl .c{font-family:var(--f-code);font-weight:700;line-height:1.05}
   .lbl .n{line-height:1.15;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .lbl .p{font-weight:700}
+
+  .docA4{display:block!important;color:#000;font-family:var(--f-body);font-size:10.5pt}
+  .docA4 .doc-h{display:flex;justify-content:space-between;align-items:flex-end;gap:8mm;border-bottom:0.4mm solid #000;padding-bottom:3mm;margin-bottom:4mm}
+  .docA4 h1{font-size:18pt;margin:0 0 1mm}
+  .docA4 h2{font-size:12pt;margin:6mm 0 2mm}
+  .docA4 .doc-meta{text-align:right}
+  .docA4 table{width:100%;border-collapse:collapse}
+  .docA4 th,.docA4 td{border:0.2mm solid #999;padding:1.6mm 2mm;text-align:left;vertical-align:middle}
+  .docA4 th{background:#eee}
+  .docA4 td.n,.docA4 th.n{text-align:right}
+  .docA4 td.c{font-family:var(--f-code);font-weight:700}
+  .docA4 td img{width:16mm;height:16mm;object-fit:cover;display:block}
+  .docA4 td.box{width:6mm}
+  .docA4 tr{break-inside:avoid}
+  .docA4 tfoot td{font-weight:700}
+  .docA4 .sign{display:flex;justify-content:space-between;margin-top:14mm}
   .s5030 .lbl{width:50mm;height:30mm;padding:2mm;page-break-after:always;break-after:page}
   .s5030 .lbl img{width:24mm;height:24mm} .s5030 .c{font-size:14pt} .s5030 .n{font-size:7pt} .s5030 .p{font-size:9pt}
   .sA4{display:grid!important;grid-template-columns:repeat(3,63.5mm);grid-auto-rows:38.1mm;justify-content:center}
@@ -302,14 +372,17 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 <div id="camFileBox" hidden></div>
 <input type="file" id="fileScan" accept="image/*" capture="environment" hidden>
 <input type="file" id="filePhoto" accept="image/*" capture="environment" hidden>
+<input type="file" id="fileStock" accept="image/*" capture="environment" hidden>
 <input type="file" id="fileImport" accept=".xlsx,.xls,.csv" hidden>
 <div id="printArea"></div>
 
 <script>
 
+
 /* ================= ข้อมูลและสถานะ ================= */
+const BATCH = { open: 'กำลังหยิบ', closed: 'ปิดแล้ว' };
 const PICK = { none: 'ยังไม่จัด', part: 'จัดบางส่วน', done: 'จัดแล้ว' };
-const PACK = { none: 'ยังไม่แพ็ค', done: 'แพ็คแล้ว' };
+const PACK = { none: 'ยังไม่แพ็ค', part: 'แพ็คบางส่วน', done: 'แพ็คแล้ว' };
 const PAY = { paid: 'โอนแล้ว', none: 'ยังไม่โอน', part: 'โอนไม่ครบ' };
 
 const S = {
@@ -318,7 +391,9 @@ const S = {
   f: { pick: 'all', pack: 'all', pay: 'all', picker: '', packer: '', date: '', q: '' },
   pickNo: null, pickChoices: null,
   pk: null, packChoices: null,
-  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', labelOnlyOpen: true, labelSize: 's5030',
+  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', labelOnlyOpen: true, labelSize: 's5030', lblQty: {},
+  stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, busy: false },
+  sk: null, stockQ: '', stockMulti: true, poQty: {}, poOff: new Set(), poVendor: '',
   set: { sound: true, autoCam: true, requirePhoto: false, lastCarrier: '' }
 };
 
@@ -332,7 +407,8 @@ const norm = (s) => String(s == null ? '' : s).trim().toUpperCase().replace(/\s+
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&' + '#39;' })[c]);
 const baht = (n) => '฿' + (Number(n) || 0).toLocaleString('th-TH');
 const qtyOf = (i) => Number(i.qty) || 0;
-const isSkip = (i) => {const s = String(i.skip).trim().toUpperCase();return i.skip === true || s === 'ใช่' || s === 'TRUE' || s === 'Y';};
+const autoSkip = (i) => Number(i.price) < 0 || /โค้ด/.test(String(i.name || ''));
+const isSkip = (i) => {const s = String(i.skip).trim().toUpperCase();return i.skip === true || s === 'ใช่' || s === 'TRUE' || s === 'Y' || autoSkip(i);};
 const pickedOf = (i) => Math.max(0, Math.min(qtyOf(i), Number(i.pickedQty) || 0));
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
 const nowStr = () => {const d = new Date();return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' }) + ' ' + d.toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });};
@@ -347,17 +423,17 @@ function cleanScan(t) {
 
 /* การเชื่อมต่อ: เปิดจากหน้าเว็บภายนอก (เช่น GitHub Pages) เพื่อให้ใช้กล้องได้ แล้วส่งคำขอไปที่ลิงก์ /exec ของ Google Sheet */
 const hasGas = () => !!(window.google && google.script && google.script.run);
-function getCfg() { return LS.get('cfg', null); }
+function getCfg() {return LS.get('cfg', null);}
 function readHashCfg() {
   const h = location.hash.replace(/^#/, '');
   if (!/(^|&)u=/.test(h)) return;
   const p = {};
-  h.split('&').forEach(kv => { const i = kv.indexOf('='); if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); });
+  h.split('&').forEach((kv) => {const i = kv.indexOf('=');if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));});
   if (p.u) LS.set('cfg', { url: p.u.trim(), key: (p.k || '').trim() });
-  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  try {history.replaceState(null, '', location.pathname + location.search);} catch (e) {}
 }
 function shareLink() {
-  const c = getCfg(); if (!c) return '';
+  const c = getCfg();if (!c) return '';
   return location.origin + location.pathname + '#u=' + encodeURIComponent(c.url) + '&k=' + encodeURIComponent(c.key);
 }
 function api(fn, ...args) {
@@ -371,30 +447,30 @@ function api(fn, ...args) {
     method: 'POST', redirect: 'follow',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({ fn: fn, args: args, key: c.key })
-  }).then(r => r.text()).then(t => {
+  }).then((r) => r.text()).then((t) => {
     let j;
-    try { j = JSON.parse(t); } catch (e) {
+    try {j = JSON.parse(t);} catch (e) {
       throw new Error('ลิงก์ /exec ตอบกลับไม่ใช่ข้อมูล: ตรวจว่า Deploy ตั้ง "ผู้ที่มีสิทธิ์เข้าถึง" เป็น "ทุกคน" และวางโค้ด Code.gs เวอร์ชันล่าสุดแล้ว Deploy เวอร์ชันใหม่');
     }
     if (!j.ok) throw new Error(j.error || 'เกิดข้อผิดพลาด');
     return j.data;
-  }, e => { throw new Error('เชื่อมต่อ Google Sheet ไม่ได้ ตรวจอินเทอร์เน็ต หรือลิงก์ /exec (' + errMsg(e) + ')'); });
+  }, (e) => {throw new Error('เชื่อมต่อ Google Sheet ไม่ได้ ตรวจอินเทอร์เน็ต หรือลิงก์ /exec (' + errMsg(e) + ')');});
 }
 function showConnect(msg) {
   const c = getCfg() || { url: '', key: '' };
   $('loading').innerHTML = '<form class="card stack" id="connectForm" style="max-width:380px;width:calc(100% - 32px);text-align:left">' +
-    '<b style="font-size:17px">เชื่อมต่อกับ Google Sheet</b>' +
-    (msg ? '<div class="alert bad" style="font-size:13px">' + esc(msg) + '</div>' : '') +
-    '<label class="field"><span>ลิงก์เว็บแอป (/exec) หรือวาง "ลิงก์สำหรับพนักงาน" ทั้งลิงก์</span><input id="cfgUrl" value="' + esc(c.url) + '" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off"></label>' +
-    '<label class="field"><span>รหัสเข้าแอป (ดูในชีต Settings)</span><input id="cfgKey" value="' + esc(c.key) + '" autocomplete="off"></label>' +
-    '<button class="big" type="submit">เชื่อมต่อ</button>' +
-    '<div class="muted" style="font-size:12px">พนักงานไม่ต้องกรอกเอง: เจ้าของร้านส่ง "ลิงก์สำหรับพนักงาน" จากเมนู เพิ่มเติม ให้กดเปิดได้เลย</div></form>';
-  $('connectForm').addEventListener('submit', e => {
+  '<b style="font-size:17px">เชื่อมต่อกับ Google Sheet</b>' + (
+  msg ? '<div class="alert bad" style="font-size:13px">' + esc(msg) + '</div>' : '') +
+  '<label class="field"><span>ลิงก์เว็บแอป (/exec) หรือวาง "ลิงก์สำหรับพนักงาน" ทั้งลิงก์</span><input id="cfgUrl" value="' + esc(c.url) + '" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off"></label>' +
+  '<label class="field"><span>รหัสเข้าแอป (ดูในชีต Settings)</span><input id="cfgKey" value="' + esc(c.key) + '" autocomplete="off"></label>' +
+  '<button class="big" type="submit">เชื่อมต่อ</button>' +
+  '<div class="muted" style="font-size:12px">พนักงานไม่ต้องกรอกเอง: เจ้าของร้านส่ง "ลิงก์สำหรับพนักงาน" จากเมนู เพิ่มเติม ให้กดเปิดได้เลย</div></form>';
+  $('connectForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    let url = $('cfgUrl').value.trim(), key = $('cfgKey').value.trim();
+    let url = $('cfgUrl').value.trim(),key = $('cfgKey').value.trim();
     const mm = url.match(/#u=([^&]+)(?:&k=([^&]*))?/);
-    if (mm) { url = decodeURIComponent(mm[1]); if (mm[2] && !key) key = decodeURIComponent(mm[2]); }
-    if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url) || !/\/exec(\?|$)/.test(url)) { showConnect('ลิงก์ต้องขึ้นต้นด้วย https://script.google.com/ และลงท้ายด้วย /exec'); return; }
+    if (mm) {url = decodeURIComponent(mm[1]);if (mm[2] && !key) key = decodeURIComponent(mm[2]);}
+    if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url) || !/\/exec(\?|$)/.test(url)) {showConnect('ลิงก์ต้องขึ้นต้นด้วย https://script.google.com/ และลงท้ายด้วย /exec');return;}
     LS.set('cfg', { url: url, key: key });
     location.reload();
   });
@@ -416,6 +492,8 @@ function rebuild() {
   }));
 }
 function setData(d) {
+  S.stock = {};(d.stock || []).forEach((r) => {S.stock[norm(r.code)] = r;});
+  S.batches = (d.batches || []).slice();
   S.orders = (d.orders || []).slice();
   S.itemsBy = {};
   (d.items || []).forEach((i) => {const k = norm(i.orderNo);(S.itemsBy[k] = S.itemsBy[k] || []).push(i);});
@@ -448,6 +526,10 @@ function enqueue(op) {
   const last = Q.list[Q.list.length - 1];
   if (op.type === 'pick' && last && last.type === 'pick' && !last.sent && last.orderNo === op.orderNo && last.staff === op.staff) {
     Object.keys(op.deltas).forEach((c) => {last.deltas[c] = (last.deltas[c] || 0) + op.deltas[c];});
+  } else if (op.type === 'batch' && last && last.type === 'batch' && !last.sent && last.id === op.id) {
+    Object.assign(last.patch, op.patch);
+  } else if (op.type === 'stock' && last && last.type === 'stock' && !last.sent && last.key === op.key) {
+    last.rec = op.rec;
   } else Q.list.push(Object.assign({ id: uid() }, op));
   qSave();qKick(450);
 }
@@ -464,9 +546,13 @@ async function qRun() {
         const changes = Object.keys(op.deltas).filter((c) => op.deltas[c]).map((c) => ({ code: c, delta: op.deltas[c] }));
         b = changes.length ? await api('savePick', op.orderNo, changes, op.staff) : null;
       } else if (op.type === 'pack') b = await api('savePack', op.orderNo, op.payload);else
-      if (op.type === 'reset') b = await api('resetStatus', op.orderNo, op.which, op.staff);
+      if (op.type === 'reset') b = await api('resetStatus', op.orderNo, op.which, op.staff);else
+      if (op.type === 'stock') {const r = await api('saveStock', op.rec);if (!Q.list.slice(1).some((x) => x.type === 'stock' && x.key === op.key)) {const loc = S.stock[op.key] || {};S.stock[op.key] = Object.assign({}, r, { thumb: r.thumb || loc.thumb || '' });}} else
+      if (op.type === 'ordered') {const rows = await api('markOrdered', op.codes, op.staff);(rows || []).forEach((r) => {const k = norm(r.code);S.stock[k] = Object.assign({}, S.stock[k] || {}, { ordered: r.ordered });});} else
+      if (op.type === 'batch') {const r = await api('saveBatch', op.id, op.patch, op.staff);if (r && !Q.list.slice(1).some((x) => x.type === 'batch' && x.id === op.id)) {const i = S.batches.findIndex((x) => x.id === r.id);if (i >= 0) S.batches[i] = r;}}
       Q.list.shift();Q.fails = 0;qSave();
-      if (b && !Q.list.some((x) => x.orderNo === op.orderNo)) {applyBundle(b);softRender();}
+      if (b && b.order && !Q.list.some((x) => x.orderNo === op.orderNo)) applyBundle(b);
+      softRender();
     } catch (e) {
       op.sent = false;Q.fails++;qSave();
       const m = errMsg(e);
@@ -507,6 +593,7 @@ function feedback(r) {
     const fb = $('camFb');
     fb.className = 'show ' + kind;
     fb.querySelector('b').textContent = r.msg || '';
+    fb.classList.toggle('bigfb', !!r.big);
     fb.querySelector('span').textContent = r.sub || '';
     const p = $('camPanel');p.classList.remove('flash-ok', 'flash-bad');void p.offsetWidth;
     p.classList.add(kind === 'ok' ? 'flash-ok' : 'flash-bad');
@@ -539,8 +626,8 @@ async function camStart() {
     Cam.on = true;$('camOverlay').hidden = true;$('camToggle').textContent = 'ปิดกล้อง';
   } catch (e) {
     $('camOverlay').hidden = false;
-    $('camOvMsg').textContent = 'เปิดกล้องไม่ได้ (' + errMsg(e).slice(0, 80) + ') ' +
-      (hasGas() ? 'ลิงก์ /exec ของ Google ใช้กล้องไม่ได้ ให้เปิดแอปจากลิงก์หน้าเว็บของร้าน (เช่น github.io) แทน' : 'ตรวจว่าอนุญาตกล้องให้เบราว์เซอร์แล้ว หรือใช้ปุ่มถ่ายรูป/พิมพ์รหัสแทน');
+    $('camOvMsg').textContent = 'เปิดกล้องไม่ได้ (' + errMsg(e).slice(0, 80) + ') ' + (
+    hasGas() ? 'ลิงก์ /exec ของ Google ใช้กล้องไม่ได้ ให้เปิดแอปจากลิงก์หน้าเว็บของร้าน (เช่น github.io) แทน' : 'ตรวจว่าอนุญาตกล้องให้เบราว์เซอร์แล้ว หรือใช้ปุ่มถ่ายรูป/พิมพ์รหัสแทน');
   } finally {Cam.starting = false;}
 }
 async function camStop() {
@@ -572,6 +659,8 @@ function handleScan(raw) {
   let r;
   if (S.view === 'pick') r = pickScan(code);else
   if (S.view === 'pack') r = packScan(code);else
+  if (S.view === 'stock') r = stockScan(code);else
+  if (S.view === 'batch') r = batchScan(code);else
   {
     const o = findOrder(code);
     if (o) {openDetail(o.orderNo);r = { ok: true, msg: '#' + o.orderNo, sub: o.customer };} else
@@ -655,7 +744,7 @@ function openPack(no) {
     carrier: o.carrier || o.vrichCarrier || S.set.lastCarrier || S.carriers[0] || '',
     tracking: String(o.tracking || o.vrichTracking || ''), labelOk: null, note: o.packNote || '', confirm: null
   };
-  if (o.packStatus === PACK.done && !saved) {
+  if ((o.packStatus === PACK.done || o.packStatus === PACK.part) && !saved) {
     S.pk.photos = String(o.photos || '').split('\n').filter(Boolean).map((u) => ({ lid: uid(), url: u, status: 'ok' }));
   }
   S.pk.confirm = null;S.packChoices = null;
@@ -670,6 +759,7 @@ function packCounts(o) {
 }
 function packWarn(o) {
   if (o.packStatus === PACK.done) return { kind: 'warn', msg: '#' + o.orderNo + ' แพ็คไปแล้ว', sub: 'โดย ' + (o.packedBy || '-') + ' ' + (o.packedAt || '') };
+  if (o.packStatus === PACK.part) return { kind: 'warn', msg: '#' + o.orderNo + ' แพ็คบางส่วน รอของ', sub: 'รอ: ' + (missingText(o) || '-') };
   if (o.pickStatus !== PICK.done) return { kind: 'warn', msg: '#' + o.orderNo + ' ยังจัดไม่ครบ', sub: 'จัดแล้ว ' + (o.pickedQty || 0) + '/' + (o.itemQty || 0) + ' ชิ้น' };
   if (o.payStatus !== PAY.paid) return { kind: 'warn', msg: '#' + o.orderNo + ' ' + o.payStatus, sub: o.customer };
   return { ok: true, msg: '#' + o.orderNo, sub: o.customer + ' · ' + (o.itemQty || 0) + ' ชิ้น' };
@@ -745,7 +835,7 @@ function finishPack() {
   if (issues.length && S.pk.confirm !== sig) {S.pk.confirm = sig;softRender();beep('warn');return;}
   const payload = {
     packed: itemsOf(o).map((i) => ({ code: i.code, packedQty: S.pk.packed[i.code] || 0 })),
-    carrier: S.pk.carrier, tracking: S.pk.tracking, staff: S.staff, note: S.pk.note,
+    carrier: S.pk.carrier, tracking: S.pk.tracking, staff: S.staff, note: String(S.pk.note || '').replace(/\s*\|?\s*รอของ:.*$/, ''),
     photos: photos.map((p) => p.url), forced: issues.length > 0
   };
   itemsOf(o).forEach((i) => {i.packedQty = S.pk.packed[i.code] || 0;});
@@ -795,8 +885,9 @@ function drawScaled(img, max, q) {
 /* ================= การแสดงผล ================= */
 function go(v) {
   S.view = v;
-  document.querySelectorAll('#nav button').forEach((b) => b.setAttribute('aria-current', String(b.dataset.v === v)));
-  const scanning = v === 'pick' || v === 'pack';
+  const navKey = v === 'batch' ? 'pick' : v === 'stock' ? 'more' : v;
+  document.querySelectorAll('#nav button').forEach((b) => b.setAttribute('aria-current', String(b.dataset.v === navKey)));
+  const scanning = v === 'pick' || v === 'pack' || v === 'stock' || v === 'batch';
   $('camWrap').hidden = !scanning;
   if (scanning && S.set.autoCam) camStart();else if (!scanning && Cam.on) camStop();
   render();
@@ -807,6 +898,9 @@ function softRender() {cancelAnimationFrame(rT);rT = requestAnimationFrame(rende
 function render() {
   const m = $('main');
   const keepScroll = m.scrollTop;
+  S._nc = null;
+  if (S.view === 'stock') m.innerHTML = vStock();else
+  if (S.view === 'batch') m.innerHTML = vBatch();else
   if (S.view === 'orders') m.innerHTML = vOrders();else
   if (S.view === 'pick') m.innerHTML = vPick();else
   if (S.view === 'pack') m.innerHTML = vPack();else
@@ -830,7 +924,7 @@ function pickChip(o) {
   const c = o.pickStatus === PICK.done ? 'ok' : o.pickStatus === PICK.part ? 'ai' : '';
   return "<span class=\"chip " + c + "\">" + esc(o.pickStatus || PICK.none) + (o.pickStatus !== PICK.none ? ' ' + (o.pickedQty || 0) + '/' + (o.itemQty || 0) : '') + "</span>";
 }
-function packChip(o) {return o.packStatus === PACK.done ? '<span class="chip ink">แพ็คแล้ว</span>' : '';}
+function packChip(o) {return o.packStatus === PACK.done ? '<span class="chip ink">แพ็คแล้ว</span>' : o.packStatus === PACK.part ? '<span class="chip warn">แพ็คบางส่วน · รอของ</span>' : '';}
 
 /* ---------- หน้าออเดอร์ ---------- */
 function filtered() {
@@ -856,7 +950,7 @@ function vOrders() {
   const tiles = [
   ['ยังไม่จัด', cnt((o) => o.pickStatus === PICK.none), { pick: PICK.none, pack: 'all', pay: 'all' }],
   ['จัดแล้ว รอแพ็ค', cnt((o) => o.pickStatus === PICK.done && o.packStatus !== PACK.done), { pick: PICK.done, pack: PACK.none, pay: 'all' }],
-  ['แพ็ควันนี้', cnt((o) => o.packStatus === PACK.done && String(o.packedAt).slice(0, 10) === t), { pick: 'all', pack: PACK.done, pay: 'all' }],
+  ['แพ็คบางส่วน รอของ', cnt((o) => o.packStatus === PACK.part), { pick: 'all', pack: PACK.part, pay: 'all' }],
   ['ยังไม่โอน', cnt((o) => o.payStatus === PAY.none), { pick: 'all', pack: 'all', pay: PAY.none }]];
 
   const f = S.f;
@@ -870,7 +964,7 @@ function vOrders() {
   tiles.map(([l, n, set]) => "<button class=\"tile\" data-act=\"tile\" data-set='" + JSON.stringify(set) + "'><b>" + n + "</b><span>" + l + "</span></button>").join('') + "</div>\n    <div class=\"search\"><input id=\"q\" type=\"search\" placeholder=\"\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E0A\u0E37\u0E48\u0E2D \u0E40\u0E1A\u0E2D\u0E23\u0E4C \u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38 \u0E23\u0E2B\u0E31\u0E2A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\" value=\"" +
   esc(f.q) + "\"></div>\n    <div class=\"fgroup\"><label>\u0E08\u0E31\u0E14</label>" +
   seg('pick', 'all', 'ทั้งหมด') + seg('pick', PICK.none, PICK.none) + seg('pick', PICK.part, PICK.part) + seg('pick', PICK.done, PICK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E41\u0E1E\u0E47\u0E04</label>" +
-  seg('pack', 'all', 'ทั้งหมด') + seg('pack', PACK.none, PACK.none) + seg('pack', PACK.done, PACK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E42\u0E2D\u0E19</label>" +
+  seg('pack', 'all', 'ทั้งหมด') + seg('pack', PACK.none, PACK.none) + seg('pack', PACK.part, PACK.part) + seg('pack', PACK.done, PACK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E42\u0E2D\u0E19</label>" +
   seg('pay', 'all', 'ทั้งหมด') + seg('pay', PAY.paid, PAY.paid) + seg('pay', PAY.none, PAY.none) + seg('pay', PAY.part, PAY.part) + "</div>\n    <div class=\"selrow\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
 
   opt(people, f.picker, 'จัดโดย') + "</select>\n      <select id=\"fPacker\" aria-label=\"\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22\">" +
@@ -922,7 +1016,7 @@ function vPick() {
       ch = "<div class=\"card\"><b>\u0E23\u0E2B\u0E31\u0E2A <span class=\"code\">" + esc(S.pickChoices.code) + "</span> \u0E21\u0E35\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E08\u0E30\u0E43\u0E2A\u0E48</b><div class=\"choose\" style=\"margin-top:8px\">" + S.pickChoices.nos.map((n) => S.byNo[n]).filter(Boolean).map((x) => "<button class=\"ord\" data-act=\"pickChoose\" data-no=\"" +
       esc(norm(x.orderNo)) + "\"><div class=\"ord-top\"><span class=\"ord-no\">#" + esc(x.orderNo) + "</span><span class=\"ord-name\">" + esc(x.customer) + "</span>" + payChip(x) + "</div></button>").join('') + "</div></div>";
     }
-    return "<div class=\"stack\">" + ch + "\n      <div class=\"card\"><b>\u0E2A\u0E41\u0E01\u0E19\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38 \u0E2B\u0E23\u0E37\u0E2D\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</b><div class=\"muted\" style=\"font-size:13px\">\u0E2B\u0E23\u0E37\u0E2D\u0E2A\u0E41\u0E01\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E2B\u0E32\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2A\u0E48\u0E43\u0E2B\u0E49</div></div>\n      " +
+    return "<div class=\"stack\">" + ch + batchEntry() + stockEntry() + "\n      <div class=\"card\"><b>\u0E2A\u0E41\u0E01\u0E19\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38 \u0E2B\u0E23\u0E37\u0E2D\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</b><div class=\"muted\" style=\"font-size:13px\">\u0E2B\u0E23\u0E37\u0E2D\u0E2A\u0E41\u0E01\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E2B\u0E32\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2A\u0E48\u0E43\u0E2B\u0E49</div></div>\n      " +
 
     waitingList((x) => x.pickStatus !== PICK.done && x.packStatus !== PACK.done, 'openPick', 'รอจัด') + "</div>";
   }
@@ -941,7 +1035,8 @@ function itemRow(i, n, mode) {
   const q = qtyOf(i);
   if (isSkip(i)) return "<div class=\"it skip\"><span class=\"tick\">\u2013</span><div class=\"min\"><div class=\"code\">" + esc(i.code) + "</div><div class=\"nm\">" + esc(i.name) + " \xB7 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14</div></div><span class=\"num muted\">" + baht(i.price) + "</span></div>";
   const st = n >= q ? 'done' : n > 0 ? 'part' : '';
-  const extra = mode === 'pack' ? "<div class=\"nm\">\u0E08\u0E31\u0E14\u0E41\u0E25\u0E49\u0E27 " + pickedOf(i) + "/" + q + (pickedOf(i) < q ? ' ⚠' : '') + "</div>" : '';
+  const ssh = effShort(stockRec(i.code), (liveNeeds()[norm(i.code)] || {}).need || 0);
+  const extra = (ssh ? "<div class=\"chips\" style=\"margin-top:3px\"><span class=\"chip bad\">สต็อกขาด " + ssh + "</span></div>" : '') + (mode === 'pack' ? "<div class=\"nm\">\u0E08\u0E31\u0E14\u0E41\u0E25\u0E49\u0E27 " + pickedOf(i) + "/" + q + (pickedOf(i) < q ? ' ⚠' : '') + "</div>" : '');
   return "<div class=\"it " + st + "\" data-code=\"" + esc(norm(i.code)) + "\">\n    <span class=\"tick\">" + (
   n >= q ? '✓' : n > 0 ? n : '') + "</span>\n    <button class=\"min\" data-act=\"" +
   mode + "Inc\" data-c=\"" + esc(i.code) + "\" data-d=\"1\"><div class=\"code\">" + esc(i.code) + (q > 1 ? " <span class=\"chip ai\">x" + q + "</span>" : '') + "</div><div class=\"nm\">" + esc(i.name) + " \xB7 " + baht(i.price) + "</div>" + extra + "</button>\n    <div class=\"qty\"><button data-act=\"" +
@@ -960,8 +1055,8 @@ function vPack() {
     }
     return "<div class=\"stack\">" + ch + "\n      <div class=\"card\"><b>\u0E2A\u0E41\u0E01\u0E19\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38\u0E1A\u0E19\u0E43\u0E1A\u0E1B\u0E30\u0E2B\u0E19\u0E49\u0E32 \u0E2B\u0E23\u0E37\u0E2D\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</b><div class=\"muted\" style=\"font-size:13px\">\u0E41\u0E25\u0E49\u0E27\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E43\u0E2A\u0E48\u0E01\u0E25\u0E48\u0E2D\u0E07</div></div>\n      " +
 
-    waitingList((x) => x.pickStatus === PICK.done && x.packStatus !== PACK.done, 'openPack', 'จัดแล้ว รอแพ็ค') + "\n      " +
-    waitingList((x) => x.pickStatus === PICK.part && x.packStatus !== PACK.done, 'openPack', 'จัดยังไม่ครบ') + "</div>";
+    partialList() + waitingList((x) => x.pickStatus === PICK.done && (x.packStatus || PACK.none) === PACK.none, 'openPack', 'จัดแล้ว รอแพ็ค') + "\n      " +
+    waitingList((x) => x.pickStatus === PICK.part && (x.packStatus || PACK.none) === PACK.none, 'openPack', 'จัดยังไม่ครบ') + "</div>";
   }
   const o = S.byNo[S.pk.no],pk = S.pk;
   const c = packCounts(o);
@@ -974,9 +1069,11 @@ function vPack() {
   p.status === 'err' ? "<button class=\"rm\" data-act=\"retryPhoto\" data-l=\"" + p.lid + "\" aria-label=\"\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E21\u0E48\">\u21BB</button>" : "<button class=\"rm\" data-act=\"rmPhoto\" data-l=\"" + p.lid + "\" aria-label=\"\u0E25\u0E1A\u0E23\u0E39\u0E1B\">\xD7</button>") + "</div>").join('');
   const issues = (pk.confirm || '').split('|').filter(Boolean);
   const btnTxt = issues.length ? 'ยืนยันแพ็ค (' + issues.join(', ') + ')' : 'แพ็คเสร็จ';
+  const lacking = c.total - c.done;
   return "<div class=\"stack\">\n    " +
   orderHead(o, 'pack') + "\n    " + (
-  o.packStatus === PACK.done ? "<div class=\"alert warn\">\u0E41\u0E1E\u0E47\u0E04\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E42\u0E14\u0E22 " + esc(o.packedBy || '-') + " " + esc(o.packedAt || '') + "</div>" : '') + "\n    " + (
+  o.packStatus === PACK.done ? "<div class=\"alert warn\">\u0E41\u0E1E\u0E47\u0E04\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E42\u0E14\u0E22 " + esc(o.packedBy || '-') + " " + esc(o.packedAt || '') + "</div>" : '') + (
+  o.packStatus === PACK.part ? "<div class=\"alert warn\">แพ็คบางส่วนไว้แล้ว · รอ: " + esc(missingText(o) || '-') + "</div>" : '') + "\n    " + (
   o.pickStatus !== PICK.done ? "<div class=\"alert warn\">\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E31\u0E14\u0E02\u0E2D\u0E07\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E04\u0E23\u0E1A (" + (o.pickedQty || 0) + "/" + (o.itemQty || 0) + ")</div>" : '') + "\n    " + (
   S.packChoices && S.packChoices.switchTo ? "<div class=\"alert bad\">\u0E2A\u0E41\u0E01\u0E19\u0E40\u0E08\u0E2D\u0E02\u0E2D\u0E07\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C #" + esc(S.byNo[S.packChoices.switchTo].orderNo) + "<button data-act=\"openPack\" data-no=\"" + esc(S.packChoices.switchTo) + "\"><span>\u0E2A\u0E25\u0E31\u0E1A</span></button></div>" : '') + "\n    <div class=\"prog\"><b>" +
   c.done + "/" + c.total + "</b><span class=\"muted\">\u0E0A\u0E34\u0E49\u0E19 \u0E2A\u0E41\u0E01\u0E19\u0E25\u0E07\u0E01\u0E25\u0E48\u0E2D\u0E07\u0E41\u0E25\u0E49\u0E27</span></div>\n    <div class=\"bar " + (
@@ -992,9 +1089,7 @@ function vPack() {
   photos + "<label class=\"ph add\" for=\"filePhoto\"><span><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 8h3l2-3h6l2 3h3v11H4z\"/><circle cx=\"12\" cy=\"13\" r=\"3.5\"/></svg>\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</span></label></div>\n      </div>\n      <label class=\"field\"><span>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</span><input id=\"pkNote\" value=\"" +
 
   esc(pk.note) + "\" placeholder=\"\u0E40\u0E0A\u0E48\u0E19 \u0E43\u0E2A\u0E48\u0E01\u0E25\u0E48\u0E2D\u0E07 M+, \u0E2B\u0E48\u0E2D\u0E1A\u0E31\u0E1A\u0E40\u0E1A\u0E34\u0E49\u0E25\"></label>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22 <b style=\"color:var(--ink)\">" +
-  esc(S.staff || 'ยังไม่เลือกชื่อ') + "</b></div>\n    </div>\n    <button class=\"big stickyBtn " + (
-
-  issues.length ? 'warn' : 'ok') + "\" data-act=\"finishPack\">" + esc(btnTxt) + "</button>\n    " + (
+  esc(S.staff || 'ยังไม่เลือกชื่อ') + "</b></div>\n    </div>\n    " + (lacking > 0 && !issues.length ? "<button class=\"big stickyBtn warn\" data-act=\"holdPack\">แพ็คบางส่วน · พักรอของ (ขาด " + lacking + " ชิ้น)</button><button class=\"btn\" data-act=\"finishPack\">ส่งเลยแม้ของไม่ครบ</button>" : "<button class=\"big stickyBtn " + (issues.length ? 'warn' : 'ok') + "\" data-act=\"finishPack\">" + esc(btnTxt) + "</button>") + "\n    " + (
   o.packStatus === PACK.done ? "<button class=\"btn danger\" data-act=\"resetPack\" data-no=\"" + esc(norm(o.orderNo)) + "\">" + (S.confirmReset === 'pack' + norm(o.orderNo) ? 'แตะอีกครั้งเพื่อยกเลิกสถานะแพ็ค' : 'ยกเลิกสถานะแพ็ค') + "</button>" : '') + "\n  </div>";
 
 }
@@ -1019,14 +1114,15 @@ function openDetail(no) {
   esc(o.packedBy || '-') + " " + esc(o.packedAt || '') + "</dd>\n        " + (
   o.packStatus === PACK.done ? "<dt>\u0E2A\u0E48\u0E07\u0E14\u0E49\u0E27\u0E22</dt><dd>" + esc(o.carrier || '-') + " <span class=\"code\">" + esc(o.tracking || '') + "</span></dd>" : '') + "\n        " + (
   photos.length ? "<dt>\u0E23\u0E39\u0E1B</dt><dd>" + photos.map((u, i) => "<a href=\"" + esc(u) + "\" target=\"_blank\">\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48 " + (i + 1) + "</a>").join(' · ') + "</dd>" : '') + "\n        " + (
-  o.packNote ? "<dt>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E41\u0E1E\u0E47\u0E04</dt><dd>" + esc(o.packNote) + "</dd>" : '') + "\n      </dl>\n      <div class=\"items\">" +
+  o.packNote ? "<dt>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E41\u0E1E\u0E47\u0E04</dt><dd>" + esc(o.packNote) + "</dd>" : '') + (
+  o.packStatus === PACK.part ? "<dt>รอของ</dt><dd>" + esc(missingText(o)) + "</dd>" : '') + "\n      </dl>\n      <div class=\"items\">" +
 
   items.map((i) => "<div class=\"it " + (isSkip(i) ? 'skip' : pickedOf(i) >= qtyOf(i) ? 'done' : pickedOf(i) ? 'part' : '') + "\"><span class=\"tick\">" + (isSkip(i) ? '–' : pickedOf(i) >= qtyOf(i) ? '✓' : pickedOf(i) || '') + "</span>\n        <div class=\"min\"><div class=\"code\">" +
   esc(i.code) + "</div><div class=\"nm\">" + esc(i.name) + " \xB7 " + baht(i.price) + (isSkip(i) ? ' · ไม่ต้องจัด' : '') + "</div></div><b class=\"num\">" + pickedOf(i) + "/" + qtyOf(i) + "</b></div>").join('') + "</div>\n      <div class=\"row2\"><button class=\"btn pri\" data-act=\"sheetPick\" data-no=\"" +
   esc(norm(o.orderNo)) + "\">\u0E08\u0E31\u0E14\u0E02\u0E2D\u0E07</button><button class=\"btn pri\" data-act=\"sheetPack\" data-no=\"" + esc(norm(o.orderNo)) + "\">\u0E41\u0E1E\u0E47\u0E04</button></div>\n    </div></div></div>";
 
 }
-function closeSheet() {$('sheetRoot').innerHTML = '';}
+function closeSheet() {$('sheetRoot').innerHTML = '';S.sk = null;}
 
 /* ---------- เลือกผู้ใช้งาน ---------- */
 function openStaff() {
@@ -1037,6 +1133,7 @@ function openStaff() {
 
 /* ---------- เพิ่มเติม ---------- */
 function vMore() {
+  if (S.more === 'short') return vShort();
   if (S.more === 'import') return vImport();
   if (S.more === 'labels') return vLabels();
   if (S.more === 'summary') return vSummary();
@@ -1044,12 +1141,12 @@ function vMore() {
   const ic = (p) => "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\">" + p + "</svg>";
   return "<div class=\"stack\"><div class=\"menu\">\n    <button data-act=\"startImport\">" +
   ic('<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>') + "<div><b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E08\u0E32\u0E01 Vrich</b><span>\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich (\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E42\u0E2D\u0E19/\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38\u0E44\u0E14\u0E49 \u0E44\u0E21\u0E48\u0E25\u0E49\u0E32\u0E07\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14)</span></div></button>\n    <button data-act=\"more\" data-m=\"labels\">" +
-  ic('<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>') + "<div><b>\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E09\u0E25\u0E32\u0E01 QR \u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</b><span>\u0E15\u0E34\u0E14\u0E17\u0E35\u0E48\u0E16\u0E38\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u0E2A\u0E41\u0E01\u0E19\u0E44\u0E14\u0E49\u0E40\u0E23\u0E47\u0E27\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E23\u0E2B\u0E31\u0E2A</span></div></button>\n    <button data-act=\"more\" data-m=\"summary\">" +
+  ic('<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>') + "<div><b>\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E09\u0E25\u0E32\u0E01 QR \u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</b><span>\u0E15\u0E34\u0E14\u0E17\u0E35\u0E48\u0E16\u0E38\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u0E2A\u0E41\u0E01\u0E19\u0E44\u0E14\u0E49\u0E40\u0E23\u0E47\u0E27\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E23\u0E2B\u0E31\u0E2A</span></div></button>\n    " + moreExtra(ic) + "<button data-act=\"more\" data-m=\"summary\">" +
   ic('<path d="M5 20V10M12 20V4M19 20v-7"/>') + "<div><b>\u0E2A\u0E23\u0E38\u0E1B\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49</b><span>\u0E43\u0E04\u0E23\u0E08\u0E31\u0E14/\u0E41\u0E1E\u0E47\u0E04\u0E44\u0E1B\u0E01\u0E35\u0E48\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</span></div></button>\n    <button data-act=\"more\" data-m=\"settings\">" +
   ic('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>') + "<div><b>\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32</b><span>\u0E40\u0E2A\u0E35\u0E22\u0E07, \u0E01\u0E25\u0E49\u0E2D\u0E07, \u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</span></div></button>\n    <button data-act=\"refresh\">" +
   ic('<path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/>') + "<div><b>\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14</b><span>" + (Q.list.length ? 'รอส่งอีก ' + Q.list.length + ' รายการ' : 'ข้อมูลตรงกับชีตแล้ว') + "</span></div></button>\n    " + (
   S.sheetUrl ? "<a class=\"lrow\" href=\"" + esc(S.sheetUrl) + "\" target=\"_blank\" style=\"text-decoration:none;color:inherit;padding:12px 14px\">" + ic('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>') + "<div><b>\u0E40\u0E1B\u0E34\u0E14 Google Sheet</b><div class=\"muted\" style=\"font-size:12px\">\u0E14\u0E39\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 \u0E41\u0E01\u0E49\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19/\u0E02\u0E19\u0E2A\u0E48\u0E07</div></div></a>" : '') + (getCfg() && !hasGas() ? '<button data-act="share">' + ic('<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 11l7.6-4M8.2 13l7.6 4"/>') + '<div><b>ลิงก์สำหรับพนักงาน</b><span>ส่งให้พนักงานกดเปิด เข้าใช้ได้ทันทีไม่ต้องกรอกอะไร</span></div></button>' +
-    '<button data-act="reconnect">' + ic('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>') + '<div><b>เปลี่ยนการเชื่อมต่อ</b><span>ใส่ลิงก์ /exec หรือรหัสเข้าแอปใหม่</span></div></button>' : '') + "\n  </div></div>";
+  '<button data-act="reconnect">' + ic('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>') + '<div><b>เปลี่ยนการเชื่อมต่อ</b><span>ใส่ลิงก์ /exec หรือรหัสเข้าแอปใหม่</span></div></button>' : '') + "\n  </div></div>";
 
 }
 function back() {return "<button class=\"btn\" data-act=\"more\" data-m=\"\">\u2190 \u0E01\u0E25\u0E31\u0E1A</button>";}
@@ -1062,8 +1159,8 @@ function vImport() {
   return "<div class=\"stack\">" + back() + "\n    <div class=\"card stack\"><h2>" +
   esc(im.fileName) + "</h2>\n      <dl class=\"kv\"><dt>\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</dt><dd><b>" +
   im.orders.length + "</b> (\u0E43\u0E2B\u0E21\u0E48 " + (im.orders.length - known) + ", \u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15 " + known + ")</dd>\n      <dt>\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</dt><dd>" +
-  im.items.length + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \xB7 \u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14 " + im.items.filter((i) => i.price >= 0).reduce((s, i) => s + i.qty, 0) + " \u0E0A\u0E34\u0E49\u0E19</dd>\n      <dt>\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14</dt><dd>" +
-  im.items.filter((i) => i.price < 0).length + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 (\u0E2A\u0E48\u0E27\u0E19\u0E25\u0E14/\u0E23\u0E32\u0E04\u0E32\u0E15\u0E34\u0E14\u0E25\u0E1A)</dd>\n      <dt>\u0E42\u0E2D\u0E19</dt><dd>\u0E42\u0E2D\u0E19\u0E41\u0E25\u0E49\u0E27 " +
+  im.items.length + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \xB7 \u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14 " + im.items.filter((i) => !autoSkip(i)).reduce((s, i) => s + i.qty, 0) + " \u0E0A\u0E34\u0E49\u0E19</dd>\n      <dt>\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14</dt><dd>" +
+  im.items.filter((i) => autoSkip(i)).length + " รายการ (มีคำว่าโค้ด หรือราคาติดลบ)</dd>\n      <dt>\u0E42\u0E2D\u0E19</dt><dd>\u0E42\u0E2D\u0E19\u0E41\u0E25\u0E49\u0E27 " +
   im.orders.filter((o) => o.total <= 0 || o.paid >= o.total).length + " \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E42\u0E2D\u0E19 " + im.orders.filter((o) => o.total > 0 && !o.paid).length + " \xB7 \u0E44\u0E21\u0E48\u0E04\u0E23\u0E1A " + im.orders.filter((o) => o.total > 0 && o.paid > 0 && o.paid < o.total).length + "</dd>\n      <dt>\u0E2A\u0E15\u0E47\u0E2D\u0E01\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</dt><dd>" +
   im.products.length + " \u0E23\u0E2B\u0E31\u0E2A (\u0E43\u0E0A\u0E49\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E09\u0E25\u0E32\u0E01)</dd></dl>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27\u0E08\u0E30\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \u0E22\u0E2D\u0E14\u0E42\u0E2D\u0E19 \u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38 \u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E25\u0E49\u0E32\u0E07\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E08\u0E31\u0E14/\u0E41\u0E1E\u0E47\u0E04\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27</div>\n      <button class=\"big\" data-act=\"doImport\" " + (
 
@@ -1107,10 +1204,10 @@ function vLabels() {
   esc(S.labelQ) + "\" placeholder=\"\u0E23\u0E2B\u0E31\u0E2A/\u0E0A\u0E37\u0E48\u0E2D\"></label></div>\n      <label class=\"toggle\"><span>\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E43\u0E19\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E41\u0E1E\u0E47\u0E04</span><input type=\"checkbox\" id=\"lblOpen\" " + (
   S.labelOnlyOpen ? 'checked' : '') + "></label>\n      <div class=\"btns\"><button class=\"btn\" data-act=\"lblAll\">\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 (" +
   list.length + ")</button><button class=\"btn\" data-act=\"lblNone\">\u0E25\u0E49\u0E32\u0E07</button>\n      <button class=\"btn pri\" data-act=\"lblPrint\" " + (
-  sel.size ? '' : 'disabled') + ">\u0E1E\u0E34\u0E21\u0E1E\u0E4C " + sel.size + " \u0E14\u0E27\u0E07</button></div>\n    </div>\n    <div class=\"list\">" + (
+  sel.size ? '' : 'disabled') + ">\u0E1E\u0E34\u0E21\u0E1E\u0E4C " + lblTotal() + " \u0E14\u0E27\u0E07</button></div><div class=\"muted\" style=\"font-size:12px\">จำนวนดวงเริ่มต้น = จำนวนที่ขายไปใน Vrich แก้ได้ทีละรายการ</div>\n    </div>\n    <div class=\"list\">" + (
 
-  list.slice(0, 400).map((p) => "<label class=\"lrow\"><input type=\"checkbox\" data-lbl=\"" + esc(p.code) + "\" " + (sel.has(p.code) ? 'checked' : '') + ">\n      <span class=\"code\" style=\"min-width:56px\">" +
-  esc(p.code) + "</span><span class=\"grow nm\" style=\"font-size:13px\">" + esc(p.name) + "</span><span class=\"num muted\">" + baht(p.price) + "</span></label>").join('') || '<div class="empty">ไม่พบสินค้า</div>') + "</div>\n  </div>";
+  list.slice(0, 400).map((p) => "<div class=\"lrow\"><label class=\"lpick\"><input type=\"checkbox\" data-lbl=\"" + esc(p.code) + "\" " + (sel.has(p.code) ? 'checked' : '') + ">\n      <span class=\"code\" style=\"min-width:52px\">" +
+  esc(p.code) + "</span><span class=\"grow\"><span class=\"nm\" style=\"font-size:13px;display:block\">" + esc(p.name) + "</span><span class=\"muted\" style=\"font-size:11px\">" + baht(p.price) + " · ขายไป " + soldQty(p.code) + "</span></span></label>" + lblQtyCtl(p) + "</div>").join('') || '<div class="empty">ไม่พบสินค้า</div>') + "</div>\n  </div>";
 
 }
 function labelList() {
@@ -1126,7 +1223,8 @@ async function printLabels() {
   const all = labelList().filter((p) => S.labelSel.has(p.code));
   const html = all.map((p) => {
     const qr = qrcode(0, 'M');qr.addData(encodeURIComponent(p.code));qr.make();
-    return "<div class=\"lbl\"><img src=\"" + qr.createDataURL(4, 0) + "\" alt=\"\"><div class=\"t\"><div class=\"c\">" + esc(p.code) + "</div><div class=\"n\">" + esc(p.name) + "</div><div class=\"p\">" + baht(p.price) + "</div></div></div>";
+    const one = "<div class=\"lbl\"><img src=\"" + qr.createDataURL(4, 0) + "\" alt=\"\"><div class=\"t\"><div class=\"c\">" + esc(p.code) + "</div><div class=\"n\">" + esc(p.name) + "</div><div class=\"p\">" + baht(p.price) + "</div></div></div>";
+    return one.repeat(Math.max(1, lblQty(p.code)));
   }).join('');
   const pa = $('printArea');pa.className = S.labelSize;pa.innerHTML = html;
   let st = $('pageStyle');if (!st) {st = document.createElement('style');st.id = 'pageStyle';document.head.appendChild(st);}
@@ -1245,19 +1343,489 @@ const ACT = {
   share: () => {
     const link = shareLink();
     $('sheetRoot').innerHTML = '<div class="sheetBg" data-act="closeSheet"><div class="sheet" data-stop="1"><div class="grab"></div><div class="stack">' +
-      '<h2>ลิงก์สำหรับพนักงาน</h2><div class="muted" style="font-size:13px">ส่งทางแชตส่วนตัวหรือกลุ่มร้านเท่านั้น ใครมีลิงก์นี้จะเห็นข้อมูลออเดอร์ได้ ถ้าลิงก์หลุด ให้เปลี่ยนรหัสในชีต Settings</div>' +
-      '<textarea id="shareTxt" readonly rows="4" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface);font-size:12px">' + esc(link) + '</textarea>' +
-      '<button class="big" data-act="copyShare">คัดลอกลิงก์</button></div></div></div>';
+    '<h2>ลิงก์สำหรับพนักงาน</h2><div class="muted" style="font-size:13px">ส่งทางแชตส่วนตัวหรือกลุ่มร้านเท่านั้น ใครมีลิงก์นี้จะเห็นข้อมูลออเดอร์ได้ ถ้าลิงก์หลุด ให้เปลี่ยนรหัสในชีต Settings</div>' +
+    '<textarea id="shareTxt" readonly rows="4" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface);font-size:12px">' + esc(link) + '</textarea>' +
+    '<button class="big" data-act="copyShare">คัดลอกลิงก์</button></div></div></div>';
   },
   copyShare: () => {
     const t = $('shareTxt');
     const done = () => toast('คัดลอกแล้ว', 'ok');
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(done, () => { t.select(); document.execCommand('copy'); done(); });
-    else { t.select(); document.execCommand('copy'); done(); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(done, () => {t.select();document.execCommand('copy');done();});else
+    {t.select();document.execCommand('copy');done();}
   },
-  reconnect: () => { closeSheet(); $('main').innerHTML = ''; const l = document.createElement('div'); l.id = 'loading'; document.body.appendChild(l); showConnect(''); },
+  reconnect: () => {closeSheet();$('main').innerHTML = '';const l = document.createElement('div');l.id = 'loading';document.body.appendChild(l);showConnect('');},
   lblPrint: () => printLabels().catch((e) => toast(errMsg(e), 'bad'))
 };
+/* ================= ตัวเชื่อมฟีเจอร์ใหม่เข้ากับหน้าหลัก ================= */
+function batchEntry() {
+  const n = S.batches.filter((b) => b.status !== BATCH.closed).length;
+  return "<button class=\"entry\" data-act=\"go\" data-v=\"batch\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"3\" y=\"4\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"4\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"/></svg>\n    <span class=\"min\"><b>\u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C (Batch)</b><span>" + (
+
+  n ? 'มีรอบที่กำลังหยิบ ' + n + ' รอบ แตะเพื่อทำต่อ' : 'รวม 5–30 ออเดอร์ หยิบทีเดียว แล้วสแกนแยกลงตะกร้า') + "</span></span>\n    " + (
+  n ? "<span class=\"chip ai\">" + n + "</span>" : '') + "</button>";
+}
+function lblQtyCtl(p) {
+  const n = lblQty(p.code);
+  return "<span class=\"lq\"><button type=\"button\" data-act=\"lq\" data-c=\"" + esc(p.code) + "\" data-d=\"-1\" aria-label=\"\u0E25\u0E14\">\u2212</button><input type=\"number\" inputmode=\"numeric\" min=\"1\" data-lqi=\"" + esc(p.code) + "\" value=\"" + n + "\" aria-label=\"\u0E08\u0E33\u0E19\u0E27\u0E19\u0E14\u0E27\u0E07 " + esc(p.code) + "\"><button type=\"button\" data-act=\"lq\" data-c=\"" + esc(p.code) + "\" data-d=\"1\" aria-label=\"\u0E40\u0E1E\u0E34\u0E48\u0E21\">+</button></span>";
+}
+function moreExtra(ic) {
+  const short = shortList().length,open = S.batches.filter((b) => b.status !== BATCH.closed).length;
+  return "<button data-act=\"go\" data-v=\"stock\">" + ic('<path d="M3 8l9-4 9 4v8l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v8"/>') + "<div><b>\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01</b><span>\u0E19\u0E31\u0E1A\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49 \u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B \u0E40\u0E0A\u0E47\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E2D\u0E44\u0E2B\u0E21</span></div></button>\n    <button data-act=\"more\" data-m=\"short\">" +
+  ic('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>') + "<div><b>\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E02\u0E32\u0E14 + \u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07" + (short ? " <span class=\"chip bad\">" + short + "</span>" : '') + "</b><span>\u0E2A\u0E23\u0E38\u0E1B\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E1E\u0E2D \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E23\u0E39\u0E1B \u0E41\u0E25\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07</span></div></button>\n    <button data-act=\"go\" data-v=\"batch\">" +
+  ic('<rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>') + "<div><b>\u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C (Batch)" + (open ? " <span class=\"chip ai\">" + open + "</span>" : '') + "</b><span>\u0E23\u0E27\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E2B\u0E22\u0E34\u0E1A\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E41\u0E22\u0E01\u0E25\u0E07\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</span></div></button>";
+}
+
+function stockEntry() {
+  const sh = shortList().length;
+  return "<button class=\"entry\" data-act=\"go\" data-v=\"stock\">\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M3 8l9-4 9 4v8l-9 4-9-4z\"/><path d=\"M3 8l9 4 9-4M12 12v8\"/></svg>\n    <span class=\"min\"><b>\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01 (\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E21\u0E35\u0E08\u0E33\u0E19\u0E27\u0E19)</b><span>" + (
+
+  sh ? 'มีสินค้าขาด ' + sh + ' รายการ' : 'นับของที่ต้องใช้ ถ่ายรูป เช็กว่าพอไหม') + "</span></span>\n    " + (
+  sh ? "<span class=\"chip bad\">\u0E02\u0E32\u0E14 " + sh + "</span>" : '') + "</button>";
+}
+
+/* ================= สต็อก · สินค้าขาด · รอบหยิบรวม (Batch) ================= */
+function parseJ(s, d) {try {return typeof s === 'string' ? s ? JSON.parse(s) : d : s || d;} catch (e) {return d;}}
+function natCmp(a, b) {return String(a).localeCompare(String(b), 'th', { numeric: true });}
+const isPackOpen = (o) => (o.packStatus || PACK.none) === PACK.none;
+const isPackPart = (o) => o.packStatus === PACK.part;
+
+/** รวมสินค้าที่ต้องใช้จากออเดอร์ที่ให้มา: need = ยังไม่ได้หยิบ, total = ทั้งหมด */
+function needsOf(orders) {
+  const m = {};
+  orders.forEach((o) => itemsOf(o).forEach((i) => {
+    if (isSkip(i)) return;
+    const k = norm(i.code),rem = qtyOf(i) - pickedOf(i);
+    const r = m[k] || (m[k] = { key: k, code: String(i.code), name: i.name || '', price: Number(i.price) || 0, need: 0, total: 0, nos: [] });
+    r.total += qtyOf(i);
+    if (rem > 0) {r.need += rem;if (!r.nos.includes(o.orderNo)) r.nos.push(o.orderNo);}
+  }));
+  return m;
+}
+function openOrders() {return S.orders.filter((o) => o.packStatus !== PACK.done);}
+/** ความต้องการสด (คำนวณครั้งเดียวต่อการวาดหน้าจอ) */
+function liveNeeds() {if (!S._nc) S._nc = needsOf(openOrders());return S._nc;}
+/** จำนวนที่ขาดจริง: ยึดยอดตอนนับ (ของที่นับได้ถูกหยิบไปใส่ออเดอร์แล้วก็ยังนับว่าใช้ไป) เว้นแต่มีออเดอร์ใหม่เพิ่มความต้องการ */
+function effShort(r, needLive) {
+  if (!r || needLive <= 0) return 0;
+  return Math.max(0, Math.max(Number(r.needed) || 0, needLive) - (Number(r.have) || 0));
+}
+function missingText(o) {
+  return itemsOf(o).filter((i) => !isSkip(i) && (Number(i.packedQty) || 0) < qtyOf(i)).
+  map((i) => i.code + ' ×' + (qtyOf(i) - (Number(i.packedQty) || 0))).join(', ');
+}
+
+/* ---------- เช็กสต็อก ---------- */
+function stockRec(code) {return S.stock[norm(code)] || null;}
+function stockChip(code, need) {
+  const r = stockRec(code);
+  if (!r) return '<span class="chip">ยังไม่เช็ก</span>';
+  const have = Number(r.have) || 0,sh = effShort(r, need);
+  if (!sh) return "<span class=\"chip ok\">\u0E1E\u0E2D \xB7 \u0E19\u0E31\u0E1A\u0E44\u0E14\u0E49 " + have + "</span>";
+  return "<span class=\"chip bad\">\u0E02\u0E32\u0E14 " + sh + "</span>" + (r.ordered ? '<span class="chip ai">สั่งแล้ว</span>' : '');
+}
+function thumbHtml(r, cls) {
+  return r && r.thumb ? "<img class=\"" + cls + "\" src=\"" + esc(r.thumb) + "\" alt=\"\">" : "<span class=\"" +
+  cls + " ph0\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"M3 8l9-4 9 4v8l-9 4-9-4z\"/><path d=\"M3 8l9 4 9-4M12 12v8\"/></svg></span>";
+}
+function vStock() {
+  const needs = Object.values(liveNeeds()).filter((r) => r.need > 0);
+  const q = norm(S.stockQ);
+  const list = needs.filter((r) => (!S.stockMulti || r.need >= 2) && (!q || norm(r.code + '|' + r.name).includes(q))).
+  sort((a, b) => b.need - a.need || natCmp(a.code, b.code));
+  const checked = needs.filter((r) => stockRec(r.code)).length;
+  const short = shortList().length;
+  return "<div class=\"stack\">\n    <div class=\"btns\"><button class=\"btn\" data-act=\"go\" data-v=\"more\">\u2190 \u0E01\u0E25\u0E31\u0E1A</button>\n      <button class=\"btn " + (
+
+  short ? 'danger' : '') + "\" data-act=\"toShort\">\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E02\u0E32\u0E14 " + short + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23</button></div>\n    <div class=\"card stack\">\n      <h2 style=\"margin:0\">\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01</h2>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E22\u0E31\u0E07\u0E23\u0E2D\u0E2B\u0E22\u0E34\u0E1A \u0E41\u0E15\u0E30\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E43\u0E2A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E17\u0E35\u0E48\u0E21\u0E35/\u0E2B\u0E22\u0E34\u0E1A\u0E44\u0E14\u0E49 \u0E41\u0E25\u0E30\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B\u0E2A\u0E15\u0E47\u0E2D\u0E01 \u0E2A\u0E41\u0E01\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22</div>\n      <div class=\"chips\"><span class=\"chip\">" +
+
+
+
+  needs.length + " \u0E23\u0E2B\u0E31\u0E2A</span><span class=\"chip ok\">\u0E40\u0E0A\u0E47\u0E01\u0E41\u0E25\u0E49\u0E27 " + checked + "</span>" + (short ? "<span class=\"chip bad\">\u0E02\u0E32\u0E14 " + short + "</span>" : '') + "</div>\n      <div class=\"search\"><input id=\"stockQ\" type=\"search\" placeholder=\"\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E23\u0E2B\u0E31\u0E2A/\u0E0A\u0E37\u0E48\u0E2D\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\" value=\"" +
+  esc(S.stockQ) + "\"></div>\n      <label class=\"toggle\"><span>\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E2B\u0E22\u0E34\u0E1A\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 2 \u0E0A\u0E34\u0E49\u0E19\u0E02\u0E36\u0E49\u0E19\u0E44\u0E1B</span><input type=\"checkbox\" id=\"stockMulti\" " + (
+  S.stockMulti ? 'checked' : '') + "></label>\n    </div>\n    <div class=\"sec\">" +
+
+  list.length + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \xB7 " + list.reduce((s, r) => s + r.need, 0) + " \u0E0A\u0E34\u0E49\u0E19</div>\n    <div class=\"list\">" + (
+  list.slice(0, 300).map((r) => "<button class=\"srow\" data-act=\"stockOpen\" data-c=\"" + esc(r.code) + "\">\n      " +
+  thumbHtml(stockRec(r.code), 'sthumb') + "\n      <div class=\"min\"><div class=\"code\">" +
+  esc(r.code) + "</div><div class=\"nm\">" + esc(r.name) + "</div>\n        <div class=\"chips\" style=\"margin-top:4px\">" +
+  stockChip(r.code, r.need) + "<span class=\"chip\">" + r.nos.length + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</span></div></div>\n      <div class=\"need\"><b>" +
+  r.need + "</b><span>\u0E0A\u0E34\u0E49\u0E19</span></div></button>").join('') ||
+  '<div class="empty card"><b>ไม่มีสินค้าที่ต้องหยิบ</b>เอาตัวกรอง "ตั้งแต่ 2 ชิ้น" ออก เพื่อดูทั้งหมด</div>') + "</div>\n  </div>";
+
+}
+function openStock(code, fromScan) {
+  const k = norm(code);
+  const n = liveNeeds()[k];
+  const any = n || Object.values(S.itemsBy).flat().find((i) => norm(i.code) === k);
+  if (!any) return false;
+  const r = stockRec(code) || {};
+  S.sk = {
+    code: n ? n.code : String(any.code), name: (n || any).name || '', price: Number((n || any).price) || 0,
+    need: n ? n.need : 0, nos: n ? n.nos : [],
+    have: r.have !== undefined && r.have !== '' ? Number(r.have) || 0 : fromScan ? 1 : 0,
+    photos: String(r.photos || '').split('\n').filter(Boolean).map((u, i) => ({ lid: uid(), url: u, status: 'ok', thumb: i === 0 ? r.thumb : '' })),
+    thumb: r.thumb || '', note: r.note || ''
+  };
+  renderStockSheet();
+  return true;
+}
+function renderStockSheet() {
+  const s = S.sk;if (!s) return;
+  const bn = S.view === 'batch' && curBatch() ? (batchNeeds(curBatch())[norm(s.code)] || {}).total : 0;
+  const short = Math.max(0, s.need - s.have);
+  const ph = s.photos.map((p) => "<div class=\"ph\">" + (p.thumb ? "<img src=\"" + p.thumb + "\" alt=\"\">" : "<a href=\"" + esc(p.url) + "\" target=\"_blank\" style=\"display:grid;place-items:center;height:100%;font-size:12px\">\u0E40\u0E1B\u0E34\u0E14\u0E23\u0E39\u0E1B</a>") + "\n    <span class=\"st\">" + (
+  p.status === 'up' ? 'กำลังส่ง…' : p.status === 'err' ? 'ส่งไม่ได้' : 'บันทึกแล้ว') + "</span>\n    <button class=\"rm\" data-act=\"skRm\" data-l=\"" +
+  p.lid + "\" aria-label=\"\u0E25\u0E1A\u0E23\u0E39\u0E1B\">\xD7</button></div>").join('');
+  $('sheetRoot').innerHTML = "<div class=\"sheetBg\" data-act=\"closeSheet\"><div class=\"sheet\" data-stop=\"1\"><div class=\"grab\"></div><div class=\"stack\">\n    <div class=\"head-top\"><span class=\"code\" style=\"font-size:20px\">" +
+  esc(s.code) + "</span><span class=\"muted num\">" + baht(s.price) + "</span></div>\n    <div>" +
+  esc(s.name) + "</div>\n    <div class=\"kpis\"><div><span>\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49</span><b>" +
+  s.need + "</b></div><div><span>\u0E21\u0E35 / \u0E2B\u0E22\u0E34\u0E1A\u0E44\u0E14\u0E49</span><b>" + s.have + "</b></div>\n      <div class=\"" + (
+  short ? 'bad' : 'ok') + "\"><span>" + (short ? 'ขาด' : 'สถานะ') + "</span><b>" + (short ? short : 'พอ') + "</b></div></div>\n    " + (
+  bn ? "<div class=\"muted\" style=\"font-size:13px\">\u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E2B\u0E22\u0E34\u0E1A\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49 " + bn + " \u0E0A\u0E34\u0E49\u0E19</div>" : '') + "\n    " + (
+  s.nos.length ? "<div class=\"muted\" style=\"font-size:13px\">\u0E23\u0E2D\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E19\u0E35\u0E49: #" + s.nos.map(esc).join(', #') + "</div>" : '') + "\n    <div class=\"field\"><span>\u0E08\u0E33\u0E19\u0E27\u0E19\u0E17\u0E35\u0E48\u0E21\u0E35\u0E43\u0E19\u0E2A\u0E15\u0E47\u0E2D\u0E01 / \u0E2B\u0E22\u0E34\u0E1A\u0E44\u0E14\u0E49 (\u0E2A\u0E41\u0E01\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E19\u0E35\u0E49\u0E0B\u0E49\u0E33\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E19\u0E31\u0E1A\u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19)</span>\n      <div class=\"qty qbig\"><button data-act=\"skInc\" data-d=\"-1\" aria-label=\"\u0E25\u0E14\">\u2212</button><input id=\"skHave\" type=\"number\" inputmode=\"numeric\" min=\"0\" value=\"" +
+
+  s.have + "\"><button class=\"plus\" data-act=\"skInc\" data-d=\"1\" aria-label=\"\u0E40\u0E1E\u0E34\u0E48\u0E21\">+</button>\n      <button class=\"btn\" data-act=\"skSet\" data-v=\"" +
+  s.need + "\">= \u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49</button><button class=\"btn\" data-act=\"skSet\" data-v=\"0\">\u0E44\u0E21\u0E48\u0E21\u0E35\u0E40\u0E25\u0E22</button></div></div>\n    <div class=\"field\"><span>\u0E23\u0E39\u0E1B\u0E2A\u0E15\u0E47\u0E2D\u0E01</span><div class=\"photos\">" +
+  ph + "<label class=\"ph add\" for=\"fileStock\"><span><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 8h3l2-3h6l2 3h3v11H4z\"/><circle cx=\"12\" cy=\"13\" r=\"3.5\"/></svg>\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</span></label></div></div>\n    <label class=\"field\"><span>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</span><input id=\"skNote\" value=\"" +
+  esc(s.note) + "\" placeholder=\"\u0E40\u0E0A\u0E48\u0E19 \u0E2D\u0E22\u0E39\u0E48\u0E0A\u0E31\u0E49\u0E19 A3, \u0E02\u0E2D\u0E07\u0E0A\u0E33\u0E23\u0E38\u0E14 1\"></label>\n    <button class=\"big " + (
+  short ? 'warn' : 'ok') + "\" data-act=\"stockSave\" " + (s.photos.some((p) => p.status === 'up') ? 'disabled' : '') + ">" + (short ? 'บันทึก · ขาด ' + short + ' ชิ้น' : 'บันทึก · สต็อกพอ') + "</button>\n  </div></div></div>";
+
+}
+function stockSave() {
+  const s = S.sk;if (!s) return;
+  const ns = needStaff();if (ns) return feedback(ns);
+  const photos = s.photos.filter((p) => p.status === 'ok');
+  const rec = { code: s.code, name: s.name, price: s.price, needed: s.need, have: s.have, photos: photos.map((p) => p.url), thumb: s.thumb || photos[0] && photos[0].thumb || '', note: s.note, by: S.staff };
+  const k = norm(s.code),short = Math.max(0, s.need - s.have);
+  const prev = S.stock[k] || {};
+  S.stock[k] = Object.assign({}, rec, { short: short, status: short ? 'ขาด' : 'พอ', at: nowStr(), ordered: short ? prev.ordered || '' : '', photos: rec.photos.join('\n') });
+  enqueue({ type: 'stock', key: k, rec: rec });
+  S.sk = null;closeSheet();softRender();
+  feedback(short ? { kind: 'warn', msg: s.code + ' ขาด ' + short + ' ชิ้น', sub: 'บันทึกแล้ว ดูรวมที่ สินค้าขาด' } : { ok: true, msg: s.code + ' สต็อกพอ ✓', sub: 'มี ' + s.have + ' / ต้องใช้ ' + s.need });
+}
+async function addStockPhotos(files) {
+  const s = S.sk;if (!s) return;
+  for (const f of files) {
+    const p = { lid: uid(), status: 'up', thumb: '' };
+    s.photos.push(p);renderStockSheet();
+    try {
+      const img = await loadImg(f);
+      p.thumb = drawScaled(img, 240, 0.7);
+      if (!s.thumb) s.thumb = drawScaled(img, 160, 0.6);
+      renderStockSheet();
+      const r = await api('uploadPhoto', 'STOCK-' + s.code, drawScaled(img, 1600, 0.78), S.staff);
+      Object.assign(p, { status: 'ok', url: r.url, id: r.id });
+    } catch (e) {p.status = 'err';}
+    if (S.sk === s) renderStockSheet();
+  }
+}
+function stockScan(code) {
+  const k = norm(code);
+  if (S.sk && norm(S.sk.code) === k) {
+    S.sk.have++;renderStockSheet();
+    return { ok: true, msg: S.sk.code + ' นับได้ ' + S.sk.have, sub: 'ต้องใช้ ' + S.sk.need };
+  }
+  if (openStock(code, true)) return { ok: true, msg: S.sk.code + ' นับได้ ' + S.sk.have, sub: 'ต้องใช้ ' + S.sk.need + ' ชิ้น · สแกนซ้ำเพื่อนับต่อ' };
+  return { ok: false, msg: 'ไม่พบสินค้า ' + code, sub: 'ไม่มีรหัสนี้ในออเดอร์' };
+}
+
+/* ---------- สินค้าขาด + ใบสั่งของ ---------- */
+function shortList() {
+  const needs = liveNeeds();
+  return Object.values(S.stock).map((r) => {
+    const n = needs[norm(r.code)],need = n ? n.need : 0,have = Number(r.have) || 0;
+    return Object.assign({}, r, { need: Math.max(need, Number(r.needed) || 0), have: have, short: effShort(r, need), nos: n ? n.nos : [], name: r.name || n && n.name || '' });
+  }).filter((r) => r.short > 0).sort((a, b) => b.short - a.short || natCmp(a.code, b.code));
+}
+function poQty(r) {const v = S.poQty[norm(r.code)];return v === undefined ? r.short : v;}
+function vShort() {
+  const list = shortList();
+  const sel = list.filter((r) => !S.poOff.has(norm(r.code)));
+  const orders = new Set();list.forEach((r) => r.nos.forEach((n) => orders.add(n)));
+  return "<div class=\"stack\">" + back() + "\n    <div class=\"card stack\">\n      <h2 style=\"margin:0\">\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E02\u0E32\u0E14</h2>\n      <div class=\"chips\"><span class=\"chip bad\">" +
+
+
+  list.length + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23</span><span class=\"chip\">\u0E02\u0E32\u0E14\u0E23\u0E27\u0E21 " + list.reduce((s, r) => s + r.short, 0) + " \u0E0A\u0E34\u0E49\u0E19</span><span class=\"chip warn\">\u0E23\u0E2D\u0E02\u0E2D\u0E07 " + orders.size + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</span></div>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E21\u0E32\u0E08\u0E32\u0E01\u0E1C\u0E25\u0E40\u0E0A\u0E47\u0E01\u0E43\u0E19 \u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01 \u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E08\u0E33\u0E19\u0E27\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E22\u0E31\u0E07\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49 \u0E15\u0E34\u0E4A\u0E01\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \u0E41\u0E01\u0E49\u0E08\u0E33\u0E19\u0E27\u0E19\u0E2A\u0E31\u0E48\u0E07 \u0E41\u0E25\u0E49\u0E27\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07</div>\n      <label class=\"field\"><span>\u0E1C\u0E39\u0E49\u0E02\u0E32\u0E22 / \u0E23\u0E49\u0E32\u0E19\u0E17\u0E35\u0E48\u0E2A\u0E31\u0E48\u0E07</span><input id=\"poVendor\" value=\"" +
+
+  esc(S.poVendor) + "\" placeholder=\"\u0E40\u0E0A\u0E48\u0E19 \u0E23\u0E49\u0E32\u0E19\u0E2A\u0E48\u0E07\u0E0D\u0E35\u0E48\u0E1B\u0E38\u0E48\u0E19 \u0E15\u0E25\u0E32\u0E14\u0E42\u0E23\u0E07\u0E40\u0E01\u0E25\u0E37\u0E2D\"></label>\n      <div class=\"btns\"><button class=\"btn pri\" data-act=\"poPrint\" " + (
+  sel.length ? '' : 'disabled') + ">\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07 (" + sel.length + ")</button>\n        <button class=\"btn\" data-act=\"poMark\" " + (
+  sel.length ? '' : 'disabled') + ">\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E27\u0E48\u0E32\u0E2A\u0E31\u0E48\u0E07\u0E41\u0E25\u0E49\u0E27</button>\n        <button class=\"btn\" data-act=\"go\" data-v=\"stock\">\u0E44\u0E1B\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01</button></div>\n    </div>\n    <div class=\"list\">" + (
+
+
+  list.map((r) => "<div class=\"srow po\">\n      <input type=\"checkbox\" data-po=\"" +
+  esc(norm(r.code)) + "\" " + (S.poOff.has(norm(r.code)) ? '' : 'checked') + " aria-label=\"\u0E40\u0E25\u0E37\u0E2D\u0E01 " + esc(r.code) + "\">\n      " +
+  thumbHtml(r, 'sthumb') + "\n      <div class=\"min\"><div class=\"code\">" +
+  esc(r.code) + "</div><div class=\"nm\">" + esc(r.name) + "</div>\n        <div class=\"chips\" style=\"margin-top:4px\"><span class=\"chip\">\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49 " +
+  r.need + "</span><span class=\"chip\">\u0E21\u0E35 " + r.have + "</span><span class=\"chip bad\">\u0E02\u0E32\u0E14 " + r.short + "</span>" + (r.ordered ? "<span class=\"chip ai\">\u0E2A\u0E31\u0E48\u0E07\u0E41\u0E25\u0E49\u0E27 " + esc(String(r.ordered).slice(0, 10)) + "</span>" : '') + "</div>\n        " + (
+  r.nos.length ? "<div class=\"nm\" style=\"margin-top:4px\">\u0E23\u0E2D: #" + r.nos.slice(0, 8).map(esc).join(', #') + (r.nos.length > 8 ? ' …' : '') + "</div>" : '') + "</div>\n      <label class=\"poq\"><span>\u0E2A\u0E31\u0E48\u0E07</span><input type=\"number\" inputmode=\"numeric\" min=\"0\" data-poq=\"" +
+  esc(norm(r.code)) + "\" value=\"" + poQty(r) + "\"></label>\n      </div>"
+  ).join('') || '<div class="empty card"><b>ยังไม่มีสินค้าขาด</b>เช็กจำนวนสต็อกที่เมนู หยิบสต็อก แล้วรายการที่ไม่พอจะขึ้นที่นี่</div>') + "</div>\n  </div>";
+
+}
+function printPO() {
+  const list = shortList().filter((r) => !S.poOff.has(norm(r.code)) && poQty(r) > 0);
+  if (!list.length) return toast('ไม่มีรายการที่จะสั่ง');
+  const total = list.reduce((s, r) => s + poQty(r), 0);
+  const html = "<div class=\"doc\"><div class=\"doc-h\"><div><h1>\u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E0B\u0E37\u0E49\u0E2D\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</h1><div>\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48 " + today() + "</div></div>\n    <div class=\"doc-meta\"><div>\u0E1C\u0E39\u0E49\u0E02\u0E32\u0E22: <b>" +
+  esc(S.poVendor || '................................') + "</b></div><div>\u0E1C\u0E39\u0E49\u0E2A\u0E31\u0E48\u0E07: " + esc(S.staff || '................') + "</div></div></div>\n    <table><thead><tr><th>#</th><th>\u0E23\u0E39\u0E1B</th><th>\u0E23\u0E2B\u0E31\u0E2A</th><th>\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23</th><th class=\"n\">\u0E08\u0E33\u0E19\u0E27\u0E19\u0E2A\u0E31\u0E48\u0E07</th><th class=\"n\">\u0E21\u0E35 / \u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49</th><th>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</th></tr></thead><tbody>\n    " +
+
+  list.map((r, i) => "<tr><td>" + (i + 1) + "</td><td>" + (r.thumb ? "<img src=\"" + esc(r.thumb) + "\" alt=\"\">" : '') + "</td><td class=\"c\">" + esc(r.code) + "</td><td>" + esc(r.name) + "</td><td class=\"n\"><b>" + poQty(r) + "</b></td><td class=\"n\">" + r.have + " / " + r.need + "</td><td>" + esc(r.note || '') + "</td></tr>").join('') + "\n    </tbody><tfoot><tr><td colspan=\"4\">\u0E23\u0E27\u0E21 " +
+  list.length + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23</td><td class=\"n\"><b>" + total + "</b></td><td colspan=\"2\"></td></tr></tfoot></table>\n    <div class=\"sign\"><div>\u0E1C\u0E39\u0E49\u0E2A\u0E31\u0E48\u0E07\u0E0B\u0E37\u0E49\u0E2D ..................................</div><div>\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 ..................................</div></div></div>";
+
+  docPrint(html);
+}
+function docPrint(html) {
+  const pa = $('printArea');pa.className = 'docA4';pa.innerHTML = html;
+  let st = $('pageStyle');if (!st) {st = document.createElement('style');st.id = 'pageStyle';document.head.appendChild(st);}
+  st.textContent = '@page{size:A4;margin:12mm}';
+  setTimeout(() => window.print(), 300);
+}
+
+/* ---------- รอบหยิบรวม ---------- */
+function curBatch() {return S.batches.find((b) => b.id === S.batchId) || null;}
+function batchBaskets(b) {return parseJ(b.orders, []).map((n, i) => ({ n: i + 1, key: norm(n), no: n, o: S.byNo[norm(n)] }));}
+function batchNeeds(b) {
+  const m = needsOf(batchBaskets(b).map((x) => x.o).filter(Boolean));
+  const picked = parseJ(b.picked, {});
+  Object.values(m).forEach((r) => {r.sorted = r.total - r.need;r.picked = Math.min(r.total, Math.max(Number(picked[r.key]) || 0, r.sorted));});
+  return m;
+}
+function batchProgress(b) {
+  const v = Object.values(batchNeeds(b));
+  return { total: v.reduce((s, r) => s + r.total, 0), picked: v.reduce((s, r) => s + r.picked, 0), sorted: v.reduce((s, r) => s + r.sorted, 0), codes: v.length };
+}
+function inOpenBatch() {
+  const m = {};
+  S.batches.filter((b) => b.status !== BATCH.closed).forEach((b) => parseJ(b.orders, []).forEach((n) => {m[norm(n)] = b.id;}));
+  return m;
+}
+function batchCandidates() {
+  const busy = inOpenBatch();
+  return S.orders.filter((o) => o.pickStatus !== PICK.done && o.packStatus !== PACK.done && !busy[norm(o.orderNo)] && (
+  !S.nb.paidOnly || o.payStatus === PAY.paid) && (o.itemQty || 0) > 0).
+  sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0)).slice(0, S.nb.size);
+}
+function vBatch() {
+  const b = curBatch();
+  if (!b) return vBatchList();
+  const p = batchProgress(b),needs = Object.values(batchNeeds(b)).sort((x, y) => natCmp(x.code, y.code));
+  const bs = batchBaskets(b),closed = b.status === BATCH.closed;
+  const step = S.batchStep;
+  const head = "<div class=\"card head\">\n    <div class=\"head-top\"><span class=\"ord-no\">" +
+  esc(b.id) + "</span><span class=\"chip " + (closed ? '' : 'ai') + "\">" + esc(b.status) + "</span><button class=\"x\" data-act=\"batchBack\">\u0E23\u0E2D\u0E1A\u0E2D\u0E37\u0E48\u0E19</button></div>\n    <div class=\"muted\" style=\"font-size:13px\">" +
+  bs.length + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \xB7 " + p.total + " \u0E0A\u0E34\u0E49\u0E19 \xB7 " + p.codes + " \u0E23\u0E2B\u0E31\u0E2A \xB7 \u0E2A\u0E23\u0E49\u0E32\u0E07\u0E42\u0E14\u0E22 " + esc(b.createdBy || '-') + "</div>\n    <div class=\"steps\"><button data-act=\"bStep\" data-s=\"pick\" aria-pressed=\"" + (
+  step === 'pick') + "\"><b>1 \u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21</b><small>" + p.picked + "/" + p.total + "</small></button>\n      <button data-act=\"bStep\" data-s=\"sort\" aria-pressed=\"" + (
+  step === 'sort') + "\"><b>2 \u0E41\u0E22\u0E01\u0E25\u0E07\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</b><small>" + p.sorted + "/" + p.total + "</small></button></div>\n  </div>";
+
+  let body;
+  if (step === 'pick') {
+    body = "<div class=\"muted\" style=\"font-size:13px\">\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E38\u0E01\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19 \u0E2A\u0E41\u0E01\u0E19\u0E2B\u0E23\u0E37\u0E2D\u0E01\u0E14 + \u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19 \u0E41\u0E15\u0E30\u0E0A\u0E37\u0E48\u0E2D\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E0A\u0E47\u0E01\u0E2A\u0E15\u0E47\u0E2D\u0E01\u0E41\u0E25\u0E30\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</div>\n      <div class=\"items\">" +
+    needs.map((r) => {
+      const st = r.picked >= r.total ? 'done' : r.picked > 0 ? 'part' : '';
+      return "<div class=\"it " + st + "\" data-code=\"" + esc(r.key) + "\"><span class=\"tick\">" + (r.picked >= r.total ? '✓' : r.picked || '') + "</span>\n          <button class=\"min\" data-act=\"stockOpen\" data-c=\"" +
+      esc(r.code) + "\"><div class=\"code\">" + esc(r.code) + (r.total > 1 ? " <span class=\"chip ai\">x" + r.total + "</span>" : '') + "</div><div class=\"nm\">" + esc(r.name) + "</div>\n          <div class=\"chips\" style=\"margin-top:3px\">" +
+      stockChip(r.code, liveNeeds()[r.key] ? liveNeeds()[r.key].need : 0) + "</div></button>\n          <div class=\"qty\"><button data-act=\"bInc\" data-c=\"" +
+      esc(r.key) + "\" data-d=\"-1\" aria-label=\"\u0E25\u0E14\">\u2212</button><b>" + r.picked + "/" + r.total + "</b><button class=\"plus\" data-act=\"bInc\" data-c=\"" + esc(r.key) + "\" data-d=\"1\" aria-label=\"\u0E40\u0E1E\u0E34\u0E48\u0E21\">+</button></div></div>";
+    }).join('') + "</div>\n      " + (
+    p.picked >= p.total ? "<div class=\"alert ok\">\u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21\u0E04\u0E23\u0E1A\u0E41\u0E25\u0E49\u0E27 \u2713<button data-act=\"bStep\" data-s=\"sort\"><span>\u0E44\u0E1B\u0E41\u0E22\u0E01\u0E25\u0E07\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</span></button></div>" : '');
+  } else {
+    const lp = S.lastPut && S.lastPut.batch === b.id ? S.lastPut : null;
+    const done = bs.filter((x) => x.o && x.o.pickStatus === PICK.done).length;
+    body = (lp ? "<div class=\"putbig\"><span>\u0E43\u0E2A\u0E48\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</span><b>" + lp.n + "</b><div><b>#" + esc(lp.no) + "</b><br><span class=\"code\">" + esc(lp.code) + "</span></div></div>" : "<div class=\"muted\" style=\"font-size:13px\">\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19 \u0E41\u0E2D\u0E1B\u0E08\u0E30\u0E1A\u0E2D\u0E01\u0E40\u0E25\u0E02\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2A\u0E48 \u0E15\u0E34\u0E14\u0E40\u0E25\u0E02 1\u2013" +
+    bs.length + " \u0E17\u0E35\u0E48\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32\u0E2B\u0E23\u0E37\u0E2D\u0E16\u0E38\u0E07\u0E15\u0E32\u0E21\u0E25\u0E33\u0E14\u0E31\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07</div>") + "\n      <div class=\"bgrid\">" +
+    bs.map((x) => {
+      const o = x.o;const q = o ? o.itemQty || 0 : 0,d = o ? o.pickedQty || 0 : 0;
+      return "<button class=\"bk " + (o && o.pickStatus === PICK.done ? 'done' : '') + " " + (lp && lp.n === x.n ? 'hit' : '') + "\" data-act=\"openPick\" data-no=\"" + esc(x.key) + "\">\n          <span class=\"bkn\">" +
+      x.n + "</span><span class=\"min\"><b>#" + esc(x.no) + "</b><span>" + esc(o ? o.customer || '' : 'ไม่พบออเดอร์') + "</span></span><span class=\"num\">" + d + "/" + q + "</span></button>";
+    }).join('') + "</div>\n      " + (
+    done === bs.length ? "<div class=\"alert ok\">\u0E41\u0E22\u0E01\u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32 \u2713<button data-act=\"go\" data-v=\"pack\"><span>\u0E44\u0E1B\u0E41\u0E1E\u0E47\u0E04</span></button></div>" : '');
+  }
+  return "<div class=\"stack\">" + head + body + "\n    <div class=\"btns\"><button class=\"btn\" data-act=\"bPrint\">\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21</button>\n    " + (
+
+  closed ? "<button class=\"btn\" data-act=\"bReopen\">\u0E40\u0E1B\u0E34\u0E14\u0E23\u0E2D\u0E1A\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07</button>" : "<button class=\"btn danger\" data-act=\"bClose\">" + (
+  S.confirmReset === 'batch' + b.id ? 'แตะอีกครั้งเพื่อปิดรอบ' : 'ปิดรอบ') + "</button>") + "</div></div>";
+}
+function vBatchList() {
+  const cand = batchCandidates();
+  const qty = cand.reduce((s, o) => s + (o.itemQty || 0) - (o.pickedQty || 0), 0);
+  const open = S.batches.filter((b) => b.status !== BATCH.closed),closed = S.batches.filter((b) => b.status === BATCH.closed);
+  const card = (b) => {const p = batchProgress(b);return "<button class=\"ord\" data-act=\"bOpen\" data-id=\"" + esc(b.id) + "\">\n    <div class=\"ord-top\"><span class=\"ord-no\">" +
+    esc(b.id) + "</span><span class=\"ord-name\">" + parseJ(b.orders, []).length + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \xB7 " + esc(b.createdBy || '') + "</span><span class=\"muted num\">" + p.sorted + "/" + p.total + "</span></div>\n    <div class=\"bar " + (
+    p.total && p.sorted >= p.total ? 'done' : '') + "\"><i style=\"width:" + (p.total ? p.sorted / p.total * 100 : 0) + "%\"></i></div></button>";};
+  return "<div class=\"stack\">\n    <div class=\"card stack\"><h2 style=\"margin:0\">\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E23\u0E2D\u0E1A\u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21</h2>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E23\u0E27\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27\u0E17\u0E31\u0E49\u0E07\u0E23\u0E2D\u0E1A \u0E41\u0E25\u0E49\u0E27\u0E2A\u0E41\u0E01\u0E19\u0E41\u0E22\u0E01\u0E25\u0E07\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32\u0E15\u0E32\u0E21\u0E40\u0E25\u0E02 \u0E40\u0E23\u0E47\u0E27\u0E01\u0E27\u0E48\u0E32\u0E40\u0E14\u0E34\u0E19\u0E2B\u0E22\u0E34\u0E1A\u0E17\u0E35\u0E25\u0E30\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</div>\n      <div class=\"fgroup\"><label>\u0E08\u0E33\u0E19\u0E27\u0E19</label>" +
+
+
+  [5, 10, 15, 20, 30].map((n) => "<button class=\"seg\" data-act=\"nbSize\" data-n=\"" + n + "\" aria-pressed=\"" + (S.nb.size === n) + "\">" + n + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</button>").join('') + "</div>\n      <label class=\"toggle\"><span>\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E42\u0E2D\u0E19\u0E41\u0E25\u0E49\u0E27</span><input type=\"checkbox\" id=\"nbPaid\" " + (
+  S.nb.paidOnly ? 'checked' : '') + "></label>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E08\u0E30\u0E44\u0E14\u0E49 " +
+  cand.length + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C (" + qty + " \u0E0A\u0E34\u0E49\u0E19) \u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E08\u0E31\u0E14\u0E44\u0E21\u0E48\u0E04\u0E23\u0E1A \u0E44\u0E21\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E2D\u0E37\u0E48\u0E19 \u0E40\u0E23\u0E35\u0E22\u0E07\u0E15\u0E32\u0E21\u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C" + (cand.length ? ': #' + cand.slice(0, 6).map((o) => esc(o.orderNo)).join(', #') + (cand.length > 6 ? ' …' : '') : '') + "</div>\n      <button class=\"big\" data-act=\"bCreate\" " + (
+  cand.length && !S.nb.busy ? '' : 'disabled') + ">" + (S.nb.busy ? 'กำลังสร้าง…' : 'สร้างรอบ ' + cand.length + ' ออเดอร์') + "</button></div>\n    " + (
+  open.length ? "<div class=\"sec\">\u0E23\u0E2D\u0E1A\u0E17\u0E35\u0E48\u0E01\u0E33\u0E25\u0E31\u0E07\u0E2B\u0E22\u0E34\u0E1A (" + open.length + ")</div><div class=\"stack\">" + open.map(card).join('') + "</div>" : '') + "\n    " + (
+  closed.length ? "<div class=\"sec\">\u0E1B\u0E34\u0E14\u0E41\u0E25\u0E49\u0E27 3 \u0E27\u0E31\u0E19\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14</div><div class=\"stack\">" + closed.slice(-5).reverse().map(card).join('') + "</div>" : '') + "\n  </div>";
+
+}
+function saveBatchPicked(b, map) {
+  b.picked = JSON.stringify(map);
+  enqueue({ type: 'batch', id: b.id, patch: { picked: map }, staff: S.staff });
+}
+function batchInc(b, key, d) {
+  const ns = needStaff();if (ns) return ns;
+  const r = batchNeeds(b)[key];if (!r) return null;
+  if (d > 0 && r.picked >= r.total) return { ok: false, msg: r.code + ' หยิบครบแล้ว', sub: 'รอบนี้ใช้ ' + r.total + ' ชิ้น' };
+  if (d < 0 && r.picked <= r.sorted) return d < 0 && r.sorted ? { ok: false, msg: 'ลดไม่ได้', sub: 'แยกลงตะกร้าไปแล้ว ' + r.sorted + ' ชิ้น' } : null;
+  const map = parseJ(b.picked, {});map[key] = r.picked + d;
+  saveBatchPicked(b, map);
+  S.flashCode = d > 0 ? key : null;softRender();
+  const p = batchProgress(b);
+  return { ok: true, msg: r.code + '  ' + (r.picked + d) + '/' + r.total, sub: p.picked >= p.total ? 'หยิบรวมครบทั้งรอบแล้ว ไปแยกลงตะกร้า' : 'รอบนี้เหลือหยิบ ' + (p.total - p.picked) + ' ชิ้น' };
+}
+function batchScan(code) {
+  const b = curBatch(),k = norm(code);
+  if (!b) {
+    const bb = S.batches.find((x) => x.status !== BATCH.closed && parseJ(x.orders, []).some((n) => norm(n) === k || S.byNo[norm(n)] && findOrder(k) === S.byNo[norm(n)]));
+    if (bb) {S.batchId = bb.id;render();return { ok: true, msg: 'เปิดรอบ ' + bb.id };}
+    return { ok: false, msg: 'เลือกหรือสร้างรอบหยิบก่อน' };
+  }
+  const bs = batchBaskets(b);
+  const ord = findOrder(k);
+  if (ord) {
+    const x = bs.find((y) => y.o === ord);
+    return x ? { ok: true, msg: 'ตะกร้า ' + x.n, sub: '#' + ord.orderNo + ' ' + (ord.customer || '') } : { ok: false, msg: '#' + ord.orderNo + ' ไม่อยู่ในรอบนี้' };
+  }
+  if (S.batchStep === 'pick') {
+    if (!batchNeeds(b)[k]) return { ok: false, msg: code + ' ไม่อยู่ในรอบนี้', sub: S.codeIdx[k] ? 'อยู่ใน #' + S.codeIdx[k].join(', #') : '' };
+    return batchInc(b, k, 1);
+  }
+  for (const x of bs) {
+    if (!x.o) continue;
+    const it = itemsOf(x.o).find((i) => norm(i.code) === k && !isSkip(i) && pickedOf(i) < qtyOf(i));
+    if (!it) continue;
+    const r = pickInc(x.o, it, 1);
+    if (!r || r.ok === false) return r;
+    S.lastPut = { batch: b.id, n: x.n, no: x.o.orderNo, code: it.code };
+    softRender();
+    const left = qtyOf(it) - pickedOf(it);
+    return { ok: true, big: true, msg: 'ตะกร้า ' + x.n + '  →  #' + x.o.orderNo, sub: it.code + ' ' + pickedOf(it) + '/' + qtyOf(it) + (x.o.pickStatus === PICK.done ? ' · ตะกร้านี้ครบแล้ว ✓' : left ? '' : ' · ตะกร้านี้เหลือ ' + (x.o.itemQty - x.o.pickedQty) + ' ชิ้น') };
+  }
+  if (batchNeeds(b)[k]) return { ok: false, msg: code + ' แยกครบทุกตะกร้าแล้ว', sub: 'ชิ้นนี้เกิน ไม่ต้องใส่' };
+  return { ok: false, msg: code + ' ไม่อยู่ในรอบนี้', sub: S.codeIdx[k] ? 'อยู่ใน #' + S.codeIdx[k].join(', #') : '' };
+}
+function printBatch(b) {
+  const needs = Object.values(batchNeeds(b)).sort((x, y) => natCmp(x.code, y.code));
+  const bs = batchBaskets(b);
+  const html = "<div class=\"doc\"><div class=\"doc-h\"><div><h1>\u0E43\u0E1A\u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21 " + esc(b.id) + "</h1><div>" + bs.length + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \xB7 " + needs.reduce((s, r) => s + r.total, 0) + " \u0E0A\u0E34\u0E49\u0E19 \xB7 " + today() + "</div></div>\n    <div class=\"doc-meta\"><div>\u0E1C\u0E39\u0E49\u0E2B\u0E22\u0E34\u0E1A: " +
+  esc(S.staff || '................') + "</div></div></div>\n    <table><thead><tr><th>\u2713</th><th>\u0E23\u0E2B\u0E31\u0E2A</th><th>\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23</th><th class=\"n\">\u0E08\u0E33\u0E19\u0E27\u0E19</th><th>\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</th></tr></thead><tbody>\n    " +
+
+  needs.map((r) => "<tr><td class=\"box\"></td><td class=\"c\">" + esc(r.code) + "</td><td>" + esc(r.name) + "</td><td class=\"n\"><b>" + r.total + "</b></td><td>" + bs.filter((x) => x.o && itemsOf(x.o).some((i) => norm(i.code) === r.key && !isSkip(i))).map((x) => x.n).join(', ') + "</td></tr>").join('') + "\n    </tbody></table>\n    <h2>\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</h2><table><thead><tr><th>\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</th><th>\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</th><th>\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32</th><th class=\"n\">\u0E0A\u0E34\u0E49\u0E19</th><th>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</th></tr></thead><tbody>\n    " +
+
+
+  bs.map((x) => "<tr><td class=\"c\">" + x.n + "</td><td>#" + esc(x.no) + "</td><td>" + esc(x.o ? x.o.customer : '') + "</td><td class=\"n\">" + (x.o ? x.o.itemQty || 0 : '') + "</td><td>" + esc(x.o ? x.o.note || '' : '') + "</td></tr>").join('') + "\n    </tbody></table></div>";
+
+  docPrint(html);
+}
+
+/* ---------- แพ็คบางส่วน (รอของ) ---------- */
+function holdPack() {
+  const o = S.byNo[S.pk.no];
+  const ns = needStaff();if (ns) return feedback(ns);
+  if (S.pk.photos.some((p) => p.status === 'up')) return toast('รออัปโหลดรูปให้เสร็จก่อน');
+  const photos = S.pk.photos.filter((p) => p.status === 'ok');
+  const miss = itemsOf(o).filter((i) => !isSkip(i) && (S.pk.packed[i.code] || 0) < qtyOf(i)).map((i) => i.code + ' ×' + (qtyOf(i) - (S.pk.packed[i.code] || 0)));
+  const note = (S.pk.note ? S.pk.note.replace(/\s*\|?\s*รอของ:.*$/, '') + ' | ' : '') + 'รอของ: ' + miss.join(', ');
+  const payload = {
+    packed: itemsOf(o).map((i) => ({ code: i.code, packedQty: S.pk.packed[i.code] || 0 })),
+    carrier: S.pk.carrier, tracking: S.pk.tracking, staff: S.staff, note: note, photos: photos.map((p) => p.url), partial: true
+  };
+  itemsOf(o).forEach((i) => {i.packedQty = S.pk.packed[i.code] || 0;});
+  Object.assign(o, { packStatus: PACK.part, packedBy: S.staff, packedAt: nowStr(), carrier: payload.carrier, tracking: payload.tracking, photos: payload.photos.join('\n'), packNote: note });
+  rebuild();
+  enqueue({ type: 'pack', orderNo: String(o.orderNo), payload: payload });
+  LS.del(packDraftKey(S.pk.no));S.pk = null;
+  feedback({ kind: 'warn', msg: 'พัก #' + o.orderNo + ' รอของ', sub: miss.join(', ') });
+  render();
+}
+function partialList() {
+  const list = S.orders.filter(isPackPart).sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0));
+  if (!list.length) return '';
+  return "<div class=\"sec\">\u0E41\u0E1E\u0E47\u0E04\u0E1A\u0E32\u0E07\u0E2A\u0E48\u0E27\u0E19 \u0E23\u0E2D\u0E02\u0E2D\u0E07 (" + list.length + ")</div><div class=\"stack\">" + list.map((o) => "<button class=\"ord\" data-act=\"openPack\" data-no=\"" + esc(norm(o.orderNo)) + "\">\n    <div class=\"ord-top\"><span class=\"ord-no\">#" +
+  esc(o.orderNo) + "</span><span class=\"ord-name\">" + esc(o.customer || '-') + "</span>" + pickChip(o) + "</div>\n    <div class=\"ord-meta\" style=\"margin:4px 0 0;white-space:normal\">\u0E23\u0E2D: " +
+  esc(missingText(o) || '-') + "</div></button>").join('') + "</div>";
+}
+
+/* ---------- จำนวนฉลาก ---------- */
+function soldQty(code) {
+  const k = norm(code);
+  const p = (S.products || []).find((x) => norm(x.code) === k);
+  if (p && Number(p.sold) > 0) return Number(p.sold);
+  let n = 0;Object.values(S.itemsBy).forEach((arr) => arr.forEach((i) => {if (norm(i.code) === k && !isSkip(i)) n += qtyOf(i);}));
+  return Math.max(1, n);
+}
+function lblQty(code) {const v = S.lblQty[norm(code)];return v === undefined ? soldQty(code) : v;}
+function lblTotal() {let t = 0;S.labelSel.forEach((c) => {t += lblQty(c);});return t;}
+
+/* ---------- การกระทำ ---------- */
+Object.assign(ACT, {
+  stockOpen: (d) => {openStock(d.c);},
+  toShort: () => {S.more = 'short';go('more');},
+  skInc: (d) => {if (!S.sk) return;S.sk.have = Math.max(0, S.sk.have + Number(d.d));renderStockSheet();},
+  skSet: (d) => {if (!S.sk) return;S.sk.have = Math.max(0, Number(d.v) || 0);renderStockSheet();},
+  skRm: (d) => {if (!S.sk) return;const i = S.sk.photos.findIndex((p) => p.lid === d.l);if (i < 0) return;const p = S.sk.photos.splice(i, 1)[0];if (i === 0) S.sk.thumb = S.sk.photos[0] && S.sk.photos[0].thumb || '';if (p.id) api('deletePhoto', p.id).catch(() => {});renderStockSheet();},
+  stockSave: () => stockSave(),
+  poPrint: () => printPO(),
+  poMark: () => {
+    const codes = shortList().filter((r) => !S.poOff.has(norm(r.code))).map((r) => r.code);
+    if (!codes.length) return;
+    const stamp = today();
+    codes.forEach((c) => {const r = S.stock[norm(c)];if (r) r.ordered = stamp;});
+    enqueue({ type: 'ordered', codes: codes, staff: S.staff });render();
+    toast('บันทึกว่าสั่งแล้ว ' + codes.length + ' รายการ', 'ok');
+  },
+  bOpen: (d) => {S.batchId = d.id;S.batchStep = 'pick';S.lastPut = null;S.confirmReset = null;render();$('main').scrollTop = 0;},
+  batchBack: () => {S.batchId = null;render();},
+  bStep: (d) => {S.batchStep = d.s;render();$('main').scrollTop = 0;},
+  nbSize: (d) => {S.nb.size = Number(d.n);LS.set('nb', { size: S.nb.size, paidOnly: S.nb.paidOnly });render();},
+  bCreate: async () => {
+    const ns = needStaff();if (ns) return feedback(ns);
+    const cand = batchCandidates();if (!cand.length || S.nb.busy) return;
+    S.nb.busy = true;render();
+    try {
+      const b = await api('createBatch', cand.map((o) => String(o.orderNo)), S.staff);
+      S.batches.push(b);S.batchId = b.id;S.batchStep = 'pick';S.lastPut = null;
+      feedback({ ok: true, msg: 'สร้างรอบ ' + b.id, sub: parseJ(b.orders, []).length + ' ออเดอร์ · เริ่มหยิบรวมได้เลย' });
+    } catch (e) {toast('สร้างรอบไม่ได้: ' + errMsg(e), 'bad');}
+    S.nb.busy = false;render();$('main').scrollTop = 0;
+  },
+  bInc: (d) => {const b = curBatch();if (!b) return;const r = batchInc(b, d.c, Number(d.d));if (r && r.ok === false) feedback(r);else if (r && Number(d.d) > 0) beep('ok');},
+  bPrint: () => {const b = curBatch();if (b) printBatch(b);},
+  bClose: () => {
+    const b = curBatch();if (!b) return;
+    if (S.confirmReset !== 'batch' + b.id) {S.confirmReset = 'batch' + b.id;render();return;}
+    S.confirmReset = null;b.status = BATCH.closed;b.closedAt = nowStr();
+    enqueue({ type: 'batch', id: b.id, patch: { status: BATCH.closed }, staff: S.staff });
+    S.batchId = null;toast('ปิดรอบ ' + b.id + ' แล้ว', 'ok');render();
+  },
+  bReopen: () => {const b = curBatch();if (!b) return;b.status = BATCH.open;b.closedAt = '';enqueue({ type: 'batch', id: b.id, patch: { status: BATCH.open }, staff: S.staff });render();},
+  holdPack: () => holdPack(),
+  lq: (d) => {const k = norm(d.c);S.lblQty[k] = Math.max(1, lblQty(d.c) + Number(d.d));render();}
+});
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.id === 'stockQ') {S.stockQ = t.value;clearTimeout(S._sq);S._sq = setTimeout(() => {render();const i = $('stockQ');if (i) {i.focus();i.setSelectionRange(i.value.length, i.value.length);}}, 250);} else
+  if (t.id === 'skHave' && S.sk) {S.sk.have = Math.max(0, parseInt(t.value, 10) || 0);} else
+  if (t.id === 'skNote' && S.sk) {S.sk.note = t.value;} else
+  if (t.id === 'poVendor') {S.poVendor = t.value;LS.set('poVendor', t.value);} else
+  if (t.dataset && t.dataset.poq) {S.poQty[t.dataset.poq] = Math.max(0, parseInt(t.value, 10) || 0);} else
+  if (t.dataset && t.dataset.lqi) {S.lblQty[norm(t.dataset.lqi)] = Math.max(1, parseInt(t.value, 10) || 1);const bt = document.querySelector('[data-act="lblPrint"]');if (bt) bt.textContent = 'พิมพ์ ' + lblTotal() + ' ดวง';}
+});
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.id === 'stockMulti') {S.stockMulti = t.checked;render();} else
+  if (t.id === 'skHave') renderStockSheet();else
+  if (t.id === 'nbPaid') {S.nb.paidOnly = t.checked;LS.set('nb', { size: S.nb.size, paidOnly: S.nb.paidOnly });render();} else
+  if (t.id === 'fileStock') {const f = [...t.files];t.value = '';addStockPhotos(f);} else
+  if (t.dataset && t.dataset.po) {t.checked ? S.poOff.delete(t.dataset.po) : S.poOff.add(t.dataset.po);render();} else
+  if (t.dataset && (t.dataset.poq || t.dataset.lqi)) softRender();
+});
+
 async function loadProducts() {try {S.products = await api('getProducts');} catch (e) {S.products = [];toast('โหลดสินค้าไม่ได้: ' + errMsg(e), 'bad');}render();}
 
 document.addEventListener('click', (e) => {
@@ -1311,7 +1879,7 @@ $('manualForm').addEventListener('submit', (e) => {
 });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {if (Cam.on) {camStop();Cam.resume = true;}} else
-  {if (Cam.resume && (S.view === 'pick' || S.view === 'pack')) camStart();Cam.resume = false;if (Q.list.length) qKick();}
+  {if (Cam.resume && ['pick', 'pack', 'stock', 'batch'].includes(S.view)) camStart();Cam.resume = false;if (Q.list.length) qKick();}
 });
 setInterval(() => {if (!document.hidden && !Q.list.length && !Q.busy && S.view === 'orders') refresh(true);}, 60000);
 
@@ -1319,9 +1887,11 @@ setInterval(() => {if (!document.hidden && !Q.list.length && !Q.busy && S.view =
 (async function boot() {
   Object.assign(S.set, LS.get('set', {}));
   S.staff = LS.get('staff', '');
+  Object.assign(S.nb, LS.get('nb', {}), { busy: false });
+  S.poVendor = LS.get('poVendor', '');
   syncBadge();
   readHashCfg();
-  if (!hasGas() && !window.MockApi && !getCfg()) { window.__booted = true; showConnect(''); return; }
+  if (!hasGas() && !window.MockApi && !getCfg()) {window.__booted = true;showConnect('');return;}
   try {
     window.__apiCalled = true;
     const b = await api('getBootstrap');
@@ -1331,7 +1901,7 @@ setInterval(() => {if (!document.hidden && !Q.list.length && !Q.busy && S.view =
     if (S.staff && !S.staffList.includes(S.staff)) S.staff = '';
   } catch (e) {
     window.__booted = true;
-    if (!hasGas() && !window.MockApi) { showConnect(errMsg(e)); return; }
+    if (!hasGas() && !window.MockApi) {showConnect(errMsg(e));return;}
     $('loading').innerHTML = "<div class=\"card\" style=\"max-width:340px\"><b>\u0E40\u0E1B\u0E34\u0E14\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49</b><p class=\"muted\">" + esc(errMsg(e)) + "</p><button class=\"btn pri\" onclick=\"location.reload()\">\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48</button></div>";
     return;
   }
