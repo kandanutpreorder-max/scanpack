@@ -399,7 +399,7 @@ const S = {
   f: { pick: 'all', pack: 'all', pay: 'all', picker: '', packer: '', date: '', q: '' },
   pickNo: null, pickChoices: null,
   pk: null, packChoices: null,
-  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', labelOnlyOpen: true, labelSize: 's5030', lblQty: {},
+  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
   stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, busy: false },
   sk: null, stockQ: '', stockMulti: true, poQty: {}, poOff: new Set(), poVendor: '',
   set: { sound: true, autoCam: true, requirePhoto: false, lastCarrier: '' }
@@ -410,6 +410,7 @@ const LS = {
   set(k, v) {try {localStorage.setItem('sp_' + k, JSON.stringify(v));} catch (e) {}},
   del(k) {try {localStorage.removeItem('sp_' + k);} catch (e) {}}
 };
+S.labelSort = LS.get('labelSort', 'qty') === 'code' ? 'code' : 'qty';
 
 const norm = (s) => String(s == null ? '' : s).trim().toUpperCase().replace(/\s+/g, '').replace(/^#/, '');
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&' + '#39;' })[c]);
@@ -1189,7 +1190,7 @@ function vSummary() {
 }
 function vSettings() {
   const t = (k, l, d) => "<label class=\"toggle card\"><span><b>" + l + "</b><br><span class=\"muted\" style=\"font-size:12px\">" + d + "</span></span><input type=\"checkbox\" data-set=\"" + k + "\" " + (S.set[k] ? 'checked' : '') + "></label>";
-  return "<div class=\"stack\">" + back() + "<div class=\"card toggle\"><span><b>ภาษา / ဘာသာစကား</b></span>" + langSwitch() + "</div>\n    " +
+  return "<div class=\"stack\">" + back() + "<div class=\"card toggle\"><span translate=\"no\"><b>ภาษา / ဘာသာစကား</b></span>" + langSwitch() + "</div>\n    " +
   t('sound', 'เสียงบี๊บ + สั่น', 'ดัง/สั่นทุกครั้งที่สแกน เสียงต่ำ = ผิด') + "\n    " +
   t('autoCam', 'เปิดกล้องอัตโนมัติ', 'เข้าหน้าจัดของ/แพ็คแล้วเปิดกล้องทันที') + "\n    " +
   t('requirePhoto', 'บังคับถ่ายรูปก่อนแพ็คเสร็จ', 'กดแพ็คเสร็จไม่ได้ถ้ายังไม่มีรูป') + "\n    <div class=\"card muted\" style=\"font-size:13px\">\u0E43\u0E0A\u0E49\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E1A\u0E32\u0E23\u0E4C\u0E42\u0E04\u0E49\u0E14\u0E1A\u0E25\u0E39\u0E17\u0E39\u0E18\u0E01\u0E31\u0E1A\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49 \u0E22\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E23\u0E31\u0E1A\u0E17\u0E31\u0E19\u0E17\u0E35\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C (\u0E15\u0E31\u0E49\u0E07\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1B\u0E49\u0E19\u0E20\u0E32\u0E29\u0E32\u0E2D\u0E31\u0E07\u0E01\u0E24\u0E29 \u0E41\u0E25\u0E30\u0E2A\u0E48\u0E07 Enter \u0E17\u0E49\u0E32\u0E22\u0E23\u0E2B\u0E31\u0E2A)</div>\n  </div>";
@@ -1208,7 +1209,7 @@ function vLabels() {
   const sel = S.labelSel;
   return "<div class=\"stack\">" + back() + "\n    <div class=\"card stack\">\n      <div class=\"row2\"><label class=\"field\"><span>\u0E02\u0E19\u0E32\u0E14\u0E09\u0E25\u0E32\u0E01</span><select id=\"lblSize\"><option value=\"s5030\" " + (
 
-  S.labelSize === 's5030' ? 'selected' : '') + ">50\xD730 \u0E21\u0E21.</option><option value=\"sA4\" " + (S.labelSize === 'sA4' ? 'selected' : '') + ">A4 21 \u0E14\u0E27\u0E07</option></select></label>\n      <label class=\"field\"><span>\u0E04\u0E49\u0E19\u0E2B\u0E32</span><input id=\"lblQ\" value=\"" +
+  S.labelSize === 's5030' ? 'selected' : '') + ">50\xD730 \u0E21\u0E21.</option><option value=\"sA4\" " + (S.labelSize === 'sA4' ? 'selected' : '') + ">A4 21 \u0E14\u0E27\u0E07</option></select></label><label class=\"field\"><span>เรียงตาม</span><select id=\"lblSort\"><option value=\"qty\" " + (S.labelSort === 'qty' ? 'selected' : '') + ">จำนวน มาก→น้อย</option><option value=\"code\" " + (S.labelSort === 'code' ? 'selected' : '') + ">รหัสสินค้า</option></select></label>\n      <label class=\"field\"><span>\u0E04\u0E49\u0E19\u0E2B\u0E32</span><input id=\"lblQ\" value=\"" +
   esc(S.labelQ) + "\" placeholder=\"\u0E23\u0E2B\u0E31\u0E2A/\u0E0A\u0E37\u0E48\u0E2D\"></label></div>\n      <label class=\"toggle\"><span>\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E43\u0E19\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E41\u0E1E\u0E47\u0E04</span><input type=\"checkbox\" id=\"lblOpen\" " + (
   S.labelOnlyOpen ? 'checked' : '') + "></label>\n      <div class=\"btns\"><button class=\"btn\" data-act=\"lblAll\">\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 (" +
   list.length + ")</button><button class=\"btn\" data-act=\"lblNone\">\u0E25\u0E49\u0E32\u0E07</button>\n      <button class=\"btn pri\" data-act=\"lblPrint\" " + (
@@ -1222,13 +1223,17 @@ function labelList() {
   const m = {};
   (S.products || []).forEach((p) => {m[norm(p.code)] = { code: String(p.code), name: p.name || '', price: p.price };});
   Object.values(S.itemsBy).forEach((arr) => arr.forEach((i) => {if (!isSkip(i) && !m[norm(i.code)]) m[norm(i.code)] = { code: String(i.code), name: i.name || '', price: i.price };}));
-  return Object.values(m).sort((a, b) => a.code.localeCompare(b.code, 'th', { numeric: true }));
+  const byCode = (a, b) => a.code.localeCompare(b.code, 'th', { numeric: true });
+  const arr = Object.values(m).sort(byCode);
+  if (S.labelSort === 'qty') arr.sort((a, b) => soldQty(b.code) - soldQty(a.code) || byCode(a, b));
+  return arr;
 }
 let qrLib = null;
 function loadScript(src) {return new Promise((res, rej) => {const s = document.createElement('script');s.src = src;s.onload = res;s.onerror = () => rej(new Error('โหลดไม่สำเร็จ ' + src));document.head.appendChild(s);});}
 async function printLabels() {
   if (!window.qrcode) await loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js');
   const all = labelList().filter((p) => S.labelSel.has(p.code));
+  if (S.labelSort === 'qty') all.sort((a, b) => lblQty(b.code) - lblQty(a.code));
   const html = all.map((p) => {
     const qr = qrcode(0, 'M');qr.addData(encodeURIComponent(p.code));qr.make();
     const one = "<div class=\"lbl\"><img src=\"" + qr.createDataURL(4, 0) + "\" alt=\"\"><div class=\"t\"><div class=\"c\">" + esc(p.code) + "</div><div class=\"n\">" + esc(p.name) + "</div><div class=\"p\">" + baht(p.price) + "</div></div></div>";
@@ -1868,6 +1873,7 @@ document.addEventListener('change', (e) => {
   if (t.dataset.lbl !== undefined && t.dataset.lbl !== '') {t.checked ? S.labelSel.add(t.dataset.lbl) : S.labelSel.delete(t.dataset.lbl);softRender();} else
   if (t.id === 'lblOpen') {S.labelOnlyOpen = t.checked;render();} else
   if (t.id === 'lblSize') {S.labelSize = t.value;} else
+  if (t.id === 'lblSort') {S.labelSort = t.value;LS.set('labelSort', t.value);render();} else
   if (t.id === 'filePhoto') {const f = [...t.files];t.value = '';addPhotos(f);} else
   if (t.id === 'fileImport') {const f = t.files[0];t.value = '';if (f) readVrich(f);} else
   if (t.id === 'fileScan') {
@@ -2329,6 +2335,8 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "เรียงตาม": "စီရန်",
+  "จำนวน มาก{0}น้อย": "အရေအတွက် များ{0}နည်း",
   "฿{0}": "฿{0}"
 };
 
@@ -2426,6 +2434,7 @@ function setLang(l) {
   LS.set('lang', I18N.lang);
   document.documentElement.lang = I18N.lang === 'my' ? 'my' : 'th';
   document.documentElement.classList.toggle('lang-my', I18N.lang === 'my');
+  document.querySelectorAll('.langsw button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-l') === I18N.lang)); });
   i18nWalk(document.body);
 }
 function langSwitch() {
