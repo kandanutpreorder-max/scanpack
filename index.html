@@ -213,6 +213,21 @@ select{border:1px solid var(--line);background:var(--surface);border-radius:10px
 .ph .rm{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:1}
 .ph.add{border:2px dashed var(--ai);background:var(--ai-soft);color:var(--ai);display:grid;place-items:center;text-align:center;font-size:12px;font-weight:600;cursor:pointer}
 .ph.add svg{width:26px;height:26px;display:block;margin:0 auto 2px}
+.ph.add{width:100%;font-family:inherit}
+.ph.add.alt{border-style:dotted;background:var(--surface);color:var(--muted)}
+.shooter{position:fixed;inset:0;background:#000;z-index:35;display:flex;flex-direction:column}
+.shooter video{flex:1;min-height:0;width:100%;object-fit:cover;background:#000}
+.sh-top{position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 24px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(rgba(0,0,0,.6),transparent);font-weight:600}
+.sh-msg{position:absolute;left:16px;right:16px;top:45%;text-align:center;color:#fff;font-weight:600}
+.sh-thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px 12px 0;background:#000;min-height:8px}
+.sh-thumbs img{width:52px;height:52px;object-fit:cover;border-radius:8px;flex:none;border:2px solid #fff}
+.sh-bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 18px calc(env(safe-area-inset-bottom,0px) + 16px);gap:12px;background:#000}
+.sh-shut{width:76px;height:76px;border-radius:50%;border:5px solid #fff;background:#fff;box-shadow:inset 0 0 0 4px #000}
+.sh-shut:active{transform:scale(.92)}
+.sh-btn{color:#fff;background:rgba(255,255,255,.16);border:0;border-radius:999px;padding:12px 16px;font-weight:700;font-size:15px;justify-self:start}
+.sh-btn.done{justify-self:end;background:#fff;color:#000}
+.snapfx{position:fixed;inset:0;background:#fff;opacity:.85;z-index:60;pointer-events:none;animation:snapfx .35s ease-out forwards}
+@keyframes snapfx{to{opacity:0}}
 .big{width:100%;border:0;border-radius:14px;padding:15px;font-size:17px;font-weight:700;background:var(--ai);color:var(--ai-ink)}
 .big.ok{background:var(--ok);color:#fff} .big.warn{background:var(--warn);color:#fff}
 .big:disabled{opacity:.5}
@@ -381,7 +396,7 @@ html.lang-my .tile span{font-size:10px;line-height:1.3}
     <div id="cam"></div>
     <div id="camOverlay"><div><p id="camOvMsg">แตะเพื่อเปิดกล้องสแกน</p><button class="btn pri" data-act="camOn">เปิดกล้อง</button>
       <div style="margin-top:10px"><button class="btn" data-act="photoScan" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.35)">ถ่ายรูปบาร์โค้ดแทน</button></div></div></div>
-    <div class="camBtns"><button data-act="photoScan">ถ่ายรูป</button><button data-act="camToggle" id="camToggle">ปิดกล้อง</button></div>
+    <div class="camBtns"><button data-act="camShot" id="camShot">ถ่ายรูป</button><button data-act="camToggle" id="camToggle">ปิดกล้อง</button></div>
     <div id="camFb"><b></b><span></span></div>
   </div>
   <form class="manual" id="manualForm" autocomplete="off">
@@ -403,8 +418,8 @@ html.lang-my .tile span{font-size:10px;line-height:1.3}
 <div id="toast" hidden></div>
 <div id="camFileBox" hidden></div>
 <input type="file" id="fileScan" accept="image/*" capture="environment" hidden>
-<input type="file" id="filePhoto" accept="image/*" capture="environment" hidden>
-<input type="file" id="fileStock" accept="image/*" capture="environment" hidden>
+<input type="file" id="filePhoto" accept="image/*" hidden>
+<input type="file" id="fileStock" accept="image/*" hidden>
 <input type="file" id="fileImport" accept=".xlsx,.xls,.csv" hidden>
 <div id="printArea"></div>
 
@@ -670,6 +685,7 @@ async function camStart() {
     });
     await Cam.inst.start({ facingMode: 'environment' }, {
       fps: 15, disableFlip: true,
+      videoConstraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
       qrbox: (w, h) => ({ width: Math.max(160, Math.floor(w * 0.88)), height: Math.max(120, Math.floor(h * 0.7)) })
     }, onDecoded, () => {});
     Cam.on = true;$('camOverlay').hidden = true;$('camToggle').textContent = 'ปิดกล้อง';
@@ -682,6 +698,77 @@ async function camStart() {
 async function camStop() {
   if (Cam.inst && Cam.on) {try {await Cam.inst.stop();} catch (e) {}}
   Cam.on = false;$('camOverlay').hidden = false;$('camOvMsg').textContent = 'กล้องปิดอยู่';$('camToggle').textContent = 'เปิดกล้อง';
+}
+/* ถ่ายรูปจากกล้องสแกนที่เปิดอยู่ (ไม่ต้องสลับไปแอปกล้อง ซึ่งทำให้ Android ปิดแอปเราบ่อย) */
+function snapFrame() {
+  const v = document.querySelector('#cam video');
+  if (!Cam.on || !v || !v.videoWidth) return null;
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth;c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  return c;
+}
+function snapPhoto(t) {
+  if (t === 'pack' && !S.pk || t === 'stock' && !S.sk) return;
+  openShooter(t);
+}
+/* กล้องถ่ายรูปในแอป (เต็มจอ มีภาพตัวอย่าง) — ไม่เปิดแอปกล้องของเครื่อง
+ * เพราะ Android มักปิดเบราว์เซอร์/แอปเราระหว่างอยู่ในแอปกล้อง ทำให้กลับมาแล้วแอปเริ่มใหม่และรูปหาย */
+const Shot = { el: null, stream: null, t: '', n: 0, resume: false };
+async function openShooter(t) {
+  if (Shot.el) return;
+  Shot.t = t;Shot.n = 0;Shot.resume = Cam.on;
+  if (Cam.on) await camStop();
+  const el = document.createElement('div');el.className = 'shooter';el.id = 'shooter';
+  el.innerHTML = "<video playsinline muted autoplay></video><div class=\"sh-top\"><span>" + (t === 'pack' ? 'ถ่ายรูปกล่อง' : 'ถ่ายรูปสต็อก') + "</span><span id=\"shN\"></span></div>" +
+  "<div class=\"sh-msg\" id=\"shMsg\">กำลังเปิดกล้อง…</div><div class=\"sh-thumbs\" id=\"shThumbs\"></div>" +
+  "<div class=\"sh-bar\"><span></span><button class=\"sh-shut\" data-act=\"shSnap\" aria-label=\"ถ่าย\"></button><button class=\"sh-btn done\" data-act=\"shClose\">เสร็จ</button></div>";
+  document.body.appendChild(el);Shot.el = el;
+  try {
+    Shot.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+    if (!Shot.el) {Shot.stream.getTracks().forEach((k) => k.stop());Shot.stream = null;return;}
+    const v = el.querySelector('video');v.srcObject = Shot.stream;
+    await v.play().catch(() => {});
+    $('shMsg').textContent = '';
+  } catch (e) {
+    $('shMsg').textContent = 'เปิดกล้องไม่ได้ (' + errMsg(e).slice(0, 60) + ') ใช้ปุ่ม "จากเครื่อง" แทน';
+  }
+}
+function shSnap() {
+  const v = Shot.el && Shot.el.querySelector('video');
+  if (!v || !v.videoWidth) return toast('กล้องยังไม่พร้อม');
+  const c = document.createElement('canvas');c.width = v.videoWidth;c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  const fx = document.createElement('div');fx.className = 'snapfx';document.body.appendChild(fx);setTimeout(() => fx.remove(), 400);
+  beep('ok');
+  Shot.n++;$('shN').textContent = Shot.n + ' รูป';
+  const im = document.createElement('img');im.src = drawScaled(c, 120, 0.6);$('shThumbs').appendChild(im);
+  if (Shot.t === 'pack') addPhotos([c]);else addStockPhotos([c]);
+}
+function closeShooter() {
+  if (Shot.stream) Shot.stream.getTracks().forEach((k) => k.stop());
+  Shot.stream = null;
+  if (Shot.el) Shot.el.remove();
+  Shot.el = null;
+  if (Shot.resume) camBack();
+  Shot.resume = false;
+}
+/* ปุ่มถ่ายรูปบนภาพกล้องสแกน: ถ้ากล้องเปิดอยู่ ถ่ายจากภาพที่เห็นทันที */
+function quickSnap(t) {
+  const c = snapFrame();
+  if (!c) return openShooter(t);
+  const fx = document.createElement('div');fx.className = 'snapfx';document.body.appendChild(fx);setTimeout(() => fx.remove(), 400);
+  beep('ok');
+  if (t === 'pack') addPhotos([c]);else addStockPhotos([c]);
+}
+function nativePhoto(id) {
+  // ปิดกล้องสแกนก่อนเปิดกล้อง/คลังรูปของเครื่อง เพื่อคืนกล้องและหน่วยความจำ
+  if (Cam.on && Cam.inst) {Cam.inst.stop().catch(() => {});Cam.on = false;Cam.resume = true;}
+  $(id).click();
+}
+function camShotLabel() {
+  const b = $('camShot');if (!b) return;
+  b.textContent = S.view === 'pack' && S.pk ? 'ถ่ายรูปกล่อง' : S.view === 'stock' && S.sk ? 'ถ่ายรูปสต็อก' : 'สแกนจากรูป';
 }
 function onDecoded(text) {
   const now = Date.now();
@@ -904,7 +991,7 @@ async function addPhotos(files) {
     const p = { lid: uid(), status: 'up', thumb: '' };
     S.pk.photos.push(p);softRender();
     try {
-      const img = await loadImg(f);
+      const img = f instanceof HTMLCanvasElement ? f : await loadImg(f);
       p.thumb = drawScaled(img, 240, 0.7);
       softRender();
       const data = drawScaled(img, 1600, 0.78);
@@ -924,9 +1011,10 @@ function loadImg(file) {
   });
 }
 function drawScaled(img, max, q) {
-  const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const W = img.naturalWidth || img.width,H = img.naturalHeight || img.height;
+  const s = Math.min(1, max / Math.max(W, H));
   const c = document.createElement('canvas');
-  c.width = Math.round(img.naturalWidth * s);c.height = Math.round(img.naturalHeight * s);
+  c.width = Math.round(W * s);c.height = Math.round(H * s);
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   return c.toDataURL('image/jpeg', q);
 }
@@ -946,6 +1034,9 @@ let rT = null;
 function softRender() {cancelAnimationFrame(rT);rT = requestAnimationFrame(render);}
 function render() {
   const m = $('main');
+  const rno = S.view === 'pack' ? S.pk && S.pk.no : S.view === 'pick' ? S.pickNo : S.view === 'batch' ? S.batchId : '';
+  LS.set('resume', { v: S.view, no: rno || '', t: Date.now() });
+  setTimeout(camShotLabel, 0);
   const keepScroll = m.scrollTop;
   S._nc = null;
   if (S.view === 'stock') m.innerHTML = vStock();else
@@ -1142,7 +1233,7 @@ function vPack() {
 
   label + "</div>\n      <div class=\"field\"><span>\u0E23\u0E39\u0E1B\u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19\u0E01\u0E32\u0E23\u0E41\u0E1E\u0E47\u0E04 " + (
   S.set.requirePhoto ? '(บังคับ)' : '') + "</span>\n        <div class=\"photos\">" +
-  photos + "<label class=\"ph add\" for=\"filePhoto\"><span><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 8h3l2-3h6l2 3h3v11H4z\"/><circle cx=\"12\" cy=\"13\" r=\"3.5\"/></svg>\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</span></label></div>\n      </div>\n      <label class=\"field\"><span>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</span><input id=\"pkNote\" value=\"" +
+  photos + "<button class=\"ph add\" data-act=\"snapPhoto\" data-t=\"pack\"><span><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 8h3l2-3h6l2 3h3v11H4z\"/><circle cx=\"12\" cy=\"13\" r=\"3.5\"/></svg>ถ่ายรูป</span></button><button class=\"ph add alt\" data-act=\"nativePhoto\" data-t=\"filePhoto\"><span><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"4\" y=\"5\" width=\"16\" height=\"14\" rx=\"2\"/><path d=\"M4 16l5-5 4 4 3-3 4 4\"/></svg>จากเครื่อง</span></button></div>\n      </div>\n      <label class=\"field\"><span>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</span><input id=\"pkNote\" value=\"" +
 
   esc(pk.note) + "\" placeholder=\"\u0E40\u0E0A\u0E48\u0E19 \u0E43\u0E2A\u0E48\u0E01\u0E25\u0E48\u0E2D\u0E07 M+, \u0E2B\u0E48\u0E2D\u0E1A\u0E31\u0E1A\u0E40\u0E1A\u0E34\u0E49\u0E25\"></label>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22 <b style=\"color:var(--ink)\">" +
   esc(S.staff || 'ยังไม่เลือกชื่อ') + "</b></div>\n    </div>\n    " + (lacking > 0 && !issues.length ? "<button class=\"big stickyBtn warn\" data-act=\"holdPack\">แพ็คบางส่วน · พักรอของ (ขาด " + lacking + " ชิ้น)</button><button class=\"btn\" data-act=\"finishPack\">ส่งเลยแม้ของไม่ครบ</button>" : "<button class=\"big stickyBtn " + (issues.length ? 'warn' : 'ok') + "\" data-act=\"finishPack\">" + esc(btnTxt) + "</button>") + "\n    " + (
@@ -1179,7 +1270,12 @@ function openDetail(no) {
   esc(norm(o.orderNo)) + "\">\u0E08\u0E31\u0E14\u0E02\u0E2D\u0E07</button><button class=\"btn pri\" data-act=\"sheetPack\" data-no=\"" + esc(norm(o.orderNo)) + "\">\u0E41\u0E1E\u0E47\u0E04</button></div>\n    </div></div></div>";
 
 }
-function closeSheet() {$('sheetRoot').innerHTML = '';S.sk = null;}
+function closeSheet() {$('sheetRoot').innerHTML = '';S.sk = null;LS.del('skDraft');}
+/* ร่างการเช็กสต็อก: ถ้าแอปถูกปิดกลางคัน (เช่น Android ปิดเบราว์เซอร์) เปิดใหม่แล้วกลับมาที่เดิม รูปที่ส่งแล้วไม่หาย */
+function skDraftSave() {
+  const s = S.sk;if (!s) return;
+  LS.set('skDraft', { code: s.code, have: s.have, note: s.note, thumb: s.thumb, photos: s.photos.filter((p) => p.status === 'ok').map((p) => ({ url: p.url, id: p.id, thumb: p.thumb || '' })), t: Date.now() });
+}
 
 /* ---------- เลือกผู้ใช้งาน ---------- */
 function openStaff() {
@@ -1361,7 +1457,12 @@ const ACT = {
   closeSheet: () => closeSheet(),
   camOn: () => camStart(),
   camToggle: () => Cam.on ? camStop() : camStart(),
-  photoScan: () => $('fileScan').click(),
+  photoScan: () => nativePhoto('fileScan'),
+  camShot: () => {if (S.view === 'pack' && S.pk) quickSnap('pack');else if (S.view === 'stock' && S.sk) quickSnap('stock');else nativePhoto('fileScan');},
+  snapPhoto: (d) => snapPhoto(d.t),
+  shSnap: () => shSnap(),
+  shClose: () => closeShooter(),
+  nativePhoto: (d) => nativePhoto(d.t),
   filt: (d) => {S.f[d.k] = d.val;render();},
   tile: (d, el) => {Object.assign(S.f, JSON.parse(el.dataset.set));render();},
   detail: (d) => openDetail(d.no),
@@ -1546,11 +1647,17 @@ function openStock(code, fromScan) {
     photos: String(r.photos || '').split('\n').filter(Boolean).map((u, i) => ({ lid: uid(), url: u, status: 'ok', thumb: i === 0 ? r.thumb : '' })),
     thumb: r.thumb || '', note: r.note || ''
   };
+  const dr = LS.get('skDraft', null);
+  if (dr && norm(dr.code) === k && Date.now() - dr.t < 2 * 3600e3) {
+    Object.assign(S.sk, { have: Number(dr.have) || 0, note: dr.note || '', thumb: dr.thumb || S.sk.thumb });
+    S.sk.photos = (dr.photos || []).map((p) => ({ lid: uid(), url: p.url, id: p.id, thumb: p.thumb, status: 'ok' }));
+  }
   renderStockSheet();
   return true;
 }
 function renderStockSheet() {
   const s = S.sk;if (!s) return;
+  skDraftSave();
   const bn = S.view === 'batch' && curBatch() ? (batchNeeds(curBatch())[norm(s.code)] || {}).total : 0;
   const short = Math.max(0, s.need - s.have);
   const ph = s.photos.map((p) => "<div class=\"ph\">" + (p.thumb ? "<img src=\"" + p.thumb + "\" alt=\"\">" : "<a href=\"" + esc(p.url) + "\" target=\"_blank\" style=\"display:grid;place-items:center;height:100%;font-size:12px\">\u0E40\u0E1B\u0E34\u0E14\u0E23\u0E39\u0E1B</a>") + "\n    <span class=\"st\">" + (
@@ -1566,7 +1673,7 @@ function renderStockSheet() {
 
   s.have + "\"><button class=\"plus\" data-act=\"skInc\" data-d=\"1\" aria-label=\"\u0E40\u0E1E\u0E34\u0E48\u0E21\">+</button>\n      <button class=\"btn\" data-act=\"skSet\" data-v=\"" +
   s.need + "\">= \u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49</button><button class=\"btn\" data-act=\"skSet\" data-v=\"0\">\u0E44\u0E21\u0E48\u0E21\u0E35\u0E40\u0E25\u0E22</button></div></div>\n    <div class=\"field\"><span>\u0E23\u0E39\u0E1B\u0E2A\u0E15\u0E47\u0E2D\u0E01</span><div class=\"photos\">" +
-  ph + "<label class=\"ph add\" for=\"fileStock\"><span><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 8h3l2-3h6l2 3h3v11H4z\"/><circle cx=\"12\" cy=\"13\" r=\"3.5\"/></svg>\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</span></label></div></div>\n    <label class=\"field\"><span>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</span><input id=\"skNote\" value=\"" +
+  ph + "<button class=\"ph add\" data-act=\"snapPhoto\" data-t=\"stock\"><span><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 8h3l2-3h6l2 3h3v11H4z\"/><circle cx=\"12\" cy=\"13\" r=\"3.5\"/></svg>ถ่ายรูป</span></button><button class=\"ph add alt\" data-act=\"nativePhoto\" data-t=\"fileStock\"><span><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"4\" y=\"5\" width=\"16\" height=\"14\" rx=\"2\"/><path d=\"M4 16l5-5 4 4 3-3 4 4\"/></svg>จากเครื่อง</span></button></div></div>\n    <label class=\"field\"><span>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</span><input id=\"skNote\" value=\"" +
   esc(s.note) + "\" placeholder=\"\u0E40\u0E0A\u0E48\u0E19 \u0E2D\u0E22\u0E39\u0E48\u0E0A\u0E31\u0E49\u0E19 A3, \u0E02\u0E2D\u0E07\u0E0A\u0E33\u0E23\u0E38\u0E14 1\"></label>\n    <button class=\"big " + (
   short ? 'warn' : 'ok') + "\" data-act=\"stockSave\" " + (s.photos.some((p) => p.status === 'up') ? 'disabled' : '') + ">" + (short ? 'บันทึก · ขาด ' + short + ' ชิ้น' : 'บันทึก · สต็อกพอ') + "</button>\n  </div></div></div>";
 
@@ -1589,7 +1696,7 @@ async function addStockPhotos(files) {
     const p = { lid: uid(), status: 'up', thumb: '' };
     s.photos.push(p);renderStockSheet();
     try {
-      const img = await loadImg(f);
+      const img = f instanceof HTMLCanvasElement ? f : await loadImg(f);
       p.thumb = drawScaled(img, 240, 0.7);
       if (!s.thumb) s.thumb = drawScaled(img, 160, 0.6);
       renderStockSheet();
@@ -1947,7 +2054,7 @@ document.addEventListener('input', (e) => {
   const t = e.target;
   if (t.id === 'stockQ') {S.stockQ = t.value;clearTimeout(S._sq);S._sq = setTimeout(() => {render();const i = $('stockQ');if (i) {i.focus();i.setSelectionRange(i.value.length, i.value.length);}}, 250);} else
   if (t.id === 'skHave' && S.sk) {S.sk.have = Math.max(0, parseInt(t.value, 10) || 0);} else
-  if (t.id === 'skNote' && S.sk) {S.sk.note = t.value;} else
+  if (t.id === 'skNote' && S.sk) {S.sk.note = t.value;skDraftSave();} else
   if (t.id === 'poVendor') {S.poVendor = t.value;LS.set('poVendor', t.value);} else
   if (t.dataset && t.dataset.poq) {S.poQty[t.dataset.poq] = Math.max(0, parseInt(t.value, 10) || 0);} else
   if (t.dataset && t.dataset.lqi) {S.lblQty[norm(t.dataset.lqi)] = Math.max(1, parseInt(t.value, 10) || 1);const bt = document.querySelector('[data-act="lblPrint"]');if (bt) bt.textContent = 'พิมพ์ ' + lblTotal() + ' ดวง';}
@@ -1957,7 +2064,7 @@ document.addEventListener('change', (e) => {
   if (t.id === 'stockMulti') {S.stockMulti = t.checked;render();} else
   if (t.id === 'skHave') renderStockSheet();else
   if (t.id === 'nbPaid') {S.nb.paidOnly = t.checked;LS.set('nb', { size: S.nb.size, paidOnly: S.nb.paidOnly });render();} else
-  if (t.id === 'fileStock') {const f = [...t.files];t.value = '';addStockPhotos(f);} else
+  if (t.id === 'fileStock') {const f = [...t.files];t.value = '';addStockPhotos(f);camBack();} else
   if (t.dataset && t.dataset.po) {t.checked ? S.poOff.delete(t.dataset.po) : S.poOff.add(t.dataset.po);render();} else
   if (t.dataset && (t.dataset.poq || t.dataset.lqi)) softRender();
 });
@@ -2002,7 +2109,7 @@ document.addEventListener('change', (e) => {
   if (t.id === 'lblOpen') {S.labelOnlyOpen = t.checked;render();} else
   if (t.id === 'lblSize') {S.labelSize = t.value;} else
   if (t.id === 'lblSort') {S.labelSort = t.value;LS.set('labelSort', t.value);render();} else
-  if (t.id === 'filePhoto') {const f = [...t.files];t.value = '';addPhotos(f);} else
+  if (t.id === 'filePhoto') {const f = [...t.files];t.value = '';addPhotos(f);camBack();} else
   if (t.id === 'fileImport') {const f = t.files[0];t.value = '';if (f) readVrich(f);} else
   if (t.id === 'fileScan') {
     const f = t.files[0];t.value = '';if (!f) return;
@@ -2020,6 +2127,7 @@ $('manualForm').addEventListener('submit', (e) => {
   const v = $('manual').value;$('manual').value = '';
   if (v.trim()) handleScan(v);
 });
+function camBack() {setTimeout(() => {if (!document.hidden && !Cam.on && S.set.autoCam && ['pick', 'pack', 'stock', 'batch'].includes(S.view)) camStart();Cam.resume = false;}, 400);}
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {if (Cam.on) {camStop();Cam.resume = true;}} else
   {if (Cam.resume && ['pick', 'pack', 'stock', 'batch'].includes(S.view)) camStart();Cam.resume = false;if (Q.list.length) qKick();}
@@ -2463,6 +2571,23 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "{0} ตั้งรับหน้าร้าน": "{0} ဆိုင်မှာလာယူ သတ်မှတ်",
+  "เปิดใน {0}": "{0} တွင်ဖွင့်",
+  "เลขออเดอร์ ชื่อ ชื่อ {0}": "အော်ဒါနံပါတ် အမည် {0} အမည်",
+  "พบ": "တွေ့",
+  "ถ่าย": "ရိုက်",
+  "ยกเลิก": "ပယ်ဖျက်",
+  "เสร็จ": "ပြီးပြီ",
+  "{0} รูป": "ဓာတ်ပုံ {0} ပုံ",
+  "กล้องยังไม่พร้อม": "ကင်မရာ အဆင်သင့်မဖြစ်သေးပါ",
+  "เปิดเช็กสต็อก {0} ต่อจากเดิม": "စတော့စစ် {0} ကို ဆက်ဖွင့်သည်",
+  "จากเครื่อง": "ဖုန်းထဲမှ",
+  "ถ่ายรูปกล่อง": "ဘူးဓာတ်ပုံရိုက်",
+  "ถ่ายรูปสต็อก": "စတော့ဓာတ်ပုံရိုက်",
+  "สแกนจากรูป": "ဓာတ်ပုံမှ စကင်ဖတ်",
+  "เปิดกล้องแล้ว เล็งกล่องแล้วกดถ่ายรูปอีกครั้ง": "ကင်မရာဖွင့်ပြီး ဘူးကိုချိန်ပြီး ဓာတ်ပုံထပ်နှိပ်ပါ",
+  "กล้องยังไม่พร้อม ลองอีกครั้ง": "ကင်မရာ မအဆင်သင့်သေးပါ ထပ်စမ်းပါ",
+  "เปิดออเดอร์ {0} ต่อจากเดิม": "အော်ဒါ #{0} ကို ဆက်ဖွင့်ထားသည်",
   "เปิดใน Vrich": "Vrich တွင်ဖွင့်",
   "ลิงก์ออเดอร์ Vrich": "Vrich အော်ဒါလင့်ခ်",
   "QR บนใบรับหน้าร้าน": "ဆိုင်လာယူစာရွက်ပေါ်ရှိ QR",
@@ -2633,7 +2758,17 @@ function langSwitch() {
   }
   window.__booted = true;
   $('loading').remove();
-  go('orders');
+  const rs = LS.get('resume', null);
+  if (rs && rs.no && Date.now() - rs.t < 2 * 3600e3 && S.byNo[rs.no] && (rs.v === 'pack' || rs.v === 'pick')) {
+    if (rs.v === 'pack') openPack(rs.no);else openPick(rs.no, true);
+    toast('เปิดออเดอร์ #' + S.byNo[rs.no].orderNo + ' ต่อจากเดิม');
+  } else if (rs && Date.now() - rs.t < 2 * 3600e3 && rs.v === 'stock') {
+    go('stock');
+    const dr = LS.get('skDraft', null);
+    if (dr && Date.now() - dr.t < 2 * 3600e3) {openStock(dr.code);toast('เปิดเช็กสต็อก ' + dr.code + ' ต่อจากเดิม');}
+  } else if (rs && rs.no && Date.now() - rs.t < 2 * 3600e3 && rs.v === 'batch' && S.batches.some((b) => b.id === rs.no)) {
+    S.batchId = rs.no;S.batchStep = 'pick';go('batch');
+  } else go('orders');
   if (!S.staff) openStaff();
   if (Q.list.length) qKick(500);
 })();
