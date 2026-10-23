@@ -226,6 +226,7 @@ select{border:1px solid var(--line);background:var(--surface);border-radius:10px
 .sh-shut:active{transform:scale(.92)}
 .sh-btn{color:#fff;background:rgba(255,255,255,.16);border:0;border-radius:999px;padding:12px 16px;font-weight:700;font-size:15px;justify-self:start}
 .sh-btn.done{justify-self:end;background:#fff;color:#000}
+.btn:disabled{opacity:.4;cursor:not-allowed}
 .snapfx{position:fixed;inset:0;background:#fff;opacity:.85;z-index:60;pointer-events:none;animation:snapfx .35s ease-out forwards}
 @keyframes snapfx{to{opacity:0}}
 .big{width:100%;border:0;border-radius:14px;padding:15px;font-size:17px;font-weight:700;background:var(--ai);color:var(--ai-ink)}
@@ -1291,16 +1292,54 @@ function vMore() {
   if (S.more === 'labels') return vLabels();
   if (S.more === 'summary') return vSummary();
   if (S.more === 'settings') return vSettings();
+  if (S.more === 'data') return vData();
   const ic = (p) => "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\">" + p + "</svg>";
   return "<div class=\"stack\"><div class=\"menu\">\n    <button data-act=\"startImport\">" +
   ic('<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>') + "<div><b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E08\u0E32\u0E01 Vrich</b><span>\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich (\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E42\u0E2D\u0E19/\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38\u0E44\u0E14\u0E49 \u0E44\u0E21\u0E48\u0E25\u0E49\u0E32\u0E07\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14)</span></div></button>\n    <button data-act=\"more\" data-m=\"labels\">" +
   ic('<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>') + "<div><b>\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E09\u0E25\u0E32\u0E01 QR \u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</b><span>\u0E15\u0E34\u0E14\u0E17\u0E35\u0E48\u0E16\u0E38\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u0E2A\u0E41\u0E01\u0E19\u0E44\u0E14\u0E49\u0E40\u0E23\u0E47\u0E27\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E23\u0E2B\u0E31\u0E2A</span></div></button>\n    " + moreExtra(ic) + "<button data-act=\"more\" data-m=\"summary\">" +
-  ic('<path d="M5 20V10M12 20V4M19 20v-7"/>') + "<div><b>\u0E2A\u0E23\u0E38\u0E1B\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49</b><span>\u0E43\u0E04\u0E23\u0E08\u0E31\u0E14/\u0E41\u0E1E\u0E47\u0E04\u0E44\u0E1B\u0E01\u0E35\u0E48\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</span></div></button>\n    <button data-act=\"more\" data-m=\"settings\">" +
+  ic('<path d="M5 20V10M12 20V4M19 20v-7"/>') + "<div><b>\u0E2A\u0E23\u0E38\u0E1B\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49</b><span>\u0E43\u0E04\u0E23\u0E08\u0E31\u0E14/\u0E41\u0E1E\u0E47\u0E04\u0E44\u0E1B\u0E01\u0E35\u0E48\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</span></div></button>\n    <button data-act=\"more\" data-m=\"data\">" + ic('<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>') + "<div><b>จัดการข้อมูล</b><span>เก็บข้อมูลไปไฟล์ใหม่ เริ่มรอบใหม่ หรือล้างข้อมูลทดสอบ</span></div></button>\n    <button data-act=\"more\" data-m=\"settings\">" +
   ic('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>') + "<div><b>\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32</b><span>\u0E40\u0E2A\u0E35\u0E22\u0E07, \u0E01\u0E25\u0E49\u0E2D\u0E07, \u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</span></div></button>\n    <button data-act=\"refresh\">" +
   ic('<path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/>') + "<div><b>\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14</b><span>" + (Q.list.length ? 'รอส่งอีก ' + Q.list.length + ' รายการ' : 'ข้อมูลตรงกับชีตแล้ว') + "</span></div></button>\n    " + (
   S.sheetUrl ? "<a class=\"lrow\" href=\"" + esc(S.sheetUrl) + "\" target=\"_blank\" style=\"text-decoration:none;color:inherit;padding:12px 14px\">" + ic('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>') + "<div><b>\u0E40\u0E1B\u0E34\u0E14 Google Sheet</b><div class=\"muted\" style=\"font-size:12px\">\u0E14\u0E39\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 \u0E41\u0E01\u0E49\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19/\u0E02\u0E19\u0E2A\u0E48\u0E07</div></div></a>" : '') + (getCfg() && !hasGas() ? '<button data-act="share">' + ic('<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 11l7.6-4M8.2 13l7.6 4"/>') + '<div><b>ลิงก์สำหรับพนักงาน</b><span>ส่งให้พนักงานกดเปิด เข้าใช้ได้ทันทีไม่ต้องกรอกอะไร</span></div></button>' +
   '<button data-act="reconnect">' + ic('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>') + '<div><b>เปลี่ยนการเชื่อมต่อ</b><span>ใส่ลิงก์ /exec หรือรหัสเข้าแอปใหม่</span></div></button>' : '') + "\n  </div></div>";
 
+}
+/* ---------- จัดการข้อมูล ---------- */
+function vData() {
+  const days = S.orders.map((o) => String(o.date || '').slice(0, 10)).filter(Boolean).sort();
+  const rng = days.length ? (days[0] === days[days.length - 1] ? dayLabel(days[0]) : dayLabel(days[0]) + ' ถึง ' + dayLabel(days[days.length - 1])) : '-';
+  const busy = !!S.dataBusy, pend = Q.list.length;
+  const res = S.dataRes;
+  return "<div class=\"stack\">" + back() +
+  (pend ? "<div class=\"alert warn\">ยังมีข้อมูลรอส่ง " + pend + " รายการ รอให้ส่งครบก่อน</div>" : '') +
+  (res ? "<div class=\"alert ok\" style=\"display:block\">" + esc(res.msg) + (res.url ? "<br><a href=\"" + esc(res.url) + "\" target=\"_blank\" rel=\"noopener\"><b>เปิดไฟล์ " + esc(res.name) + "</b></a>" : '') + "</div>" : '') +
+  "<div class=\"card stack\"><b>เก็บข้อมูลไปไฟล์ใหม่ แล้วเริ่มรอบใหม่</b>" +
+  "<div class=\"muted\" style=\"font-size:13px\">สร้าง Google Sheet ไฟล์ใหม่ ตั้งชื่อตามช่วงวันที่ออเดอร์ คัดลอกออเดอร์ สินค้า สต็อก รอบหยิบ และประวัติทั้งหมดไปเก็บ แล้วล้างชีตหลักให้ว่างพร้อมนำเข้าไลฟ์ใหม่ (รายชื่อพนักงาน ขนส่ง และรหัสเข้าแอปยังอยู่ รูปใน Drive ไม่ถูกลบ)</div>" +
+  "<div>ตอนนี้มี <b>" + S.orders.length + "</b> ออเดอร์ · วันที่ " + esc(rng) + "</div>" +
+  "<label class=\"field\"><span>พิมพ์คำว่า <b translate=\"no\">ยืนยัน</b> เพื่อเปิดปุ่ม</span><input id=\"dc1\" autocomplete=\"off\" value=\"" + esc(S.dc1 || '') + "\"></label>" +
+  "<button class=\"btn pri\" data-act=\"dataArchive\" id=\"dcb1\" " + (S.dc1 === 'ยืนยัน' && !busy && !pend ? '' : 'disabled') + ">" + (busy === 'a' ? 'กำลังสร้างไฟล์…' : 'เก็บไปไฟล์ใหม่ แล้วเริ่มรอบใหม่') + "</button></div>" +
+  "<div class=\"card stack\" style=\"border-color:var(--bad)\"><b style=\"color:var(--bad)\">ล้างข้อมูลทั้งหมด (ไม่เก็บสำรอง)</b>" +
+  "<div class=\"muted\" style=\"font-size:13px\">ใช้ตอนลองระบบด้วยไฟล์ทดสอบ แล้วอยากเริ่มใหม่ ลบออเดอร์ สินค้า สต็อก รอบหยิบ และประวัติทั้งหมด กู้คืนไม่ได้</div>" +
+  "<label class=\"field\"><span>พิมพ์คำว่า <b translate=\"no\">ลบทั้งหมด</b> เพื่อเปิดปุ่ม</span><input id=\"dc2\" autocomplete=\"off\" value=\"" + esc(S.dc2 || '') + "\"></label>" +
+  "<button class=\"btn danger\" data-act=\"dataClear\" id=\"dcb2\" " + (S.dc2 === 'ลบทั้งหมด' && !busy && !pend ? '' : 'disabled') + ">" + (busy === 'c' ? 'กำลังล้าง…' : 'ล้างข้อมูลทั้งหมด') + "</button></div></div>";
+}
+async function dataRun(kind) {
+  if (S.dataBusy || Q.list.length) return;
+  const ns = needStaff();if (ns) return feedback(ns);
+  S.dataBusy = kind;S.dataRes = null;render();
+  try {
+    const r = await api(kind === 'a' ? 'archiveToNewFile' : 'clearAllData', S.staff);
+    ['resume', 'skDraft'].forEach((k) => LS.del(k));
+    S.products = null;S.lblQty = {};S.labelSel = new Set();S.batchId = null;S.f.date = '';
+    await refresh(true);
+    S.dataRes = kind === 'a' ? { msg: 'เก็บ ' + r.orders + ' ออเดอร์ไปไฟล์ใหม่แล้ว ชีตหลักว่าง พร้อมนำเข้าไลฟ์ใหม่', url: r.url, name: r.name } : { msg: 'ล้างข้อมูลทั้งหมดแล้ว พร้อมนำเข้าไลฟ์ใหม่' };
+    S.dc1 = '';S.dc2 = '';
+    toast(S.dataRes.msg, 'ok');
+  } catch (e) {
+    const m = errMsg(e);
+    toast((kind === 'a' ? 'เก็บข้อมูลไม่สำเร็จ: ' : 'ล้างข้อมูลไม่สำเร็จ: ') + m + (/permission|สิทธิ์|authoriz/i.test(m) ? ' (เจ้าของร้านต้องกด Run setup ใน Apps Script เพื่อให้สิทธิ์ใหม่)' : ''), 'bad');
+  }
+  S.dataBusy = false;render();
 }
 function back() {return "<button class=\"btn\" data-act=\"more\" data-m=\"\">\u2190 \u0E01\u0E25\u0E31\u0E1A</button>";}
 
@@ -1484,6 +1523,8 @@ const ACT = {
     toast('ตั้งเป็นรับหน้าร้านแล้ว · ' + m.found.length + ' ออเดอร์', 'ok');
     S.puQ = '';const i = $('puQ');if (i) i.value = '';renderPuList();render();
   },
+  dataArchive: () => dataRun('a'),
+  dataClear: () => dataRun('c'),
   printPickupOne: (d) => printPickup([S.byNo[d.no]].filter(Boolean)),
   printPickupList: () => printPickup(filtered().filter(isPickup)),
   openPick: (d) => {openPick(d.no);const o = S.byNo[d.no];if (o) feedback(pickWarn(o));},
@@ -2089,6 +2130,11 @@ document.addEventListener('input', (e) => {
     S.pk.confirm = null;packSave();
   } else
   if (t.id === 'pkNote' && S.pk) {S.pk.note = t.value;packSave();} else
+  if (t.id === 'dc1' || t.id === 'dc2') {
+    S[t.id] = t.value.trim();
+    const ok = t.id === 'dc1' ? S.dc1 === 'ยืนยัน' : S.dc2 === 'ลบทั้งหมด';
+    const bt = $(t.id === 'dc1' ? 'dcb1' : 'dcb2');if (bt) bt.disabled = !(ok && !S.dataBusy && !Q.list.length);
+  } else
   if (t.id === 'puQ') {S.puQ = t.value;renderPuList();} else
   if (t.id === 'lblQ') {S.labelQ = t.value;clearTimeout(S._lq);S._lq = setTimeout(() => {render();const i = $('lblQ');if (i) {i.focus();i.setSelectionRange(i.value.length, i.value.length);}}, 250);}
 });
@@ -2571,6 +2617,20 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "จัดการข้อมูล": "ဒေတာ စီမံခန့်ခွဲမှု",
+  "เก็บข้อมูลไปไฟล์ใหม่ เริ่มรอบใหม่ หรือล้างข้อมูลทดสอบ": "ဒေတာကို ဖိုင်အသစ်သို့ သိမ်းပြီး အသစ်စတင်ရန် သို့မဟုတ် စမ်းသပ်ဒေတာ ရှင်းရန်",
+  "เก็บข้อมูลไปไฟล์ใหม่ แล้วเริ่มรอบใหม่": "ဒေတာကို ဖိုင်အသစ်သို့ သိမ်းပြီး အသစ်စတင်",
+  "เก็บไปไฟล์ใหม่ แล้วเริ่มรอบใหม่": "ဖိုင်အသစ်သို့ သိမ်းပြီး အသစ်စတင်",
+  "ล้างข้อมูลทั้งหมด": "ဒေတာအားလုံး ရှင်းလင်း",
+  "ไม่เก็บสำรอง": "အရန်မသိမ်း",
+  "พิมพ์คำว่า": "ရိုက်ထည့်ပါ",
+  "เพื่อเปิดปุ่ม": "ခလုတ်ဖွင့်ရန်",
+  "ตอนนี้มี": "ယခု",
+  "กำลังสร้างไฟล์…": "ဖိုင်ဖန်တီးနေသည်…",
+  "กำลังล้าง…": "ရှင်းနေသည်…",
+  "เปิดไฟล์ {0}": "ဖိုင်ဖွင့် {0}",
+  "ยังมีข้อมูลรอส่ง {0} รายการ รอให้ส่งครบก่อน": "ပို့ရန်ကျန် {0} ခု ရှိသေးသည် အားလုံးပို့ပြီးမှ လုပ်ပါ",
+  "ล้างข้อมูลทั้งหมดแล้ว พร้อมนำเข้าไลฟ์ใหม่": "ဒေတာအားလုံး ရှင်းပြီး လိုက်ဗ်အသစ် တင်သွင်းရန် အဆင်သင့်",
   "{0} ตั้งรับหน้าร้าน": "{0} ဆိုင်မှာလာယူ သတ်မှတ်",
   "เปิดใน {0}": "{0} တွင်ဖွင့်",
   "เลขออเดอร์ ชื่อ ชื่อ {0}": "အော်ဒါနံပါတ် အမည် {0} အမည်",
