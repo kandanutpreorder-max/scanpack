@@ -57,7 +57,7 @@
   --bg:#EEF0F4; --surface:#FFFFFF; --sunk:#E3E6EC; --ink:#161C2B; --muted:#5B6476; --line:#D4D8E1;
   --ai:#2741A6; --ai-ink:#FFFFFF; --ai-soft:#E2E7F7;
   --ok:#17784A; --ok-soft:#DDF2E6; --bad:#B42318; --bad-soft:#FBE4E1; --warn:#9A5B00; --warn-soft:#FCEFD6;
-  --bar:#18213A; --bar-ink:#F2F4FA;
+  --bar:#18213A; --bar-ink:#F2F4FA; --pu:#6A2BB0; --pu-soft:#EFE4FB;
   --f-body:"IBM Plex Sans Thai","Noto Sans Myanmar",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
   --f-code:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
   --r:12px;
@@ -66,7 +66,7 @@
   :root{ --bg:#0F131C; --surface:#181E2B; --sunk:#222A3A; --ink:#E9ECF3; --muted:#9AA3B5; --line:#2D3648;
     --ai:#8FA5F5; --ai-ink:#0F131C; --ai-soft:#222C4A;
     --ok:#5CC98E; --ok-soft:#16301F; --bad:#F2877B; --bad-soft:#3A1916; --warn:#EBB65A; --warn-soft:#352813;
-    --bar:#0A0D14; --bar-ink:#E9ECF3; color-scheme:dark; }
+    --bar:#0A0D14; --bar-ink:#E9ECF3; --pu:#C9A2F5; --pu-soft:#2A1C3D; color-scheme:dark; }
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
@@ -135,6 +135,8 @@ nav .badge{position:absolute;margin-left:20px;margin-top:-4px;background:var(--b
 .chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.bad{background:var(--bad-soft);color:var(--bad)}
 .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.ai{background:var(--ai-soft);color:var(--ai)}
 .chip.ink{background:var(--ink);color:var(--surface)}
+.chip.pu{background:var(--pu-soft);color:var(--pu)}
+.chip.xq{background:var(--warn);color:var(--surface);font-size:13px;font-weight:800;padding:1px 8px}
 
 /* ตัวกรอง */
 .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
@@ -184,6 +186,10 @@ select{border:1px solid var(--line);background:var(--surface);border-radius:10px
 .it.done .tick{background:var(--ok);border-color:var(--ok);color:#fff}
 .it.part .tick{border-color:var(--ai);color:var(--ai);font-size:12px}
 .it.skip{opacity:.55}
+.it.multi{box-shadow:inset 5px 0 0 var(--warn);background:var(--warn-soft)}
+.it.multi.done{background:var(--ok-soft)}
+.it.multi .qty b,.it.multi>b.num{color:var(--warn)}
+.it.multi.done .qty b{color:inherit}
 .it .code{font-size:17px}
 .it .nm{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .it .min{min-width:0;border:0;background:none;text-align:left;padding:0}
@@ -333,6 +339,25 @@ html.lang-my .tile span{font-size:10px;line-height:1.3}
   .docA4 tr{break-inside:avoid}
   .docA4 tfoot td{font-weight:700}
   .docA4 .sign{display:flex;justify-content:space-between;margin-top:14mm}
+  .docA4 .puf{break-inside:avoid;page-break-inside:avoid;padding:0 0 7mm;margin:0 0 7mm;border-bottom:0.3mm dashed #888}
+  .docA4 .puf:last-child{border-bottom:0}
+  .docA4 .puf table{width:calc(100% - 0.6mm);margin-left:0.3mm}
+  .docA4 .puf-t{border:0.3mm solid #444;text-align:center;font-weight:700;font-size:13pt;padding:2mm}
+  .docA4 .puf-h{display:flex;justify-content:space-between;align-items:center;gap:6mm;margin:3mm 0 3mm;font-size:11.5pt}
+  .docA4 .puf-h b{font-size:13pt}
+  .docA4 .puf-h .r{display:flex;align-items:center;gap:3mm;text-align:right}
+  .docA4 .puf-h img{width:18mm;height:18mm}
+  .docA4 .puf th{text-align:center;background:#ddd;border-color:#444}
+  .docA4 .puf td{border-color:#444}
+  .docA4 .puf td.i,.docA4 .puf td.q{text-align:center}
+  .docA4 .puf td.q{width:20mm;font-size:12pt}
+  .docA4 .puf tr.m td{background:#e6e6e6!important;font-weight:700}
+  .docA4 .puf tr.m td.q{font-size:14pt}
+  .docA4 .puf tfoot td{border:0.3mm solid #444;text-align:center;font-size:12pt}
+  .docA4 .puf .due{margin:2mm 0 0;font-weight:700}
+  .docA4 .puf .sg{margin-top:4mm}
+  .docA4 .puf .sg td{height:16mm}
+  .docA4 .puf *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .s5030 .lbl{width:50mm;height:30mm;padding:2mm;page-break-after:always;break-after:page}
   .s5030 .lbl img{width:24mm;height:24mm} .s5030 .c{font-size:14pt} .s5030 .n{font-size:7pt} .s5030 .p{font-size:9pt}
   .sA4{display:grid!important;grid-template-columns:repeat(3,63.5mm);grid-auto-rows:38.1mm;justify-content:center}
@@ -396,13 +421,13 @@ const PAY = { paid: 'โอนแล้ว', none: 'ยังไม่โอน'
 const S = {
   view: 'orders', staff: '', staffList: [], carriers: [], sheetUrl: '',
   orders: [], itemsBy: {}, byNo: {}, byTrack: {}, codeIdx: {},
-  f: { pick: 'all', pack: 'all', pay: 'all', picker: '', packer: '', date: '', q: '' },
+  f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', picker: '', packer: '', date: '', q: '' },
   pickNo: null, pickChoices: null,
   pk: null, packChoices: null,
   more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
   stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, busy: false },
   sk: null, stockQ: '', stockMulti: true, poQty: {}, poOff: new Set(), poVendor: '',
-  set: { sound: true, autoCam: true, requirePhoto: false, lastCarrier: '' }
+  set: { sound: true, autoCam: true, requirePhoto: false, lastCarrier: '', pickupTitle: '' }
 };
 
 const LS = {
@@ -418,6 +443,16 @@ const baht = (n) => '฿' + (Number(n) || 0).toLocaleString('th-TH');
 const qtyOf = (i) => Number(i.qty) || 0;
 const autoSkip = (i) => Number(i.price) < 0 || /โค้ด/.test(String(i.name || ''));
 const isSkip = (i) => {const s = String(i.skip).trim().toUpperCase();return i.skip === true || s === 'ใช่' || s === 'TRUE' || s === 'Y' || autoSkip(i);};
+const PICKUP_RE = /รับเอง|รับหน้าร้าน|มารับ|รับที่ร้าน|pickup/i;
+function isPickup(o) {
+  if (!o) return false;
+  if (o.pickup === 'ใช่') return true;
+  if (o.pickup === 'ไม่') return false;
+  return PICKUP_RE.test(String(o.vrichCarrier || '')) || PICKUP_RE.test(String(o.carrier || ''));
+}
+const puChip = (o) => isPickup(o) ? '<span class="chip pu">รับหน้าร้าน</span>' : '';
+const PU_TITLE = 'รายการสินค้า รับเอง ส่งจากโกดังบ้านเจ้นิ๊ก คลองสามวา';
+function dayLabel(d) {const m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);return m ? Number(m[3]) + '/' + Number(m[2]) : String(d);}
 const pickedOf = (i) => Math.max(0, Math.min(qtyOf(i), Number(i.pickedQty) || 0));
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
 const nowStr = () => {const d = new Date();return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' }) + ' ' + d.toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });};
@@ -557,6 +592,7 @@ async function qRun() {
       } else if (op.type === 'pack') b = await api('savePack', op.orderNo, op.payload);else
       if (op.type === 'reset') b = await api('resetStatus', op.orderNo, op.which, op.staff);else
       if (op.type === 'stock') {const r = await api('saveStock', op.rec);if (!Q.list.slice(1).some((x) => x.type === 'stock' && x.key === op.key)) {const loc = S.stock[op.key] || {};S.stock[op.key] = Object.assign({}, r, { thumb: r.thumb || loc.thumb || '' });}} else
+      if (op.type === 'pickup') b = await api('setPickup', op.orderNo, op.val, op.staff);else
       if (op.type === 'ordered') {const rows = await api('markOrdered', op.codes, op.staff);(rows || []).forEach((r) => {const k = norm(r.code);S.stock[k] = Object.assign({}, S.stock[k] || {}, { ordered: r.ordered });});} else
       if (op.type === 'batch') {const r = await api('saveBatch', op.id, op.patch, op.staff);if (r && !Q.list.slice(1).some((x) => x.type === 'batch' && x.id === op.id)) {const i = S.batches.findIndex((x) => x.id === r.id);if (i >= 0) S.batches[i] = r;}}
       Q.list.shift();Q.fails = 0;qSave();
@@ -750,7 +786,7 @@ function openPack(no) {
   itemsOf(o).forEach((i) => {packed[i.code] = Number(i.packedQty) || 0;});
   S.pk = saved || {
     no: norm(no), packed: packed, photos: [],
-    carrier: o.carrier || o.vrichCarrier || S.set.lastCarrier || S.carriers[0] || '',
+    carrier: o.carrier || (isPickup(o) ? (S.carriers.find((c) => PICKUP_RE.test(c)) || 'ลูกค้ามารับเอง') : '') || o.vrichCarrier || S.set.lastCarrier || S.carriers[0] || '',
     tracking: String(o.tracking || o.vrichTracking || ''), labelOk: null, note: o.packNote || '', confirm: null
   };
   if ((o.packStatus === PACK.done || o.packStatus === PACK.part) && !saved) {
@@ -945,6 +981,7 @@ function filtered() {
     if (f.picker && o.pickedBy !== f.picker) return false;
     if (f.packer && o.packedBy !== f.packer) return false;
     if (f.date && String(o.date || '').slice(0, 10) !== f.date) return false;
+    if (f.ship !== 'all' && (f.ship === 'pickup') !== isPickup(o)) return false;
     if (q) {
       const hay = norm([o.orderNo, o.customer, o.fbName, o.phone, o.vrichTracking, o.tracking].join('|'));
       if (!hay.includes(q) && !itemsOf(o).some((i) => norm(i.code) === q)) return false;
@@ -953,7 +990,8 @@ function filtered() {
   }).sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0) || String(a.orderNo).localeCompare(String(b.orderNo)));
 }
 function vOrders() {
-  const all = S.orders;
+  const dayOf = (o) => String(o.date || '').slice(0, 10);
+  const all = S.f.date ? S.orders.filter((o) => dayOf(o) === S.f.date) : S.orders;
   const cnt = (fn) => all.filter(fn).length;
   const t = today();
   const tiles = [
@@ -966,19 +1004,22 @@ function vOrders() {
   const seg = (key, val, label) => "<button class=\"seg\" data-act=\"filt\" data-k=\"" + key + "\" data-val=\"" + esc(val) + "\" aria-pressed=\"" + (f[key] === val) + "\">" + label + "</button>";
   const people = S.staffList.slice();
   S.orders.forEach((o) => {[o.pickedBy, o.packedBy].forEach((p) => {if (p && !people.includes(p)) people.push(p);});});
-  const dates = [...new Set(S.orders.map((o) => String(o.date || '').slice(0, 10)).filter(Boolean))].sort().reverse();
+  const dayN = {};S.orders.forEach((o) => {const d = dayOf(o);if (d) dayN[d] = (dayN[d] || 0) + 1;});
+  const dates = Object.keys(dayN).sort().reverse();
+  const dayBtn = (d, label) => "<button class=\"seg\" data-act=\"filt\" data-k=\"date\" data-val=\"" + esc(d) + "\" aria-pressed=\"" + (f.date === d) + "\">" + label + "</button>";
+  const dayRow = "<div class=\"fgroup\"><label>วันที่</label>" + dayBtn('', 'ทุกวัน · ' + S.orders.length) + dates.map((d) => dayBtn(d, esc(dayLabel(d)) + ' · ' + dayN[d])).join('') + "</div>";
   const opt = (arr, cur, all) => "<option value=\"\">" + all + "</option>" + arr.map((x) => "<option " + (x === cur ? 'selected' : '') + ">" + esc(x) + "</option>").join('');
-  if (!all.length) return "<div class=\"stack\"><div class=\"empty card\"><b>\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E31\u0E14\u0E02\u0E2D\u0E07<div style=\"margin-top:12px\"><button class=\"btn pri\" data-act=\"startImport\">\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E44\u0E1F\u0E25\u0E4C Vrich</button></div></div></div>";
-  return "<div class=\"stack\">\n    <div class=\"tiles\">" +
+  if (!S.orders.length) return "<div class=\"stack\"><div class=\"empty card\"><b>\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E31\u0E14\u0E02\u0E2D\u0E07<div style=\"margin-top:12px\"><button class=\"btn pri\" data-act=\"startImport\">\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E44\u0E1F\u0E25\u0E4C Vrich</button></div></div></div>";
+  return "<div class=\"stack\">\n    " + dayRow + "\n    <div class=\"tiles\">" +
   tiles.map(([l, n, set]) => "<button class=\"tile\" data-act=\"tile\" data-set='" + JSON.stringify(set) + "'><b>" + n + "</b><span>" + l + "</span></button>").join('') + "</div>\n    <div class=\"search\"><input id=\"q\" type=\"search\" placeholder=\"\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E0A\u0E37\u0E48\u0E2D \u0E40\u0E1A\u0E2D\u0E23\u0E4C \u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38 \u0E23\u0E2B\u0E31\u0E2A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\" value=\"" +
   esc(f.q) + "\"></div>\n    <div class=\"fgroup\"><label>\u0E08\u0E31\u0E14</label>" +
   seg('pick', 'all', 'ทั้งหมด') + seg('pick', PICK.none, PICK.none) + seg('pick', PICK.part, PICK.part) + seg('pick', PICK.done, PICK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E41\u0E1E\u0E47\u0E04</label>" +
   seg('pack', 'all', 'ทั้งหมด') + seg('pack', PACK.none, PACK.none) + seg('pack', PACK.part, PACK.part) + seg('pack', PACK.done, PACK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E42\u0E2D\u0E19</label>" +
-  seg('pay', 'all', 'ทั้งหมด') + seg('pay', PAY.paid, PAY.paid) + seg('pay', PAY.none, PAY.none) + seg('pay', PAY.part, PAY.part) + "</div>\n    <div class=\"selrow\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
+  seg('pay', 'all', 'ทั้งหมด') + seg('pay', PAY.paid, PAY.paid) + seg('pay', PAY.none, PAY.none) + seg('pay', PAY.part, PAY.part) + "</div>\n    <div class=\"fgroup\"><label>ส่ง</label>" +
+  seg('ship', 'all', 'ทั้งหมด') + seg('ship', 'ship', 'จัดส่ง') + seg('ship', 'pickup', 'รับหน้าร้าน') + "</div>\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
 
   opt(people, f.picker, 'จัดโดย') + "</select>\n      <select id=\"fPacker\" aria-label=\"\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22\">" +
-  opt(people, f.packer, 'แพ็คโดย') + "</select>\n      <select id=\"fDate\" aria-label=\"\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\">" +
-  opt(dates, f.date, 'ทุกวัน') + "</select>\n    </div>\n    <div class=\"sec\" id=\"olCount\"></div>\n    <div class=\"stack\" id=\"olist\"></div>\n  </div>";
+  opt(people, f.packer, 'แพ็คโดย') + "</select>\n    </div>\n    <div class=\"sec\" id=\"olCount\"></div>\n    <div class=\"stack\" id=\"olist\"></div>\n  </div>";
 
 
 
@@ -987,13 +1028,15 @@ function vOrders() {
 function renderOrderList() {
   const el = $('olist');if (!el) return;
   const list = filtered();
-  $('olCount').textContent = list.length + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \xB7 " + list.reduce((s, o) => s + (Number(o.itemQty) || 0), 0) + " \u0E0A\u0E34\u0E49\u0E19";
+  const nPu = list.filter(isPickup).length;
+  $('olCount').innerHTML = "<span>" + list.length + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \xB7 " + list.reduce((s, o) => s + (Number(o.itemQty) || 0), 0) + " \u0E0A\u0E34\u0E49\u0E19</span>" +
+  (S.f.ship === 'pickup' && nPu ? "<button class=\"btn pri\" data-act=\"printPickupList\" style=\"margin-top:6px;width:100%\">พิมพ์ใบรับหน้าร้าน · " + nPu + " ใบ</button>" : '');
   el.innerHTML = list.length ? list.map((o) => {
     const pct = o.itemQty ? Math.round((o.pickedQty || 0) / o.itemQty * 100) : 0;
     return "<button class=\"ord\" data-act=\"detail\" data-no=\"" + esc(norm(o.orderNo)) + "\">\n      <div class=\"ord-top\"><span class=\"ord-no\">#" +
     esc(o.orderNo) + "</span><span class=\"ord-name\">" + esc(o.customer || o.fbName || '-') + "</span><span class=\"ord-amt\">" + baht(o.total) + "</span></div>\n      <div class=\"ord-meta\">" +
-    esc(o.vrichCarrier || 'ยังไม่ระบุขนส่ง') + (o.vrichTracking ? ' · <span class="code">' + esc(o.vrichTracking) + '</span>' : '') + " \xB7 " + (o.itemQty || 0) + " \u0E0A\u0E34\u0E49\u0E19</div>\n      <div class=\"chips\">" +
-    pickChip(o) + packChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + (Number(o.hold) ? '<span class="chip ai">มีของฝาก</span>' : '') + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
+    (isPickup(o) ? 'รับหน้าร้าน' : esc(o.vrichCarrier || 'ยังไม่ระบุขนส่ง')) + (o.vrichTracking ? ' · <span class="code">' + esc(o.vrichTracking) + '</span>' : '') + " \xB7 " + (o.itemQty || 0) + " \u0E0A\u0E34\u0E49\u0E19</div>\n      <div class=\"chips\">" +
+    puChip(o) + pickChip(o) + packChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + (Number(o.hold) ? '<span class="chip ai">มีของฝาก</span>' : '') + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
     pct >= 100 ? 'done' : '') + "\"><i style=\"width:" + pct + "%\"></i></div>\n    </button>";
 
   }).join('') : "<div class=\"empty\">\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E15\u0E32\u0E21\u0E15\u0E31\u0E27\u0E01\u0E23\u0E2D\u0E07\u0E19\u0E35\u0E49</div>";
@@ -1002,7 +1045,7 @@ function renderOrderList() {
 /* ---------- หน้าจัดของ ---------- */
 function orderHead(o, mode) {
   return "<div class=\"card head\">\n    <div class=\"head-top\"><span class=\"ord-no\">#" +
-  esc(o.orderNo) + "</span>" + payChip(o) + "<button class=\"x\" data-act=\"" + (mode === 'pick' ? 'closePick' : 'closePack') + "\">\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E2D\u0E37\u0E48\u0E19</button></div>\n    <div><b>" +
+  esc(o.orderNo) + "</span>" + payChip(o) + puChip(o) + "<button class=\"x\" data-act=\"" + (mode === 'pick' ? 'closePick' : 'closePack') + "\">\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E2D\u0E37\u0E48\u0E19</button></div>\n    <div><b>" +
   esc(o.customer || '-') + "</b> <span class=\"muted\">\xB7 " + esc(o.fbName || '') + "</span></div>\n    <div class=\"addr\">" +
   esc(o.phone || '') + " \xB7 " + esc(o.province || '') + " \xB7 " + esc(o.vrichCarrier || 'ไม่ระบุขนส่ง') + " " + (o.vrichTracking ? '<span class="code">' + esc(o.vrichTracking) + '</span>' : '') + "</div>\n    " + (
   o.note ? "<div class=\"note\">\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38: " + esc(o.note) + "</div>" : '') + "\n    " + (
@@ -1046,9 +1089,9 @@ function itemRow(i, n, mode) {
   const st = n >= q ? 'done' : n > 0 ? 'part' : '';
   const ssh = effShort(stockRec(i.code), (liveNeeds()[norm(i.code)] || {}).need || 0);
   const extra = (ssh ? "<div class=\"chips\" style=\"margin-top:3px\"><span class=\"chip bad\">สต็อกขาด " + ssh + "</span></div>" : '') + (mode === 'pack' ? "<div class=\"nm\">\u0E08\u0E31\u0E14\u0E41\u0E25\u0E49\u0E27 " + pickedOf(i) + "/" + q + (pickedOf(i) < q ? ' ⚠' : '') + "</div>" : '');
-  return "<div class=\"it " + st + "\" data-code=\"" + esc(norm(i.code)) + "\">\n    <span class=\"tick\">" + (
+  return "<div class=\"it " + st + (q > 1 ? ' multi' : '') + "\" data-code=\"" + esc(norm(i.code)) + "\">\n    <span class=\"tick\">" + (
   n >= q ? '✓' : n > 0 ? n : '') + "</span>\n    <button class=\"min\" data-act=\"" +
-  mode + "Inc\" data-c=\"" + esc(i.code) + "\" data-d=\"1\"><div class=\"code\">" + esc(i.code) + (q > 1 ? " <span class=\"chip ai\">x" + q + "</span>" : '') + "</div><div class=\"nm\">" + esc(i.name) + " \xB7 " + baht(i.price) + "</div>" + extra + "</button>\n    <div class=\"qty\"><button data-act=\"" +
+  mode + "Inc\" data-c=\"" + esc(i.code) + "\" data-d=\"1\"><div class=\"code\">" + esc(i.code) + (q > 1 ? " <span class=\"chip xq\">x" + q + "</span>" : '') + "</div><div class=\"nm\">" + esc(i.name) + " \xB7 " + baht(i.price) + "</div>" + extra + "</button>\n    <div class=\"qty\"><button data-act=\"" +
   mode + "Inc\" data-c=\"" + esc(i.code) + "\" data-d=\"-1\" aria-label=\"\u0E25\u0E14\">\u2212</button><b>" + n + "/" + q + "</b><button class=\"plus\" data-act=\"" + mode + "Inc\" data-c=\"" + esc(i.code) + "\" data-d=\"1\" aria-label=\"\u0E40\u0E1E\u0E34\u0E48\u0E21\">+</button></div>\n  </div>";
 
 }
@@ -1111,7 +1154,7 @@ function openDetail(no) {
   $('sheetRoot').innerHTML = "<div class=\"sheetBg\" data-act=\"closeSheet\"><div class=\"sheet\" data-stop=\"1\">\n    <div class=\"grab\"></div>\n    <div class=\"stack\">\n      <div class=\"head-top\"><span class=\"ord-no\" style=\"font-size:20px\">#" +
 
 
-  esc(o.orderNo) + "</span>" + payChip(o) + pickChip(o) + packChip(o) + "</div>\n      <dl class=\"kv\">\n        <dt>\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32</dt><dd>" +
+  esc(o.orderNo) + "</span>" + puChip(o) + payChip(o) + pickChip(o) + packChip(o) + "</div>\n      <dl class=\"kv\">\n        <dt>\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32</dt><dd>" +
 
   esc(o.customer) + " (" + esc(o.fbName) + ")</dd>\n        <dt>\u0E42\u0E17\u0E23</dt><dd>" +
   esc(o.phone) + "</dd>\n        <dt>\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48</dt><dd>" +
@@ -1126,8 +1169,9 @@ function openDetail(no) {
   o.packNote ? "<dt>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E41\u0E1E\u0E47\u0E04</dt><dd>" + esc(o.packNote) + "</dd>" : '') + (
   o.packStatus === PACK.part ? "<dt>รอของ</dt><dd>" + esc(missingText(o)) + "</dd>" : '') + "\n      </dl>\n      <div class=\"items\">" +
 
-  items.map((i) => "<div class=\"it " + (isSkip(i) ? 'skip' : pickedOf(i) >= qtyOf(i) ? 'done' : pickedOf(i) ? 'part' : '') + "\"><span class=\"tick\">" + (isSkip(i) ? '–' : pickedOf(i) >= qtyOf(i) ? '✓' : pickedOf(i) || '') + "</span>\n        <div class=\"min\"><div class=\"code\">" +
-  esc(i.code) + "</div><div class=\"nm\">" + esc(i.name) + " \xB7 " + baht(i.price) + (isSkip(i) ? ' · ไม่ต้องจัด' : '') + "</div></div><b class=\"num\">" + pickedOf(i) + "/" + qtyOf(i) + "</b></div>").join('') + "</div>\n      <div class=\"row2\"><button class=\"btn pri\" data-act=\"sheetPick\" data-no=\"" +
+  items.map((i) => "<div class=\"it " + (isSkip(i) ? 'skip' : (pickedOf(i) >= qtyOf(i) ? 'done' : pickedOf(i) ? 'part' : '') + (qtyOf(i) > 1 ? ' multi' : '')) + "\"><span class=\"tick\">" + (isSkip(i) ? '–' : pickedOf(i) >= qtyOf(i) ? '✓' : pickedOf(i) || '') + "</span>\n        <div class=\"min\"><div class=\"code\">" +
+  esc(i.code) + (!isSkip(i) && qtyOf(i) > 1 ? " <span class=\"chip xq\">x" + qtyOf(i) + "</span>" : '') + "</div><div class=\"nm\">" + esc(i.name) + " \xB7 " + baht(i.price) + (isSkip(i) ? ' · ไม่ต้องจัด' : '') + "</div></div><b class=\"num\">" + pickedOf(i) + "/" + qtyOf(i) + "</b></div>").join('') + "</div>\n      <div class=\"row2\"><button class=\"btn\" data-act=\"togglePickup\" data-no=\"" + esc(norm(o.orderNo)) + "\">" + (isPickup(o) ? 'ยกเลิกรับหน้าร้าน' : 'ตั้งเป็นรับหน้าร้าน') + "</button>" +
+  (isPickup(o) ? "<button class=\"btn\" data-act=\"printPickupOne\" data-no=\"" + esc(norm(o.orderNo)) + "\">พิมพ์ใบรับหน้าร้าน</button>" : '') + "</div>\n      <div class=\"row2\"><button class=\"btn pri\" data-act=\"sheetPick\" data-no=\"" +
   esc(norm(o.orderNo)) + "\">\u0E08\u0E31\u0E14\u0E02\u0E2D\u0E07</button><button class=\"btn pri\" data-act=\"sheetPack\" data-no=\"" + esc(norm(o.orderNo)) + "\">\u0E41\u0E1E\u0E47\u0E04</button></div>\n    </div></div></div>";
 
 }
@@ -1193,7 +1237,7 @@ function vSettings() {
   return "<div class=\"stack\">" + back() + "<div class=\"card toggle\"><span translate=\"no\"><b>ภาษา / ဘာသာစကား</b></span>" + langSwitch() + "</div>\n    " +
   t('sound', 'เสียงบี๊บ + สั่น', 'ดัง/สั่นทุกครั้งที่สแกน เสียงต่ำ = ผิด') + "\n    " +
   t('autoCam', 'เปิดกล้องอัตโนมัติ', 'เข้าหน้าจัดของ/แพ็คแล้วเปิดกล้องทันที') + "\n    " +
-  t('requirePhoto', 'บังคับถ่ายรูปก่อนแพ็คเสร็จ', 'กดแพ็คเสร็จไม่ได้ถ้ายังไม่มีรูป') + "\n    <div class=\"card muted\" style=\"font-size:13px\">\u0E43\u0E0A\u0E49\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E1A\u0E32\u0E23\u0E4C\u0E42\u0E04\u0E49\u0E14\u0E1A\u0E25\u0E39\u0E17\u0E39\u0E18\u0E01\u0E31\u0E1A\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49 \u0E22\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E23\u0E31\u0E1A\u0E17\u0E31\u0E19\u0E17\u0E35\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C (\u0E15\u0E31\u0E49\u0E07\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1B\u0E49\u0E19\u0E20\u0E32\u0E29\u0E32\u0E2D\u0E31\u0E07\u0E01\u0E24\u0E29 \u0E41\u0E25\u0E30\u0E2A\u0E48\u0E07 Enter \u0E17\u0E49\u0E32\u0E22\u0E23\u0E2B\u0E31\u0E2A)</div>\n  </div>";
+  t('requirePhoto', 'บังคับถ่ายรูปก่อนแพ็คเสร็จ', 'กดแพ็คเสร็จไม่ได้ถ้ายังไม่มีรูป') + "\n    <label class=\"field card\"><span>หัวใบรับหน้าร้าน</span><input id=\"setPuTitle\" value=\"" + esc(S.set.pickupTitle || PU_TITLE) + "\"></label>\n    <div class=\"card muted\" style=\"font-size:13px\">\u0E43\u0E0A\u0E49\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E1A\u0E32\u0E23\u0E4C\u0E42\u0E04\u0E49\u0E14\u0E1A\u0E25\u0E39\u0E17\u0E39\u0E18\u0E01\u0E31\u0E1A\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49 \u0E22\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E23\u0E31\u0E1A\u0E17\u0E31\u0E19\u0E17\u0E35\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C (\u0E15\u0E31\u0E49\u0E07\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1B\u0E49\u0E19\u0E20\u0E32\u0E29\u0E32\u0E2D\u0E31\u0E07\u0E01\u0E24\u0E29 \u0E41\u0E25\u0E30\u0E2A\u0E48\u0E07 Enter \u0E17\u0E49\u0E32\u0E22\u0E23\u0E2B\u0E31\u0E2A)</div>\n  </div>";
 
 
 }
@@ -1319,6 +1363,16 @@ const ACT = {
   detail: (d) => openDetail(d.no),
   sheetPick: (d) => {closeSheet();openPick(d.no);const o = S.byNo[d.no];if (o) feedback(pickWarn(o));},
   sheetPack: (d) => {closeSheet();openPack(d.no);},
+  togglePickup: (d) => {
+    const o = S.byNo[d.no];if (!o) return;
+    const v = !isPickup(o);
+    o.pickup = v ? 'ใช่' : 'ไม่';
+    enqueue({ type: 'pickup', orderNo: o.orderNo, val: v, staff: S.staff });
+    toast(v ? 'ตั้งเป็นรับหน้าร้านแล้ว' : 'ยกเลิกรับหน้าร้านแล้ว', 'ok');
+    render();openDetail(d.no);
+  },
+  printPickupOne: (d) => printPickup([S.byNo[d.no]].filter(Boolean)),
+  printPickupList: () => printPickup(filtered().filter(isPickup)),
   openPick: (d) => {openPick(d.no);const o = S.byNo[d.no];if (o) feedback(pickWarn(o));},
   pickChoose: (d) => {const code = S.pickChoices.code;openPick(d.no);const o = S.byNo[d.no];const it = itemsOf(o).find((i) => norm(i.code) === norm(code));feedback(pickInc(o, it, 1));},
   closePick: () => {S.pickNo = null;S.pickChoices = null;render();},
@@ -1586,6 +1640,29 @@ function printPO() {
   list.map((r, i) => "<tr><td>" + (i + 1) + "</td><td>" + (r.thumb ? "<img src=\"" + esc(r.thumb) + "\" alt=\"\">" : '') + "</td><td class=\"c\">" + esc(r.code) + "</td><td>" + esc(r.name) + "</td><td class=\"n\"><b>" + poQty(r) + "</b></td><td class=\"n\">" + r.have + " / " + r.need + "</td><td>" + esc(r.note || '') + "</td></tr>").join('') + "\n    </tbody><tfoot><tr><td colspan=\"4\">\u0E23\u0E27\u0E21 " +
   list.length + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23</td><td class=\"n\"><b>" + total + "</b></td><td colspan=\"2\"></td></tr></tfoot></table>\n    <div class=\"sign\"><div>\u0E1C\u0E39\u0E49\u0E2A\u0E31\u0E48\u0E07\u0E0B\u0E37\u0E49\u0E2D ..................................</div><div>\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 ..................................</div></div></div>";
 
+  docPrint(html);
+}
+async function printPickup(list) {
+  if (!list.length) return toast('ไม่มีออเดอร์รับหน้าร้าน');
+  if (!window.qrcode) {try {await loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js');} catch (e) {}}
+  const title = esc(S.set.pickupTitle || PU_TITLE);
+  const byCode = (a, b) => String(a.code).localeCompare(String(b.code), 'th', { numeric: true });
+  const html = list.map((o) => {
+    const its = itemsOf(o).filter((i) => !isSkip(i)).sort(byCode);
+    const sum = its.reduce((s, i) => s + qtyOf(i), 0);
+    let qr = '';
+    if (window.qrcode) {const q = qrcode(0, 'M');q.addData(String(o.orderNo));q.make();qr = "<img src=\"" + q.createDataURL(4, 0) + "\" alt=\"\">";}
+    const nm = (i) => {const c = String(i.code),n = String(i.name || '');return n.indexOf(c) === 0 ? n : c + ' ' + n;};
+    const due = (Number(o.total) || 0) - (Number(o.paid) || 0);
+    return "<div class=\"puf\"><div class=\"puf-t\">" + title + "</div>" +
+    "<div class=\"puf-h\"><div>ชื่อ FB : <b>" + esc(o.fbName || o.customer || '-') + "</b>" + (o.customer && o.customer !== o.fbName ? "<br>ลูกค้า : " + esc(o.customer) : '') + (o.phone ? " · " + esc(o.phone) : '') + "</div>" +
+    "<div class=\"r\"><div>เลขออเดอร์ : <b>" + esc(o.orderNo) + "</b><br>" + esc(o.date || '') + "</div>" + qr + "</div></div>" +
+    "<table><thead><tr><th style=\"width:14mm\">ลำดับ</th><th>รายการสินค้า</th><th>จำนวน</th><th style=\"width:32mm\">หมายเหตุ</th></tr></thead><tbody>" +
+    its.map((i, k) => "<tr" + (qtyOf(i) > 1 ? " class=\"m\"" : '') + "><td class=\"i\">" + (k + 1) + "</td><td>" + esc(nm(i)) + "</td><td class=\"q\">" + qtyOf(i) + "</td><td></td></tr>").join('') +
+    "</tbody><tfoot><tr><td></td><td>รวม</td><td class=\"q\">" + sum + "</td><td></td></tr></tfoot></table>" +
+    (o.payStatus !== PAY.paid && due > 0 ? "<div class=\"due\">" + esc(o.payStatus) + " · ยอด " + baht(o.total) + " · โอนแล้ว " + baht(o.paid) + " · ค้างชำระ " + baht(due) + "</div>" : '') +
+    "<table class=\"sg\"><thead><tr><th>วันที่รับ</th><th>ลูกค้า</th><th>พนักงาน</th><th>รหัสรับแล้ว</th></tr></thead><tbody><tr><td></td><td></td><td></td><td></td></tr></tbody></table></div>";
+  }).join('');
   docPrint(html);
 }
 function docPrint(html) {
@@ -1866,7 +1943,7 @@ document.addEventListener('change', (e) => {
   const t = e.target;
   if (t.id === 'fPicker') {S.f.picker = t.value;renderOrderList();} else
   if (t.id === 'fPacker') {S.f.packer = t.value;renderOrderList();} else
-  if (t.id === 'fDate') {S.f.date = t.value;renderOrderList();} else
+  if (t.id === 'setPuTitle') {S.set.pickupTitle = t.value.trim();LS.set('set', S.set);} else
   if (t.id === 'pkCarrier' && S.pk) {S.pk.carrier = t.value;packSave();} else
   if (t.id === 'pkTrack') softRender();else
   if (t.dataset.set) {S.set[t.dataset.set] = t.checked;LS.set('set', S.set);} else
@@ -2335,6 +2412,17 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ส่ง": "ပို့ပုံ",
+  "จัดส่ง": "ပို့ဆောင်",
+  "รับหน้าร้าน": "ဆိုင်မှာလာယူ",
+  "ตั้งเป็นรับหน้าร้าน": "ဆိုင်မှာလာယူ အဖြစ်သတ်မှတ်",
+  "ยกเลิกรับหน้าร้าน": "ဆိုင်မှာလာယူ ပယ်ဖျက်",
+  "พิมพ์ใบรับหน้าร้าน": "ဆိုင်လာယူစာရွက် ပုံနှိပ်",
+  "{0} ใบ": "{0} စောင်",
+  "หัวใบรับหน้าร้าน": "ဆိုင်လာယူစာရွက် ခေါင်းစဉ်",
+  "ตั้งเป็นรับหน้าร้านแล้ว": "ဆိုင်မှာလာယူ အဖြစ် သတ်မှတ်ပြီး",
+  "ยกเลิกรับหน้าร้านแล้ว": "ဆိုင်မှာလာယူ ပယ်ဖျက်ပြီး",
+  "ไม่มีออเดอร์รับหน้าร้าน": "ဆိုင်မှာလာယူ အော်ဒါ မရှိပါ",
   "เรียงตาม": "စီရန်",
   "จำนวน มาก{0}น้อย": "အရေအတွက် များ{0}နည်း",
   "฿{0}": "฿{0}"
