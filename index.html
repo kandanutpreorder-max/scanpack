@@ -346,7 +346,7 @@ html.lang-my .tile span{font-size:10px;line-height:1.3}
   .docA4 .puf-h{display:flex;justify-content:space-between;align-items:center;gap:6mm;margin:3mm 0 3mm;font-size:11.5pt}
   .docA4 .puf-h b{font-size:13pt}
   .docA4 .puf-h .r{display:flex;align-items:center;gap:3mm;text-align:right}
-  .docA4 .puf-h img{width:18mm;height:18mm}
+  .docA4 .puf-h img{width:22mm;height:22mm}
   .docA4 .puf th{text-align:center;background:#ddd;border-color:#444}
   .docA4 .puf td{border-color:#444}
   .docA4 .puf td.i,.docA4 .puf td.q{text-align:center}
@@ -427,7 +427,7 @@ const S = {
   more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
   stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, busy: false },
   sk: null, stockQ: '', stockMulti: true, poQty: {}, poOff: new Set(), poVendor: '',
-  set: { sound: true, autoCam: true, requirePhoto: false, lastCarrier: '', pickupTitle: '' }
+  set: { sound: true, autoCam: true, requirePhoto: false, lastCarrier: '', pickupTitle: '', vrichUrl: null }
 };
 
 const LS = {
@@ -452,6 +452,8 @@ function isPickup(o) {
 }
 const puChip = (o) => isPickup(o) ? '<span class="chip pu">รับหน้าร้าน</span>' : '';
 const PU_TITLE = 'รายการสินค้า รับเอง ส่งจากโกดังบ้านเจ้นิ๊ก คลองสามวา';
+const VRICH_URL = 'https://madungshop.vrich619.com/order?id={no}';
+function vrichLink(no) {const u = S.set.vrichUrl == null ? VRICH_URL : String(S.set.vrichUrl).trim();return u ? u.split('{no}').join(encodeURIComponent(String(no))) : '';}
 function dayLabel(d) {const m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);return m ? Number(m[3]) + '/' + Number(m[2]) : String(d);}
 const pickedOf = (i) => Math.max(0, Math.min(qtyOf(i), Number(i.pickedQty) || 0));
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
@@ -462,6 +464,8 @@ const $ = (id) => document.getElementById(id);
 function cleanScan(t) {
   t = String(t || '').trim();
   if (/%[0-9A-F]{2}/i.test(t)) {try {t = decodeURIComponent(t);} catch (e) {}}
+  // QR ที่เป็นลิงก์ออเดอร์ Vrich เช่น https://xxx.vrich619.com/order?id=11532 → ใช้เลขออเดอร์
+  if (/^https?:\/\//i.test(t)) {const m = t.match(/[?&](?:id|order_id|orderId)=([^&#\s]+)/);if (m) return m[1];}
   return t;
 }
 
@@ -1016,7 +1020,7 @@ function vOrders() {
   seg('pick', 'all', 'ทั้งหมด') + seg('pick', PICK.none, PICK.none) + seg('pick', PICK.part, PICK.part) + seg('pick', PICK.done, PICK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E41\u0E1E\u0E47\u0E04</label>" +
   seg('pack', 'all', 'ทั้งหมด') + seg('pack', PACK.none, PACK.none) + seg('pack', PACK.part, PACK.part) + seg('pack', PACK.done, PACK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E42\u0E2D\u0E19</label>" +
   seg('pay', 'all', 'ทั้งหมด') + seg('pay', PAY.paid, PAY.paid) + seg('pay', PAY.none, PAY.none) + seg('pay', PAY.part, PAY.part) + "</div>\n    <div class=\"fgroup\"><label>ส่ง</label>" +
-  seg('ship', 'all', 'ทั้งหมด') + seg('ship', 'ship', 'จัดส่ง') + seg('ship', 'pickup', 'รับหน้าร้าน') + "</div>\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
+  seg('ship', 'all', 'ทั้งหมด') + seg('ship', 'ship', 'จัดส่ง') + seg('ship', 'pickup', 'รับหน้าร้าน') + "<button class=\"seg\" data-act=\"puOpen\" style=\"border-style:dashed\">+ ตั้งรับหน้าร้าน</button></div>\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
 
   opt(people, f.picker, 'จัดโดย') + "</select>\n      <select id=\"fPacker\" aria-label=\"\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22\">" +
   opt(people, f.packer, 'แพ็คโดย') + "</select>\n    </div>\n    <div class=\"sec\" id=\"olCount\"></div>\n    <div class=\"stack\" id=\"olist\"></div>\n  </div>";
@@ -1160,7 +1164,7 @@ function openDetail(no) {
   esc(o.phone) + "</dd>\n        <dt>\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48</dt><dd>" +
   esc(o.address) + "</dd>\n        <dt>\u0E22\u0E2D\u0E14</dt><dd>" +
   baht(o.amount) + " + \u0E2A\u0E48\u0E07 " + baht(o.shipping) + " \u2212 \u0E25\u0E14 " + baht(o.discount) + " = <b>" + baht(o.total) + "</b> \xB7 \u0E42\u0E2D\u0E19 " + baht(o.paid) + "</dd>\n        <dt>Vrich</dt><dd>" +
-  esc(o.vrichCarrier || '-') + " <span class=\"code\">" + esc(o.vrichTracking || '') + "</span></dd>\n        " + (
+  esc(o.vrichCarrier || '-') + " <span class=\"code\">" + esc(o.vrichTracking || '') + "</span>" + (vrichLink(o.orderNo) ? " · <a href=\"" + esc(vrichLink(o.orderNo)) + "\" target=\"_blank\" rel=\"noopener\">เปิดใน Vrich</a>" : '') + "</dd>\n        " + (
   o.note ? "<dt>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</dt><dd>" + esc(o.note) + "</dd>" : '') + "\n        <dt>\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22</dt><dd>" +
   esc(o.pickedBy || '-') + " " + esc(o.pickedAt || '') + "</dd>\n        <dt>\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22</dt><dd>" +
   esc(o.packedBy || '-') + " " + esc(o.packedAt || '') + "</dd>\n        " + (
@@ -1237,7 +1241,7 @@ function vSettings() {
   return "<div class=\"stack\">" + back() + "<div class=\"card toggle\"><span translate=\"no\"><b>ภาษา / ဘာသာစကား</b></span>" + langSwitch() + "</div>\n    " +
   t('sound', 'เสียงบี๊บ + สั่น', 'ดัง/สั่นทุกครั้งที่สแกน เสียงต่ำ = ผิด') + "\n    " +
   t('autoCam', 'เปิดกล้องอัตโนมัติ', 'เข้าหน้าจัดของ/แพ็คแล้วเปิดกล้องทันที') + "\n    " +
-  t('requirePhoto', 'บังคับถ่ายรูปก่อนแพ็คเสร็จ', 'กดแพ็คเสร็จไม่ได้ถ้ายังไม่มีรูป') + "\n    <label class=\"field card\"><span>หัวใบรับหน้าร้าน</span><input id=\"setPuTitle\" value=\"" + esc(S.set.pickupTitle || PU_TITLE) + "\"></label>\n    <div class=\"card muted\" style=\"font-size:13px\">\u0E43\u0E0A\u0E49\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E1A\u0E32\u0E23\u0E4C\u0E42\u0E04\u0E49\u0E14\u0E1A\u0E25\u0E39\u0E17\u0E39\u0E18\u0E01\u0E31\u0E1A\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49 \u0E22\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E23\u0E31\u0E1A\u0E17\u0E31\u0E19\u0E17\u0E35\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C (\u0E15\u0E31\u0E49\u0E07\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1B\u0E49\u0E19\u0E20\u0E32\u0E29\u0E32\u0E2D\u0E31\u0E07\u0E01\u0E24\u0E29 \u0E41\u0E25\u0E30\u0E2A\u0E48\u0E07 Enter \u0E17\u0E49\u0E32\u0E22\u0E23\u0E2B\u0E31\u0E2A)</div>\n  </div>";
+  t('requirePhoto', 'บังคับถ่ายรูปก่อนแพ็คเสร็จ', 'กดแพ็คเสร็จไม่ได้ถ้ายังไม่มีรูป') + "\n    <label class=\"field card\"><span>หัวใบรับหน้าร้าน</span><input id=\"setPuTitle\" value=\"" + esc(S.set.pickupTitle || PU_TITLE) + "\"></label>\n    <label class=\"field card\"><span>ลิงก์ออเดอร์ Vrich (QR บนใบรับหน้าร้าน)</span><input id=\"setVrichUrl\" inputmode=\"url\" value=\"" + esc(S.set.vrichUrl == null ? VRICH_URL : S.set.vrichUrl) + "\"><span class=\"muted\" style=\"font-size:12px\">{no} = เลขออเดอร์ · ลบให้ว่างถ้าอยากให้ QR เป็นเลขออเดอร์อย่างเดียว</span></label>\n    <div class=\"card muted\" style=\"font-size:13px\">\u0E43\u0E0A\u0E49\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E1A\u0E32\u0E23\u0E4C\u0E42\u0E04\u0E49\u0E14\u0E1A\u0E25\u0E39\u0E17\u0E39\u0E18\u0E01\u0E31\u0E1A\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49 \u0E22\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E23\u0E31\u0E1A\u0E17\u0E31\u0E19\u0E17\u0E35\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C (\u0E15\u0E31\u0E49\u0E07\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1B\u0E49\u0E19\u0E20\u0E32\u0E29\u0E32\u0E2D\u0E31\u0E07\u0E01\u0E24\u0E29 \u0E41\u0E25\u0E30\u0E2A\u0E48\u0E07 Enter \u0E17\u0E49\u0E32\u0E22\u0E23\u0E2B\u0E31\u0E2A)</div>\n  </div>";
 
 
 }
@@ -1370,6 +1374,14 @@ const ACT = {
     enqueue({ type: 'pickup', orderNo: o.orderNo, val: v, staff: S.staff });
     toast(v ? 'ตั้งเป็นรับหน้าร้านแล้ว' : 'ยกเลิกรับหน้าร้านแล้ว', 'ok');
     render();openDetail(d.no);
+  },
+  puOpen: () => openPuSheet(),
+  puBulk: () => {
+    const m = puParse(S.puQ);if (!m.found.length) return;
+    m.found.forEach((o) => {o.pickup = 'ใช่';});
+    enqueue({ type: 'pickup', orderNo: m.found.map((o) => o.orderNo), val: true, staff: S.staff });
+    toast('ตั้งเป็นรับหน้าร้านแล้ว · ' + m.found.length + ' ออเดอร์', 'ok');
+    S.puQ = '';const i = $('puQ');if (i) i.value = '';renderPuList();render();
   },
   printPickupOne: (d) => printPickup([S.byNo[d.no]].filter(Boolean)),
   printPickupList: () => printPickup(filtered().filter(isPickup)),
@@ -1642,6 +1654,39 @@ function printPO() {
 
   docPrint(html);
 }
+/* ---------- ตั้งออเดอร์รับหน้าร้าน (Vrich ไม่มีข้อมูลนี้ ต้องกรอกเอง) ---------- */
+function puParse(q) {
+  const toks = String(q || '').split(/[\s,;]+/).map(norm).filter((x) => /^\d{3,}$/.test(x));
+  const found = [],miss = [];
+  [...new Set(toks)].forEach((t) => {const o = S.byNo[t];o ? found.push(o) : miss.push(t);});
+  return { multi: toks.length >= 2, found: found, miss: miss };
+}
+function openPuSheet() {
+  S.puQ = S.puQ || '';
+  $('sheetRoot').innerHTML = "<div class=\"sheetBg\" data-act=\"closeSheet\"><div class=\"sheet\" data-stop=\"1\"><div class=\"grab\"></div><div class=\"stack\">" +
+  "<h2>ตั้งออเดอร์รับหน้าร้าน</h2><div class=\"muted\" style=\"font-size:13px\">ติ๊กออเดอร์ที่ลูกค้ามารับเอง หรือวางเลขออเดอร์หลายเลขพร้อมกัน (เว้นวรรค/ขึ้นบรรทัดใหม่)</div>" +
+  "<div class=\"search\"><input id=\"puQ\" type=\"search\" placeholder=\"เลขออเดอร์ ชื่อ ชื่อ FB\" value=\"" + esc(S.puQ) + "\"></div>" +
+  "<div id=\"puList\"></div></div></div></div>";
+  renderPuList();
+}
+function renderPuList() {
+  const el = $('puList');if (!el) return;
+  const m = puParse(S.puQ);
+  if (m.multi) {
+    el.innerHTML = "<div class=\"card stack\"><div>พบ <b>" + m.found.length + "</b> ออเดอร์" + (m.miss.length ? " · ไม่พบ " + esc(m.miss.join(', ')) : '') + "</div>" +
+    "<div class=\"chips\">" + m.found.map((o) => "<span class=\"chip" + (isPickup(o) ? ' pu' : '') + "\">#" + esc(o.orderNo) + "</span>").join('') + "</div>" +
+    "<button class=\"btn pri\" data-act=\"puBulk\" " + (m.found.length ? '' : 'disabled') + ">ตั้งเป็นรับหน้าร้าน · " + m.found.length + " ออเดอร์</button></div>";
+    return;
+  }
+  const q = norm(S.puQ);
+  const list = S.orders.filter((o) => o.packStatus !== PACK.done && (!q || norm([o.orderNo, o.customer, o.fbName, o.phone].join('|')).includes(q)))
+  .sort((a, b) => isPickup(b) - isPickup(a) || (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0));
+  const nPu = S.orders.filter(isPickup).length;
+  el.innerHTML = "<div class=\"sec\">รับหน้าร้านแล้ว " + nPu + " ออเดอร์</div><div class=\"list\">" + (list.slice(0, 80).map((o) =>
+  "<label class=\"lrow\"><input type=\"checkbox\" data-pu=\"" + esc(norm(o.orderNo)) + "\" " + (isPickup(o) ? 'checked' : '') + ">" +
+  "<span class=\"ord-no\" style=\"min-width:62px\">#" + esc(o.orderNo) + "</span><span class=\"grow\"><b>" + esc(o.customer || '-') + "</b><span class=\"muted\" style=\"display:block;font-size:12px\">" + esc(o.fbName || '') + " · " + (o.itemQty || 0) + " ชิ้น</span></span></label>").join('') ||
+  '<div class="empty">ไม่พบออเดอร์</div>') + "</div>";
+}
 async function printPickup(list) {
   if (!list.length) return toast('ไม่มีออเดอร์รับหน้าร้าน');
   if (!window.qrcode) {try {await loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js');} catch (e) {}}
@@ -1651,7 +1696,7 @@ async function printPickup(list) {
     const its = itemsOf(o).filter((i) => !isSkip(i)).sort(byCode);
     const sum = its.reduce((s, i) => s + qtyOf(i), 0);
     let qr = '';
-    if (window.qrcode) {const q = qrcode(0, 'M');q.addData(String(o.orderNo));q.make();qr = "<img src=\"" + q.createDataURL(4, 0) + "\" alt=\"\">";}
+    if (window.qrcode) {const q = qrcode(0, 'M');q.addData(vrichLink(o.orderNo) || String(o.orderNo));q.make();qr = "<img src=\"" + q.createDataURL(4, 0) + "\" alt=\"\">";}
     const nm = (i) => {const c = String(i.code),n = String(i.name || '');return n.indexOf(c) === 0 ? n : c + ' ' + n;};
     const due = (Number(o.total) || 0) - (Number(o.paid) || 0);
     return "<div class=\"puf\"><div class=\"puf-t\">" + title + "</div>" +
@@ -1937,12 +1982,18 @@ document.addEventListener('input', (e) => {
     S.pk.confirm = null;packSave();
   } else
   if (t.id === 'pkNote' && S.pk) {S.pk.note = t.value;packSave();} else
+  if (t.id === 'puQ') {S.puQ = t.value;renderPuList();} else
   if (t.id === 'lblQ') {S.labelQ = t.value;clearTimeout(S._lq);S._lq = setTimeout(() => {render();const i = $('lblQ');if (i) {i.focus();i.setSelectionRange(i.value.length, i.value.length);}}, 250);}
 });
 document.addEventListener('change', (e) => {
   const t = e.target;
   if (t.id === 'fPicker') {S.f.picker = t.value;renderOrderList();} else
   if (t.id === 'fPacker') {S.f.packer = t.value;renderOrderList();} else
+  if (t.dataset.pu) {
+    const o = S.byNo[t.dataset.pu];
+    if (o) {o.pickup = t.checked ? 'ใช่' : 'ไม่';enqueue({ type: 'pickup', orderNo: o.orderNo, val: t.checked, staff: S.staff });renderPuList();render();}
+  } else
+  if (t.id === 'setVrichUrl') {S.set.vrichUrl = t.value.trim();LS.set('set', S.set);} else
   if (t.id === 'setPuTitle') {S.set.pickupTitle = t.value.trim();LS.set('set', S.set);} else
   if (t.id === 'pkCarrier' && S.pk) {S.pk.carrier = t.value;packSave();} else
   if (t.id === 'pkTrack') softRender();else
@@ -2412,6 +2463,19 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "เปิดใน Vrich": "Vrich တွင်ဖွင့်",
+  "ลิงก์ออเดอร์ Vrich": "Vrich အော်ဒါလင့်ခ်",
+  "QR บนใบรับหน้าร้าน": "ဆိုင်လာယူစာရွက်ပေါ်ရှိ QR",
+  "{0} = เลขออเดอร์": "{0} = အော်ဒါနံပါတ်",
+  "ลบให้ว่างถ้าอยากให้ QR เป็นเลขออเดอร์อย่างเดียว": "QR တွင် အော်ဒါနံပါတ်သာ လိုချင်လျှင် ဖျက်ထားပါ",
+  "+ ตั้งรับหน้าร้าน": "+ ဆိုင်မှာလာယူ သတ်မှတ်",
+  "ตั้งออเดอร์รับหน้าร้าน": "ဆိုင်မှာလာယူမည့် အော်ဒါ သတ်မှတ်",
+  "ติ๊กออเดอร์ที่ลูกค้ามารับเอง หรือวางเลขออเดอร์หลายเลขพร้อมกัน": "ဖောက်သည် ကိုယ်တိုင်လာယူမည့် အော်ဒါကို အမှန်ခြစ်ပါ သို့မဟုတ် အော်ဒါနံပါတ်များကို တစ်ပြိုင်နက် ကူးထည့်ပါ",
+  "เว้นวรรค": "space ခြား",
+  "ขึ้นบรรทัดใหม่": "စာကြောင်းအသစ်",
+  "เลขออเดอร์ ชื่อ ชื่อ FB": "အော်ဒါနံပါတ် အမည် FB အမည်",
+  "พบ {0} ออเดอร์": "အော်ဒါ {0} ခု တွေ့သည်",
+  "รับหน้าร้านแล้ว {0} ออเดอร์": "ဆိုင်မှာလာယူ အော်ဒါ {0} ခု",
   "ส่ง": "ပို့ပုံ",
   "จัดส่ง": "ပို့ဆောင်",
   "รับหน้าร้าน": "ဆိုင်မှာလာယူ",
