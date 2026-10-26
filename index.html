@@ -94,7 +94,9 @@ header{background:var(--bar);color:var(--bar-ink);padding:calc(env(safe-area-ins
 
 /* กล้อง */
 #camPanel{flex:none;background:#000;position:relative;height:min(30vh,260px);overflow:hidden}
-#cam{width:100%;height:100%}
+#cam{width:100%;height:100%;position:relative}
+#cam .aim{position:absolute;left:7%;right:7%;top:14%;bottom:14%;border:2px solid rgba(255,255,255,.85);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.22);pointer-events:none}
+.camBtns button[aria-pressed="true"]{background:#FFD54A;color:#000;border-color:#FFD54A}
 #cam video{width:100%!important;height:100%!important;object-fit:cover}
 #cam img{display:none}
 #camOverlay{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#fff;padding:16px;background:#0B0E15}
@@ -402,7 +404,7 @@ html.lang-my .tile span{font-size:10px;line-height:1.3}
     <div id="cam"></div>
     <div id="camOverlay"><div><p id="camOvMsg">แตะเพื่อเปิดกล้องสแกน</p><button class="btn pri" data-act="camOn">เปิดกล้อง</button>
       <div style="margin-top:10px"><button class="btn" data-act="photoScan" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.35)">ถ่ายรูปบาร์โค้ดแทน</button></div></div></div>
-    <div class="camBtns"><button data-act="camShot" id="camShot">ถ่ายรูป</button><button data-act="camToggle" id="camToggle">ปิดกล้อง</button></div>
+    <div class="camBtns"><button data-act="camTorch" id="camTorch" hidden aria-pressed="false">ไฟฉาย</button><button data-act="camZoom" id="camZoom" hidden>ซูม 1x</button><button data-act="camShot" id="camShot">ถ่ายรูป</button><button data-act="camToggle" id="camToggle">ปิดกล้อง</button></div>
     <div id="camFb"><b></b><span></span></div>
   </div>
   <form class="manual" id="manualForm" autocomplete="off">
@@ -448,7 +450,7 @@ const S = {
   more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
   stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, qmin: 0, qmax: 0, busy: false },
   sk: null, stockQ: '', stockMulti: true, poQty: {}, poOff: new Set(), poVendor: '',
-  set: { sound: true, autoCam: true, requirePhoto: false, lastCarrier: '', pickupTitle: '', vrichUrl: null }
+  set: { sound: true, autoCam: true, fastScan: true, requirePhoto: false, lastCarrier: '', pickupTitle: '', vrichUrl: null }
 };
 
 const LS = {
@@ -677,9 +679,58 @@ function toast(m, kind) {
 }
 
 /* ================= กล้องสแกน ================= */
-const Cam = { inst: null, on: false, starting: false, last: '', lastAt: 0 };
+const Cam = { inst: null, on: false, starting: false, last: '', lastAt: 0, engine: '', zoom: 1 };
+/* สแกนเร็ว: ใช้ตัวอ่านบาร์โค้ดของเครื่อง (BarcodeDetector — แบบเดียวกับแอปสแกนใน Play Store)
+ * อ่านจากวิดีโอตรงๆ ทั้งภาพ ต่อเนื่องไม่มีหน่วง · เครื่องที่ไม่รองรับ (เช่น iPhone) ใช้ตัวอ่านแบบเดิม */
+const Fast = { video: null, stream: null, det: null, timer: 0, held: '', heldAt: 0 };
+const FAST_FORMATS = ['qr_code', 'code_128', 'code_39', 'ean_13'];
+async function fastFormats() {
+  if (S.set.fastScan === false || !('BarcodeDetector' in window)) return null;
+  try {const f = await BarcodeDetector.getSupportedFormats();const use = FAST_FORMATS.filter((x) => f.indexOf(x) >= 0);return use.indexOf('qr_code') >= 0 ? use : null;} catch (e) {return null;}
+}
+async function fastStart(formats) {
+  Fast.det = new BarcodeDetector({ formats: formats });
+  Fast.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } } });
+  const box = $('cam');box.innerHTML = '';
+  const v = document.createElement('video');v.setAttribute('playsinline', '');v.muted = true;v.autoplay = true;v.srcObject = Fast.stream;
+  box.appendChild(v);const aim = document.createElement('div');aim.className = 'aim';box.appendChild(aim);
+  Fast.video = v;
+  await v.play().catch(() => {});
+  Cam.engine = 'fast';
+  const tick = async () => {
+    if (!Cam.on || Cam.engine !== 'fast' || Fast.video !== v) return;
+    if (v.readyState >= 2 && !document.hidden) {
+      try {
+        const r = await Fast.det.detect(v);
+        const code = r && r.length ? r[0].rawValue : '';
+        const now = Date.now();
+        // ถือกล้องค้างที่ฉลากเดิม = ไม่นับซ้ำ ต้องเลื่อนออกแล้วสแกนใหม่ (นับชิ้นถัดไป)
+        if (code && !(code === Fast.held && now - Fast.heldAt < 700)) onDecoded(code);
+        if (code) {Fast.held = code;Fast.heldAt = now;}
+      } catch (e) {}
+    }
+    Fast.timer = setTimeout(tick, 10);
+  };
+  Fast.timer = setTimeout(tick, 50);
+}
+function fastStop() {
+  clearTimeout(Fast.timer);
+  if (Fast.stream) Fast.stream.getTracks().forEach((t) => t.stop());
+  if (Fast.video) Fast.video.remove();
+  const a = document.querySelector('#cam .aim');if (a) a.remove();
+  Fast.stream = null;Fast.video = null;
+}
 async function camStart() {
   if (Cam.on || Cam.starting) return;
+  const ff = await fastFormats();
+  if (ff) {
+    Cam.starting = true;$('camOvMsg').textContent = 'กำลังเปิดกล้อง…';
+    try {
+      Cam.on = true;await fastStart(ff);
+      $('camOverlay').hidden = true;$('camToggle').textContent = 'ปิดกล้อง';camFocus();camCaps();
+      return;
+    } catch (e) {Cam.on = false;fastStop();Cam.engine = '';} finally {Cam.starting = false;}
+  }
   if (!window.Html5Qrcode) {$('camOvMsg').textContent = 'โหลดตัวสแกนไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วเปิดใหม่';return;}
   Cam.starting = true;$('camOvMsg').textContent = 'กำลังเปิดกล้อง…';
   try {
@@ -696,8 +747,8 @@ async function camStart() {
       { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
       qrbox: (w, h) => ({ width: Math.max(160, Math.floor(w * 0.88)), height: Math.max(120, Math.floor(h * 0.7)) })
     }, onDecoded, () => {});
-    Cam.on = true;$('camOverlay').hidden = true;$('camToggle').textContent = 'ปิดกล้อง';
-    camFocus();
+    Cam.on = true;Cam.engine = 'zxing';$('camOverlay').hidden = true;$('camToggle').textContent = 'ปิดกล้อง';
+    camFocus();camCaps();
   } catch (e) {
     $('camOverlay').hidden = false;
     $('camOvMsg').textContent = 'เปิดกล้องไม่ได้ (' + errMsg(e).slice(0, 80) + ') ' + (
@@ -714,8 +765,31 @@ function camFocus() {
     if (c.focusMode && c.focusMode.indexOf('continuous') >= 0) tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
   } catch (e) {}
 }
+/* ไฟฉาย + ซูม (แสดงปุ่มเฉพาะกล้องที่รองรับ) */
+function camTrack() {const v = document.querySelector('#cam video');return v && v.srcObject && v.srcObject.getVideoTracks()[0] || null;}
+function camCaps() {
+  Cam.zoom = 1;
+  const tr = camTrack();let c = {};
+  try {c = tr && tr.getCapabilities ? tr.getCapabilities() : {};} catch (e) {}
+  $('camTorch').hidden = !c.torch;$('camTorch').setAttribute('aria-pressed', 'false');
+  $('camZoom').hidden = !(c.zoom && c.zoom.max >= 2);$('camZoom').textContent = 'ซูม 1x';
+}
+function camTorch() {
+  const tr = camTrack();if (!tr) return;
+  const on = $('camTorch').getAttribute('aria-pressed') !== 'true';
+  tr.applyConstraints({ advanced: [{ torch: on }] }).then(() => $('camTorch').setAttribute('aria-pressed', String(on))).catch(() => toast('เปิดไฟฉายไม่ได้'));
+}
+function camZoom() {
+  const tr = camTrack();if (!tr) return;
+  let c = {};try {c = tr.getCapabilities();} catch (e) {}
+  const max = c.zoom ? c.zoom.max : 1;
+  Cam.zoom = Cam.zoom >= Math.min(3, max) ? 1 : Math.min(Cam.zoom + 1, max);
+  tr.applyConstraints({ advanced: [{ zoom: Cam.zoom }] }).then(() => {$('camZoom').textContent = 'ซูม ' + Cam.zoom + 'x';}).catch(() => {});
+}
 async function camStop() {
+  if (Cam.engine === 'fast') fastStop();else
   if (Cam.inst && Cam.on) {try {await Cam.inst.stop();} catch (e) {}}
+  Cam.engine = '';$('camTorch').hidden = true;$('camZoom').hidden = true;
   Cam.on = false;$('camOverlay').hidden = false;$('camOvMsg').textContent = 'กล้องปิดอยู่';$('camToggle').textContent = 'เปิดกล้อง';
 }
 /* ถ่ายรูปจากกล้องสแกนที่เปิดอยู่ (ไม่ต้องสลับไปแอปกล้อง ซึ่งทำให้ Android ปิดแอปเราบ่อย) */
@@ -782,7 +856,7 @@ function quickSnap(t) {
 }
 function nativePhoto(id) {
   // ปิดกล้องสแกนก่อนเปิดกล้อง/คลังรูปของเครื่อง เพื่อคืนกล้องและหน่วยความจำ
-  if (Cam.on && Cam.inst) {Cam.inst.stop().catch(() => {});Cam.on = false;Cam.resume = true;}
+  if (Cam.on) {camStop();Cam.resume = true;}
   $(id).click();
 }
 function camShotLabel() {
@@ -1395,6 +1469,7 @@ function vSettings() {
   return "<div class=\"stack\">" + back() + "<div class=\"card toggle\"><span translate=\"no\"><b>ภาษา / ဘာသာစကား</b></span>" + langSwitch() + "</div>\n    " +
   t('sound', 'เสียงบี๊บ + สั่น', 'ดัง/สั่นทุกครั้งที่สแกน เสียงต่ำ = ผิด') + "\n    " +
   t('autoCam', 'เปิดกล้องอัตโนมัติ', 'เข้าหน้าจัดของ/แพ็คแล้วเปิดกล้องทันที') + "\n    " +
+  t('fastScan', 'สแกนเร็ว (ใช้ตัวอ่านบาร์โค้ดของเครื่อง)', 'อ่านเร็วแบบแอปสแกนใน Play Store · ปิดถ้าสแกนไม่ติด จะกลับไปใช้ตัวอ่านแบบเดิม') + "\n    " +
   t('requirePhoto', 'บังคับถ่ายรูปก่อนแพ็คเสร็จ', 'กดแพ็คเสร็จไม่ได้ถ้ายังไม่มีรูป') + "\n    " +
   t('autoScroll', 'เลื่อนหน้าจอไปที่สินค้าที่สแกน', 'ปิดไว้ = หน้าจออยู่กับที่ ดูผลสแกนที่แถบบนกล้อง') + "\n    <label class=\"field card\"><span>หัวใบรับหน้าร้าน</span><input id=\"setPuTitle\" value=\"" + esc(S.set.pickupTitle || PU_TITLE) + "\"></label>\n    <label class=\"field card\"><span>ลิงก์ออเดอร์ Vrich (QR บนใบรับหน้าร้าน)</span><input id=\"setVrichUrl\" inputmode=\"url\" value=\"" + esc(S.set.vrichUrl == null ? VRICH_URL : S.set.vrichUrl) + "\"><span class=\"muted\" style=\"font-size:12px\">{no} = เลขออเดอร์ · ลบให้ว่างถ้าอยากให้ QR เป็นเลขออเดอร์อย่างเดียว</span></label>\n    <div class=\"card muted\" style=\"font-size:13px\">\u0E43\u0E0A\u0E49\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E1A\u0E32\u0E23\u0E4C\u0E42\u0E04\u0E49\u0E14\u0E1A\u0E25\u0E39\u0E17\u0E39\u0E18\u0E01\u0E31\u0E1A\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49 \u0E22\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E23\u0E31\u0E1A\u0E17\u0E31\u0E19\u0E17\u0E35\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C (\u0E15\u0E31\u0E49\u0E07\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1B\u0E49\u0E19\u0E20\u0E32\u0E29\u0E32\u0E2D\u0E31\u0E07\u0E01\u0E24\u0E29 \u0E41\u0E25\u0E30\u0E2A\u0E48\u0E07 Enter \u0E17\u0E49\u0E32\u0E22\u0E23\u0E2B\u0E31\u0E2A)</div>\n  </div>";
 
@@ -1516,6 +1591,8 @@ const ACT = {
   closeSheet: () => closeSheet(),
   camOn: () => camStart(),
   camToggle: () => Cam.on ? camStop() : camStart(),
+  camTorch: () => camTorch(),
+  camZoom: () => camZoom(),
   photoScan: () => nativePhoto('fileScan'),
   camShot: () => {if (S.view === 'pack' && S.pk) quickSnap('pack');else if (S.view === 'stock' && S.sk) quickSnap('stock');else nativePhoto('fileScan');},
   snapPhoto: (d) => snapPhoto(d.t),
@@ -2666,6 +2743,13 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ไฟฉาย": "ဓာတ်မီး",
+  "ซูม {0}": "ချဲ့ {0}",
+  "เปิดไฟฉายไม่ได้": "ဓာတ်မီး ဖွင့်မရပါ",
+  "สแกนเร็ว": "မြန်မြန်စကင်ဖတ်",
+  "ใช้ตัวอ่านบาร์โค้ดของเครื่อง": "ဖုန်း၏ ဘားကုဒ်ဖတ်စနစ်ကို သုံး",
+  "อ่านเร็วแบบแอปสแกนใน Play Store": "Play Store စကင်ဖတ်အက်ပ်ကဲ့သို့ မြန်မြန်ဖတ်",
+  "ปิดถ้าสแกนไม่ติด จะกลับไปใช้ตัวอ่านแบบเดิม": "ဖတ်မရလျှင် ပိတ်ပါ မူလဖတ်စနစ်သို့ ပြန်သုံးမည်",
   "ชิ้น/ออเดอร์": "ခု/အော်ဒါ",
   "{0} ชิ้นขึ้นไป": "{0} ခုနှင့်အထက်",
   "ตั้งแต่": "မှ",
