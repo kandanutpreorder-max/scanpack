@@ -373,6 +373,25 @@ html.lang-my .tile span{font-size:10px;line-height:1.3}
   .docA4 tr{break-inside:avoid}
   .docA4 tfoot td{font-weight:700}
   .docA4 .sign{display:flex;justify-content:space-between;margin-top:14mm}
+  .docA4.slips{font-size:10pt}
+  .docA4 .slpage{display:grid;width:194mm;height:279mm;gap:0;page-break-after:always;break-after:page}
+  .docA4 .slpage:last-child{page-break-after:auto;break-after:auto}
+  .docA4 .sl{border:0.3mm dashed #888;padding:3mm 4mm;display:flex;flex-direction:column;gap:1.2mm;overflow:hidden;min-height:0;min-width:0}
+  .docA4 .sl-top{display:flex;justify-content:space-between;align-items:baseline;gap:3mm}
+  .docA4 .sl-no{font-family:var(--f-code);font-weight:800;font-size:17pt;line-height:1}
+  .docA4 .sl-cr{font-size:9pt;text-align:right}
+  .docA4 .sl-mid{display:flex;gap:3mm;align-items:center;flex:1;min-height:0}
+  .docA4 .sl-txt{flex:1;min-width:0}
+  .docA4 .sl-name{font-weight:700;font-size:13pt;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .docA4 .sl-trk{font-family:var(--f-code);font-weight:700;font-size:12pt;margin-top:1mm}
+  .docA4 .sl-sub{font-size:8.5pt;color:#333;margin-top:0.5mm}
+  .docA4 .sl-qr{flex:none;height:100%;max-height:30mm;aspect-ratio:1}
+  .docA4 .sl-qr img{width:100%;height:100%;display:block}
+  .docA4 .sl-bc svg{width:100%;height:12mm;display:block}
+  .docA4 .sl-bct{font-family:var(--f-code);font-size:9pt;text-align:center;letter-spacing:0.5mm}
+  .docA4.slips.s2 .sl-no{font-size:26pt} .docA4.slips.s2 .sl-name{font-size:18pt} .docA4.slips.s2 .sl-trk{font-size:16pt} .docA4.slips.s2 .sl-qr{max-height:50mm} .docA4.slips.s2 .sl-bc svg{height:22mm}
+  .docA4.slips.s4 .sl-no{font-size:21pt} .docA4.slips.s4 .sl-name{font-size:15pt} .docA4.slips.s4 .sl-qr{max-height:38mm} .docA4.slips.s4 .sl-bc svg{height:16mm}
+  .docA4.slips.s10 .sl{padding:2mm 3mm} .docA4.slips.s10 .sl-no{font-size:14pt} .docA4.slips.s10 .sl-name{font-size:11pt} .docA4.slips.s10 .sl-trk{font-size:10.5pt} .docA4.slips.s10 .sl-qr{max-height:22mm} .docA4.slips.s10 .sl-bc svg{height:9mm}
   .docA4 .puf{break-inside:avoid;page-break-inside:avoid;padding:0 0 7mm;margin:0 0 7mm;border-bottom:0.3mm dashed #888}
   .docA4 .puf:last-child{border-bottom:0}
   .docA4 .puf table{width:calc(100% - 0.6mm);margin-left:0.3mm}
@@ -460,7 +479,7 @@ const S = {
   f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', picker: '', packer: '', date: '', q: '' },
   pickNo: null, pickChoices: null,
   pk: null, packChoices: null,
-  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
+  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', sl: { paid: true, noPickup: true, unpacked: true, hidePrinted: false, per: 8, off: new Set(), date: '' }, labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
   stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, qmin: 0, qmax: 0, busy: false },
   sk: null, stockQ: '', stockMulti: true, poQty: {}, poOff: new Set(), poVendor: '',
   set: { sound: true, autoCam: true, fastScan: true, tapScan: true, requirePhoto: false, lastCarrier: '', pickupTitle: '', vrichUrl: null }
@@ -1441,9 +1460,10 @@ function vMore() {
   if (S.more === 'summary') return vSummary();
   if (S.more === 'settings') return vSettings();
   if (S.more === 'data') return vData();
+  if (S.more === 'slips') return vSlips();
   const ic = (p) => "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\">" + p + "</svg>";
   return "<div class=\"stack\"><div class=\"menu\">\n    <button data-act=\"startImport\">" +
-  ic('<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>') + "<div><b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E08\u0E32\u0E01 Vrich</b><span>\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich (\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E42\u0E2D\u0E19/\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38\u0E44\u0E14\u0E49 \u0E44\u0E21\u0E48\u0E25\u0E49\u0E32\u0E07\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14)</span></div></button>\n    <button data-act=\"more\" data-m=\"labels\">" +
+  ic('<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>') + "<div><b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E08\u0E32\u0E01 Vrich</b><span>\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich (\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E42\u0E2D\u0E19/\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38\u0E44\u0E14\u0E49 \u0E44\u0E21\u0E48\u0E25\u0E49\u0E32\u0E07\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14)</span></div></button>\n    <button data-act=\"more\" data-m=\"slips\">" + ic('<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M7 15v3M9 15v3M11 15v3M14 15v3M16 15v3M7 7h6M7 10h10"/>') + "<div><b>พิมพ์ใบออเดอร์ (รอใบปะหน้า)</b><span>เลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด QR · A4 หลายออเดอร์ต่อแผ่น</span></div></button>\n    <button data-act=\"more\" data-m=\"labels\">" +
   ic('<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>') + "<div><b>\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E09\u0E25\u0E32\u0E01 QR \u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</b><span>\u0E15\u0E34\u0E14\u0E17\u0E35\u0E48\u0E16\u0E38\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u0E2A\u0E41\u0E01\u0E19\u0E44\u0E14\u0E49\u0E40\u0E23\u0E47\u0E27\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E23\u0E2B\u0E31\u0E2A</span></div></button>\n    " + moreExtra(ic) + "<button data-act=\"more\" data-m=\"summary\">" +
   ic('<path d="M5 20V10M12 20V4M19 20v-7"/>') + "<div><b>\u0E2A\u0E23\u0E38\u0E1B\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49</b><span>\u0E43\u0E04\u0E23\u0E08\u0E31\u0E14/\u0E41\u0E1E\u0E47\u0E04\u0E44\u0E1B\u0E01\u0E35\u0E48\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</span></div></button>\n    <button data-act=\"more\" data-m=\"data\">" + ic('<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>') + "<div><b>จัดการข้อมูล</b><span>เก็บข้อมูลไปไฟล์ใหม่ เริ่มรอบใหม่ หรือล้างข้อมูลทดสอบ</span></div></button>\n    <button data-act=\"more\" data-m=\"settings\">" +
   ic('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>') + "<div><b>\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32</b><span>\u0E40\u0E2A\u0E35\u0E22\u0E07, \u0E01\u0E25\u0E49\u0E2D\u0E07, \u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</span></div></button>\n    <button data-act=\"refresh\">" +
@@ -1452,6 +1472,77 @@ function vMore() {
   '<button data-act="reconnect">' + ic('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>') + '<div><b>เปลี่ยนการเชื่อมต่อ</b><span>ใส่ลิงก์ /exec หรือรหัสเข้าแอปใหม่</span></div></button>' : '') + "\n  </div></div>";
 
 }
+/* ---------- ใบออเดอร์ (ติดถุงระหว่างรอใบปะหน้าจริง) ---------- */
+const SL_PER = [2, 4, 6, 8, 10];
+function slPrinted() {return LS.get('slPrinted', {});}
+function slList() {
+  const c = S.sl,pr = slPrinted();
+  return S.orders.filter((o) => (!c.paid || o.payStatus === PAY.paid) && (!c.noPickup || !isPickup(o)) &&
+  (!c.unpacked || o.packStatus !== PACK.done) && (!c.date || String(o.date || '').slice(0, 10) === c.date) &&
+  (!c.hidePrinted || !pr[norm(o.orderNo)])).
+  sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0) || String(a.orderNo).localeCompare(String(b.orderNo)));
+}
+function slChosen() {return slList().filter((o) => !S.sl.off.has(norm(o.orderNo)));}
+function vSlips() {
+  const c = S.sl,list = slList(),pr = slPrinted();
+  const n = list.filter((o) => !c.off.has(norm(o.orderNo))).length;
+  const tg = (k, l) => "<label class=\"toggle\"><span>" + l + "</span><input type=\"checkbox\" data-slf=\"" + k + "\" " + (c[k] ? 'checked' : '') + "></label>";
+  const days = [...new Set(S.orders.map((o) => String(o.date || '').slice(0, 10)).filter(Boolean))].sort().reverse();
+  const dayBtn = (d, l) => "<button class=\"seg\" data-act=\"slDay\" data-d=\"" + esc(d) + "\" aria-pressed=\"" + (c.date === d) + "\">" + l + "</button>";
+  return "<div class=\"stack\">" + back() + "<div class=\"card stack\"><b>พิมพ์ใบออเดอร์ (รอใบปะหน้า)</b>" +
+  "<div class=\"muted\" style=\"font-size:13px\">ใบติดถุงระหว่างรอใบปะหน้าจริง มีเลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด และ QR สแกนในแอปได้ทั้งคู่</div>" +
+  "<div class=\"fgroup\"><label>วันที่</label>" + dayBtn('', 'ทุกวัน') + days.map((d) => dayBtn(d, esc(dayLabel(d)))).join('') + "</div>" +
+  tg('paid', 'เฉพาะออเดอร์ที่โอนแล้ว') + tg('noPickup', 'ไม่รวมรับหน้าร้าน') + tg('unpacked', 'เฉพาะที่ยังไม่แพ็ค') + tg('hidePrinted', 'ซ่อนที่พิมพ์แล้ว') +
+  "<div class=\"fgroup\"><label>ต่อแผ่น A4</label>" + SL_PER.map((k) => "<button class=\"seg\" data-act=\"slPer\" data-n=\"" + k + "\" aria-pressed=\"" + (c.per === k) + "\">" + k + " ใบ</button>").join('') + "</div>" +
+  "<div class=\"btns\"><button class=\"btn\" data-act=\"slAll\">เลือกทั้งหมด</button><button class=\"btn\" data-act=\"slNone\">ล้าง</button>" +
+  "<button class=\"btn pri\" data-act=\"slPrint\" " + (n ? '' : 'disabled') + ">พิมพ์ " + n + " ใบ · " + Math.ceil(n / c.per) + " แผ่น</button></div></div>" +
+  "<div class=\"sec\">" + list.length + " ออเดอร์ตามเงื่อนไข · เลือก " + n + "</div><div class=\"list\">" + (list.slice(0, 300).map((o) => {
+    const k = norm(o.orderNo);
+    return "<label class=\"lrow\"><input type=\"checkbox\" data-sl=\"" + esc(k) + "\" " + (c.off.has(k) ? '' : 'checked') + "><span class=\"ord-no\" style=\"min-width:62px\">#" + esc(o.orderNo) + "</span>" +
+    "<span class=\"grow\"><b>" + esc(o.customer || o.fbName || '-') + "</b><span class=\"muted\" style=\"display:block;font-size:12px\"><span class=\"code\">" + esc(o.vrichTracking || 'ไม่มีเลขพัสดุ') + "</span> · " + (o.itemQty || 0) + " ชิ้น</span></span>" +
+    (pr[k] ? "<span class=\"chip\">พิมพ์แล้ว</span>" : '') + "</label>";
+  }).join('') || '<div class="empty">ไม่มีออเดอร์ตามเงื่อนไข</div>') + "</div></div>";
+}
+function barcodeSvg(text) {
+  if (!window.JsBarcode) return '';
+  try {
+    const sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    JsBarcode(sv, String(text), { format: 'CODE128', displayValue: false, margin: 22, marginTop: 0, marginBottom: 0, height: 60, width: 2 });   // ขอบขาวซ้าย-ขวา ให้เครื่องสแกนอ่านติด
+    const w = sv.getAttribute('width'),h = sv.getAttribute('height');
+    sv.setAttribute('viewBox', '0 0 ' + parseFloat(w) + ' ' + parseFloat(h));sv.setAttribute('preserveAspectRatio', 'none');
+    return sv.outerHTML;
+  } catch (e) {return '';}
+}
+async function printSlips() {
+  const list = slChosen();if (!list.length) return toast('ยังไม่ได้เลือกออเดอร์');
+  try {
+    if (!window.qrcode) await loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js');
+    if (!window.JsBarcode) await loadScript('https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js');
+  } catch (e) {return toast('โหลดตัวสร้างบาร์โค้ดไม่สำเร็จ ตรวจอินเทอร์เน็ต', 'bad');}
+  const per = S.sl.per,cols = per === 2 ? 1 : 2,rows = Math.ceil(per / cols);
+  const cell = (o) => {
+    const trk = String(o.vrichTracking || o.tracking || '').trim();
+    const code = trk || String(o.orderNo);
+    const q = qrcode(0, 'M');q.addData(vrichLink(o.orderNo) || String(o.orderNo));q.make();
+    return "<div class=\"sl\"><div class=\"sl-top\"><span class=\"sl-no\">#" + esc(o.orderNo) + "</span><span class=\"sl-cr\">" + esc(o.vrichCarrier || '') + "<br>" + esc(String(o.date || '').slice(0, 10)) + "</span></div>" +
+    "<div class=\"sl-mid\"><div class=\"sl-txt\"><div class=\"sl-name\">" + esc(o.customer || o.fbName || '-') + "</div>" +
+    (o.fbName && o.fbName !== o.customer ? "<div class=\"sl-sub\">FB: " + esc(o.fbName) + "</div>" : '') +
+    "<div class=\"sl-trk\">" + (trk ? esc(trk) : 'ยังไม่มีเลขพัสดุ') + "</div>" +
+    "<div class=\"sl-sub\">" + (o.itemQty || 0) + " ชิ้น" + (o.phone ? " · " + esc(o.phone) : '') + (o.province ? " · " + esc(o.province) : '') + "</div></div>" +
+    "<div class=\"sl-qr\"><img src=\"" + q.createDataURL(4, 0) + "\" alt=\"\"></div></div>" +
+    "<div class=\"sl-bc\">" + barcodeSvg(code) + "</div><div class=\"sl-bct\">" + esc(code) + "</div></div>";
+  };
+  let html = '';
+  for (let i = 0; i < list.length; i += per) {
+    html += "<div class=\"slpage\" style=\"grid-template-columns:repeat(" + cols + ",1fr);grid-template-rows:repeat(" + rows + ",1fr)\">" + list.slice(i, i + per).map(cell).join('') + "</div>";
+  }
+  const pa = $('printArea');pa.className = 'docA4 slips s' + per;pa.innerHTML = html;
+  let st = $('pageStyle');if (!st) {st = document.createElement('style');st.id = 'pageStyle';document.head.appendChild(st);}
+  st.textContent = '@page{size:A4;margin:8mm}';
+  const pr = slPrinted(),d = today();list.forEach((o) => {pr[norm(o.orderNo)] = d;});LS.set('slPrinted', pr);
+  setTimeout(() => {window.print();render();}, 300);
+}
+
 /* ---------- จัดการข้อมูล ---------- */
 function vData() {
   const days = S.orders.map((o) => String(o.date || '').slice(0, 10)).filter(Boolean).sort();
@@ -1681,6 +1772,11 @@ const ACT = {
     toast('ตั้งเป็นรับหน้าร้านแล้ว · ' + m.found.length + ' ออเดอร์', 'ok');
     S.puQ = '';const i = $('puQ');if (i) i.value = '';renderPuList();render();
   },
+  slDay: (d) => {S.sl.date = d.d;render();},
+  slPer: (d) => {S.sl.per = Number(d.n);LS.set('slPer', S.sl.per);render();},
+  slAll: () => {S.sl.off.clear();render();},
+  slNone: () => {slList().forEach((o) => S.sl.off.add(norm(o.orderNo)));render();},
+  slPrint: () => printSlips(),
   dataArchive: () => dataRun('a'),
   dataClear: () => dataRun('c'),
   printPickupOne: (d) => printPickup([S.byNo[d.no]].filter(Boolean)),
@@ -2334,6 +2430,8 @@ document.addEventListener('change', (e) => {
     const o = S.byNo[t.dataset.pu];
     if (o) {o.pickup = t.checked ? 'ใช่' : 'ไม่';enqueue({ type: 'pickup', orderNo: o.orderNo, val: t.checked, staff: S.staff });renderPuList();render();}
   } else
+  if (t.dataset.slf) {S.sl[t.dataset.slf] = t.checked;render();} else
+  if (t.dataset.sl) {const k = t.dataset.sl;t.checked ? S.sl.off.delete(k) : S.sl.off.add(k);softRender();} else
   if (t.id === 'setVrichUrl') {S.set.vrichUrl = t.value.trim();LS.set('set', S.set);} else
   if (t.id === 'setPuTitle') {S.set.pickupTitle = t.value.trim();LS.set('set', S.set);} else
   if (t.id === 'pkCarrier' && S.pk) {S.pk.carrier = t.value;packSave();} else
@@ -2805,6 +2903,29 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "เลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด {0}": "ပါဆယ်နံပါတ် အမည် အော်ဒါနံပါတ် ဘားကုဒ် {0}",
+  "{0} หลายออเดอร์ต่อแผ่น": "{0} တစ်ရွက်လျှင် အော်ဒါများစွာ",
+  "ใบติดถุงระหว่างรอใบปะหน้าจริง มีเลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด และ {0} สแกนในแอปได้ทั้งคู่": "ပို့ဆောင်တံဆိပ်အစစ် မရမီ အိတ်ပေါ်ကပ်ရန် စာရွက် · ပါဆယ်နံပါတ် အမည် အော်ဒါနံပါတ် ဘားကုဒ်နှင့် {0} ပါ · အက်ပ်တွင် နှစ်မျိုးလုံး စကင်ဖတ်နိုင်",
+  "ต่อแผ่น {0}": "{0} တစ်ရွက်လျှင်",
+  "{0} บนใบรับหน้าร้าน": "ဆိုင်လာယူစာရွက်ပေါ်ရှိ {0}",
+  "โอน ฿{0} จาก ฿{1}": "လွှဲပြီး ฿{0} / ฿{1}",
+  "เปิดไฟล์ สแกนแพ็ค {0}": "ဖိုင်ဖွင့် สแกนแพ็ค {0}",
+  "พิมพ์ใบออเดอร์": "အော်ဒါစာရွက် ပုံနှိပ်",
+  "รอใบปะหน้า": "ပို့ဆောင်တံဆိပ် စောင့်ဆဲ",
+  "เลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด QR": "ပါဆယ်နံပါတ် အမည် အော်ဒါနံပါတ် ဘားကုဒ် QR",
+  "A4 หลายออเดอร์ต่อแผ่น": "A4 တစ်ရွက်လျှင် အော်ဒါများစွာ",
+  "ใบติดถุงระหว่างรอใบปะหน้าจริง มีเลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด และ QR สแกนในแอปได้ทั้งคู่": "ပို့ဆောင်တံဆိပ်အစစ် မရမီ အိတ်ပေါ်ကပ်ရန် စာရွက် · ပါဆယ်နံပါတ် အမည် အော်ဒါနံပါတ် ဘားကုဒ်နှင့် QR ပါ · အက်ပ်တွင် နှစ်မျိုးလုံး စကင်ဖတ်နိုင်",
+  "ไม่รวมรับหน้าร้าน": "ဆိုင်မှာလာယူ မပါ",
+  "เฉพาะที่ยังไม่แพ็ค": "မထုပ်ပိုးရသေးသည်များသာ",
+  "ซ่อนที่พิมพ์แล้ว": "ပုံနှိပ်ပြီးသည်များ ဖျောက်",
+  "ต่อแผ่น A4": "A4 တစ်ရွက်လျှင်",
+  "พิมพ์ {0} ใบ": "{0} စောင် ပုံနှိပ်",
+  "{0} แผ่น": "{0} ရွက်",
+  "{0} ออเดอร์ตามเงื่อนไข": "စည်းကမ်းနှင့်ကိုက်သော အော်ဒါ {0} ခု",
+  "พิมพ์แล้ว": "ပုံနှိပ်ပြီး",
+  "ไม่มีออเดอร์ตามเงื่อนไข": "စည်းကမ်းနှင့်ကိုက်သော အော်ဒါ မရှိ",
+  "ยังไม่ได้เลือกออเดอร์": "အော်ဒါ မရွေးရသေးပါ",
+  "โหลดตัวสร้างบาร์โค้ดไม่สำเร็จ ตรวจอินเทอร์เน็ต": "ဘားကုဒ်ဖန်တီးစနစ် ဖွင့်မရပါ အင်တာနက်စစ်ပါ",
   "โหมดสแกนเริ่มต้น": "မူလ စကင်မုဒ်",
   "แตะสแกน {0} อ่านเมื่อแตะปุ่ม ครั้งละ {1} รหัส": "နှိပ်ပြီးစကင် {0} ခလုတ်နှိပ်မှ တစ်ကြိမ် ကုဒ် {1} ခု ဖတ်",
   "ต่อเนื่อง {0} อ่านทุกรหัสในกรอบทันที": "ဆက်တိုက် {0} ဘောင်ထဲရှိ ကုဒ်အားလုံး ချက်ချင်းဖတ်",
@@ -3018,6 +3139,7 @@ function langSwitch() {
   S.staff = LS.get('staff', '');
   Object.assign(S.nb, LS.get('nb', {}), { busy: false });
   if (NB_SIZES.indexOf(S.nb.size) < 0) S.nb.size = 10;
+  S.sl.per = SL_PER.indexOf(LS.get('slPer', 8)) >= 0 ? LS.get('slPer', 8) : 8;
   S.poVendor = LS.get('poVendor', '');
   syncBadge();
   readHashCfg();
