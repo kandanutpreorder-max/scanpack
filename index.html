@@ -482,7 +482,7 @@ const S = {
   more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', sl: { paid: true, noPickup: true, unpacked: true, hidePrinted: false, per: 8, off: new Set(), date: '' }, labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
   stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, qmin: 0, qmax: 0, busy: false },
   sk: null, stockQ: '', stockMulti: true, poQty: {}, poOff: new Set(), poVendor: '',
-  set: { sound: true, autoCam: true, fastScan: true, tapScan: true, requirePhoto: false, lastCarrier: '', pickupTitle: '', vrichUrl: null }
+  set: { sound: true, autoCam: true, fastScan: true, tapScan: true, requirePhoto: false, requireLabel: true, lastCarrier: '', pickupTitle: '', vrichUrl: null }
 };
 
 const LS = {
@@ -1083,15 +1083,22 @@ function packScan(code) {
     }
     const trks = [cur.vrichTracking, cur.tracking].map(norm).filter(Boolean);
     if (trks.includes(k)) {
-      S.pk.labelOk = true;S.pk.tracking = code;packSave();softRender();
-      return { ok: true, msg: 'ใบปะหน้าตรงกับออเดอร์ ✓', sub: code };
+      S.pk.labelOk = true;S.pk.labelBy = 'label';S.pk.tracking = code;S.pk.confirm = null;S.packChoices = null;packSave();softRender();
+      return { ok: true, big: true, msg: 'ใบปะหน้าตรงกับออเดอร์ ✓', sub: '#' + cur.orderNo + ' · ' + code };
+    }
+    // ใบออเดอร์ (รอใบปะหน้า): บาร์โค้ดเลขออเดอร์ หรือ QR ลิงก์ Vrich = ออเดอร์เดียวกัน
+    if (k === norm(cur.orderNo)) {
+      if (S.typed) return { kind: 'warn', msg: 'นี่คือออเดอร์ที่เปิดอยู่', sub: 'พิมพ์เองไม่นับเป็นการยืนยัน ให้สแกนใบออเดอร์/ใบปะหน้า' };
+      S.pk.labelOk = true;S.pk.labelBy = 'slip';S.pk.confirm = null;S.packChoices = null;packSave();softRender();
+      return { ok: true, big: true, msg: 'ใบออเดอร์ตรง ✓ #' + cur.orderNo, sub: 'ยืนยันแล้วว่าเป็นออเดอร์เดียวกัน · ' + (cur.customer || '') };
     }
     const other = findOrder(k);
     if (other && other !== cur) {
       const c = packCounts(cur);
       if (c.done === 0 && !S.pk.photos.length) {openPack(other.orderNo);return packWarn(other);}
       S.packChoices = { switchTo: norm(other.orderNo) };softRender();
-      return { ok: false, msg: 'เป็นของออเดอร์ #' + other.orderNo, sub: 'ใบปะหน้า/ออเดอร์ไม่ตรง ถ้าจะสลับให้กดปุ่มด้านล่าง' };
+      S.pk.labelOk = false;S.pk.labelBy = 'other';S.pk.labelOther = other.orderNo;S.pk.confirm = null;packSave();
+      return { ok: false, big: true, msg: 'ไม่ตรง! เป็นของ #' + other.orderNo, sub: 'ถุงนี้คือ #' + cur.orderNo + ' · ตรวจใบปะหน้า/ใบออเดอร์ ถ้าจะสลับให้กดปุ่มด้านล่าง' };
     }
     if (/^[A-Z0-9]{10,}$/.test(k) && !S.codeIdx[k]) {
       S.pk.tracking = code;S.pk.labelOk = trks.length ? false : null;packSave();softRender();
@@ -1101,7 +1108,13 @@ function packScan(code) {
     return { ok: false, msg: code + ' ไม่อยู่ในออเดอร์นี้', sub: S.codeIdx[k] ? 'อยู่ใน #' + S.codeIdx[k].join(', #') : '' };
   }
   const o = findOrder(k);
-  if (o) {openPack(o.orderNo);return packWarn(o);}
+  if (o) {
+    openPack(o.orderNo);
+    if (!S.typed && S.pk && (k === norm(o.orderNo) || [o.vrichTracking, o.tracking].map(norm).includes(k))) {
+      S.pk.labelOk = true;S.pk.labelBy = k === norm(o.orderNo) ? 'slip' : 'label';packSave();softRender();
+    }
+    return packWarn(o);
+  }
   const owners = (S.codeIdx[k] || []).map((n) => S.byNo[n]).filter((x) => x && x.packStatus !== PACK.done);
   if (owners.length === 1) {openPack(owners[0].orderNo);return packScan(code);}
   if (owners.length > 1) {
@@ -1133,7 +1146,8 @@ function finishPack() {
   const issues = [];
   if (c.done < c.total) issues.push('ยังขาด ' + (c.total - c.done) + ' ชิ้น');
   if (!photos.length) issues.push('ยังไม่มีรูป');
-  if (S.pk.labelOk === false) issues.push('เลขพัสดุไม่ตรง');
+  if (S.pk.labelOk === false) issues.push(S.pk.labelBy === 'other' ? 'ใบปะหน้าเป็นของออเดอร์อื่น' : 'เลขพัสดุไม่ตรง');
+  else if (S.set.requireLabel !== false && S.pk.labelOk !== true && !isPickup(o)) issues.push('ยังไม่สแกนยืนยันใบปะหน้า');
   const sig = issues.join('|');
   if (issues.length && S.pk.confirm !== sig) {S.pk.confirm = sig;softRender();beep('warn');return;}
   const payload = {
@@ -1377,8 +1391,9 @@ function vPack() {
   const c = packCounts(o);
   const items = itemsOf(o).slice().sort((a, b) => isSkip(a) - isSkip(b) || ((pk.packed[a.code] || 0) >= qtyOf(a)) - ((pk.packed[b.code] || 0) >= qtyOf(b)));
   const carriers = S.carriers.slice();if (pk.carrier && !carriers.includes(pk.carrier)) carriers.unshift(pk.carrier);
-  const label = pk.labelOk === true ? '<span class="chip ok">ใบปะหน้าตรง ✓</span>' : pk.labelOk === false ? '<span class="chip bad">ไม่ตรงกับ Vrich</span>' :
-  o.vrichTracking ? '<span class="chip">สแกนใบปะหน้าเพื่อตรวจ</span>' : '';
+  const label = pk.labelOk === true ? '<span class="chip ok">' + (pk.labelBy === 'slip' ? 'ใบออเดอร์ตรง ✓' : 'ใบปะหน้าตรง ✓') + '</span>' :
+  pk.labelOk === false ? '<span class="chip bad">' + (pk.labelBy === 'other' ? 'ไม่ตรง! เป็นของ #' + esc(pk.labelOther || '') : 'ไม่ตรงกับ Vrich') + '</span>' :
+  isPickup(o) ? '' : '<span class="chip warn">สแกนใบปะหน้า/ใบออเดอร์เพื่อยืนยัน</span>';
   const photos = pk.photos.map((p) => "<div class=\"ph\">" + (p.thumb ? "<img src=\"" + p.thumb + "\" alt=\"\">" : p.url ? "<a href=\"" + esc(p.url) + "\" target=\"_blank\" style=\"display:grid;place-items:center;height:100%;font-size:12px\">\u0E40\u0E1B\u0E34\u0E14\u0E23\u0E39\u0E1B</a>" : '') + "\n    <span class=\"st\">" + (
   p.status === 'up' ? 'กำลังส่ง…' : p.status === 'err' ? 'ส่งไม่ได้' : 'บันทึกแล้ว') + "</span>\n    " + (
   p.status === 'err' ? "<button class=\"rm\" data-act=\"retryPhoto\" data-l=\"" + p.lid + "\" aria-label=\"\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E21\u0E48\">\u21BB</button>" : "<button class=\"rm\" data-act=\"rmPhoto\" data-l=\"" + p.lid + "\" aria-label=\"\u0E25\u0E1A\u0E23\u0E39\u0E1B\">\xD7</button>") + "</div>").join('');
@@ -1618,6 +1633,7 @@ function vSettings() {
   "<div class=\"card toggle\"><span><b>โหมดสแกนเริ่มต้น</b><br><span class=\"muted\" style=\"font-size:12px\">แตะสแกน = อ่านเมื่อแตะปุ่ม ครั้งละ 1 รหัส · ต่อเนื่อง = อ่านทุกรหัสในกรอบทันที · สลับชั่วคราวได้ที่มุมซ้ายบนของกล้อง</span></span><div class=\"modesw\"><button data-act=\"setScanMode\" data-m=\"tap\" aria-pressed=\"" + (S.set.tapScan !== false) + "\">แตะสแกน</button><button data-act=\"setScanMode\" data-m=\"cont\" aria-pressed=\"" + (S.set.tapScan === false) + "\">ต่อเนื่อง</button></div></div>\n    " +
   t('fastScan', 'สแกนเร็ว (ใช้ตัวอ่านบาร์โค้ดของเครื่อง)', 'อ่านเร็วแบบแอปสแกนใน Play Store · ปิดถ้าสแกนไม่ติด จะกลับไปใช้ตัวอ่านแบบเดิม') + "\n    " +
   t('requirePhoto', 'บังคับถ่ายรูปก่อนแพ็คเสร็จ', 'กดแพ็คเสร็จไม่ได้ถ้ายังไม่มีรูป') + "\n    " +
+  t('requireLabel', 'เตือนถ้ายังไม่สแกนยืนยันใบปะหน้า', 'ก่อนแพ็คเสร็จ ให้สแกนใบปะหน้าหรือใบออเดอร์ของถุงนั้น ถ้าไม่ได้สแกนต้องกดยืนยันอีกครั้ง (ไม่รวมรับหน้าร้าน)') + "\n    " +
   t('autoScroll', 'เลื่อนหน้าจอไปที่สินค้าที่สแกน', 'ปิดไว้ = หน้าจออยู่กับที่ ดูผลสแกนที่แถบบนกล้อง') + "\n    <label class=\"field card\"><span>หัวใบรับหน้าร้าน</span><input id=\"setPuTitle\" value=\"" + esc(S.set.pickupTitle || PU_TITLE) + "\"></label>\n    <label class=\"field card\"><span>ลิงก์ออเดอร์ Vrich (QR บนใบรับหน้าร้าน)</span><input id=\"setVrichUrl\" inputmode=\"url\" value=\"" + esc(S.set.vrichUrl == null ? VRICH_URL : S.set.vrichUrl) + "\"><span class=\"muted\" style=\"font-size:12px\">{no} = เลขออเดอร์ · ลบให้ว่างถ้าอยากให้ QR เป็นเลขออเดอร์อย่างเดียว</span></label>\n    <div class=\"card muted\" style=\"font-size:13px\">\u0E43\u0E0A\u0E49\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E1A\u0E32\u0E23\u0E4C\u0E42\u0E04\u0E49\u0E14\u0E1A\u0E25\u0E39\u0E17\u0E39\u0E18\u0E01\u0E31\u0E1A\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49 \u0E22\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E23\u0E31\u0E1A\u0E17\u0E31\u0E19\u0E17\u0E35\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C (\u0E15\u0E31\u0E49\u0E07\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1B\u0E49\u0E19\u0E20\u0E32\u0E29\u0E32\u0E2D\u0E31\u0E07\u0E01\u0E24\u0E29 \u0E41\u0E25\u0E30\u0E2A\u0E48\u0E07 Enter \u0E17\u0E49\u0E32\u0E22\u0E23\u0E2B\u0E31\u0E2A)</div>\n  </div>";
 
 
@@ -2457,7 +2473,7 @@ document.addEventListener('change', (e) => {
 $('manualForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const v = $('manual').value;$('manual').value = '';
-  if (v.trim()) handleScan(v);
+  if (v.trim()) {S.typed = true;try {handleScan(v);} finally {S.typed = false;}}
 });
 function camBack() {setTimeout(() => {if (!document.hidden && !Cam.on && S.set.autoCam && ['pick', 'pack', 'stock', 'batch'].includes(S.view)) camStart();Cam.resume = false;}, 400);}
 document.addEventListener('visibilitychange', () => {
@@ -2903,6 +2919,20 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ใบออเดอร์ตรง ✓": "အော်ဒါစာရွက် ကိုက်ညီ ✓",
+  "ใบออเดอร์ตรง ✓ {0}": "အော်ဒါစာရွက် ကိုက်ညီ ✓ {0}",
+  "ยืนยันแล้วว่าเป็นออเดอร์เดียวกัน": "အော်ဒါတူကြောင်း အတည်ပြုပြီး",
+  "ใบปะหน้าตรงกับออเดอร์ ✓": "ပို့ဆောင်တံဆိပ် အော်ဒါနှင့်ကိုက်ညီ ✓",
+  "ไม่ตรง! เป็นของ {0}": "မကိုက်ညီ! {0} ၏ ပစ္စည်း",
+  "ถุงนี้คือ {0}": "ဤအိတ်သည် {0}",
+  "ตรวจใบปะหน้า/ใบออเดอร์ ถ้าจะสลับให้กดปุ่มด้านล่าง": "တံဆိပ်/အော်ဒါစာရွက် စစ်ပါ ပြောင်းလိုလျှင် အောက်ခလုတ်နှိပ်",
+  "สแกนใบปะหน้า/ใบออเดอร์เพื่อยืนยัน": "အတည်ပြုရန် တံဆိပ်/အော်ဒါစာရွက် စကင်ဖတ်",
+  "ยังไม่สแกนยืนยันใบปะหน้า": "တံဆိပ် အတည်ပြုစကင် မဖတ်ရသေး",
+  "ใบปะหน้าเป็นของออเดอร์อื่น": "တံဆိပ်သည် အခြားအော်ဒါ၏",
+  "นี่คือออเดอร์ที่เปิดอยู่": "ဤသည် ဖွင့်ထားသော အော်ဒါ",
+  "พิมพ์เองไม่นับเป็นการยืนยัน ให้สแกนใบออเดอร์/ใบปะหน้า": "ကိုယ်တိုင်ရိုက်ထည့်ခြင်းကို အတည်ပြုချက်မယူ အော်ဒါစာရွက်/တံဆိပ်ကို စကင်ဖတ်ပါ",
+  "เตือนถ้ายังไม่สแกนยืนยันใบปะหน้า": "တံဆိပ် အတည်ပြုစကင်မဖတ်ရသေးလျှင် သတိပေး",
+  "ก่อนแพ็คเสร็จ ให้สแกนใบปะหน้าหรือใบออเดอร์ของถุงนั้น ถ้าไม่ได้สแกนต้องกดยืนยันอีกครั้ง": "ထုပ်ပိုးမပြီးမီ ထိုအိတ်၏ တံဆိပ် သို့မဟုတ် အော်ဒါစာရွက်ကို စကင်ဖတ်ပါ မဖတ်ပါက ထပ်နှိပ်အတည်ပြုရမည်",
   "เลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด {0}": "ပါဆယ်နံပါတ် အမည် အော်ဒါနံပါတ် ဘားကုဒ် {0}",
   "{0} หลายออเดอร์ต่อแผ่น": "{0} တစ်ရွက်လျှင် အော်ဒါများစွာ",
   "ใบติดถุงระหว่างรอใบปะหน้าจริง มีเลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด และ {0} สแกนในแอปได้ทั้งคู่": "ပို့ဆောင်တံဆိပ်အစစ် မရမီ အိတ်ပေါ်ကပ်ရန် စာရွက် · ပါဆယ်နံပါတ် အမည် အော်ဒါနံပါတ် ဘားကုဒ်နှင့် {0} ပါ · အက်ပ်တွင် နှစ်မျိုးလုံး စကင်ဖတ်နိုင်",
