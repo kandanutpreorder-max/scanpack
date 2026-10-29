@@ -318,6 +318,9 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .bk .num{font-size:12px;color:var(--muted)}
 .bkn{width:34px;height:34px;border-radius:8px;background:var(--sunk);display:grid;place-items:center;font-weight:700;font-size:17px;flex:none;font-variant-numeric:tabular-nums}
 .bk.done{background:var(--ok-soft);border-color:transparent}
+.bleft{border-color:var(--bad)}
+.bleft .chips{gap:6px}
+.bjump{border:0;font-size:13px;padding:4px 9px}
 .bkcs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;align-items:center}
 .bkcs>span{font-size:11px;color:var(--muted)}
 .bkc{display:inline-flex;align-items:center;gap:2px;min-width:26px;height:24px;padding:0 6px;border-radius:6px;background:var(--ai-soft);color:var(--ai);font-weight:800;font-size:14px;font-variant-numeric:tabular-nums}
@@ -2192,8 +2195,17 @@ function vBatch() {
   let body;
   if (step === 'pick') {
     const bkm = batchBasketMap(b);
-    body = "<div class=\"muted\" style=\"font-size:13px\">\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E38\u0E01\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19 \u0E2A\u0E41\u0E01\u0E19\u0E2B\u0E23\u0E37\u0E2D\u0E01\u0E14 + \u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19 \u0E41\u0E15\u0E30\u0E0A\u0E37\u0E48\u0E2D\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E0A\u0E47\u0E01\u0E2A\u0E15\u0E47\u0E2D\u0E01\u0E41\u0E25\u0E30\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</div>\n      <div class=\"items\">" +
-    needs.map((r) => {
+    // ที่ยังไม่หยิบอยู่บน หยิบครบแล้วลงล่าง + สรุปว่ารอบนี้ยังขาดอะไร
+    const left = needs.filter((r) => r.picked < r.total);
+    const pickList = needs.slice().sort((x, y) => (x.picked >= x.total) - (y.picked >= y.total) || natCmp(x.code, y.code)).filter((r) => !S.bOnlyLeft || r.picked < r.total);
+    const lv = liveNeeds();
+    const shortN = left.filter((r) => effShort(stockRec(r.code), lv[r.key] ? lv[r.key].need : 0) > 0).length;
+    const sum = left.length ? "<div class=\"card stack bleft\"><div class=\"head-top\"><b>ยังขาด " + left.length + " รายการ · " + left.reduce((t, r) => t + r.total - r.picked, 0) + " ชิ้น</b>" +
+    (shortN ? "<span class=\"chip bad\">สต็อกขาด " + shortN + "</span>" : '') +
+    "<button class=\"x\" data-act=\"bOnlyLeft\">" + (S.bOnlyLeft ? 'ดูทั้งหมด' : 'ดูเฉพาะที่ขาด') + "</button></div>" +
+    "<div class=\"chips\">" + left.map((r) => "<button class=\"chip bad bjump\" data-act=\"stockOpen\" data-c=\"" + esc(r.code) + "\"><b>" + esc(r.code) + "</b> ×" + (r.total - r.picked) + "</button>").join('') + "</div></div>" : '';
+    body = sum + "<div class=\"muted\" style=\"font-size:13px\">\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E38\u0E01\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19 \u0E2A\u0E41\u0E01\u0E19\u0E2B\u0E23\u0E37\u0E2D\u0E01\u0E14 + \u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19 \u0E41\u0E15\u0E30\u0E0A\u0E37\u0E48\u0E2D\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E0A\u0E47\u0E01\u0E2A\u0E15\u0E47\u0E2D\u0E01\u0E41\u0E25\u0E30\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</div>\n      <div class=\"items\">" +
+    pickList.map((r) => {
       const st = r.picked >= r.total ? 'done' : r.picked > 0 ? 'part' : '';
       return "<div class=\"it " + st + "\" data-code=\"" + esc(r.key) + "\"><span class=\"tick\">" + (r.picked >= r.total ? '✓' : r.picked || '') + "</span>\n          <button class=\"min\" data-act=\"stockOpen\" data-c=\"" +
       esc(r.code) + "\"><div class=\"code\">" + esc(r.code) + (r.total > 1 ? " <span class=\"chip xq\">x" + r.total + "</span>" : '') + "</div><div class=\"nm\">" + esc(r.name) + "</div>" + bkChips(bkm[r.key]) + "\n          <div class=\"chips\" style=\"margin-top:3px\">" +
@@ -2361,6 +2373,7 @@ Object.assign(ACT, {
     enqueue({ type: 'ordered', codes: codes, staff: S.staff });render();
     toast('บันทึกว่าสั่งแล้ว ' + codes.length + ' รายการ', 'ok');
   },
+  bOnlyLeft: () => {S.bOnlyLeft = !S.bOnlyLeft;render();},
   bOpen: (d) => {S.batchId = d.id;S.batchStep = 'pick';S.lastPut = null;S.confirmReset = null;render();$('main').scrollTop = 0;},
   batchBack: () => {S.batchId = null;render();},
   bStep: (d) => {S.batchStep = d.s;render();$('main').scrollTop = 0;},
@@ -2919,6 +2932,9 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ยังขาด {0} รายการ": "{0} မျိုး လိုသေး",
+  "ดูทั้งหมด": "အားလုံးကြည့်",
+  "ดูเฉพาะที่ขาด": "လိုသည်များသာ ကြည့်",
   "ใบออเดอร์ตรง ✓": "အော်ဒါစာရွက် ကိုက်ညီ ✓",
   "ใบออเดอร์ตรง ✓ {0}": "အော်ဒါစာရွက် ကိုက်ညီ ✓ {0}",
   "ยืนยันแล้วว่าเป็นออเดอร์เดียวกัน": "အော်ဒါတူကြောင်း အတည်ပြုပြီး",
