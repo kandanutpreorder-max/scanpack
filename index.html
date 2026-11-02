@@ -323,6 +323,8 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .bleft{border-color:var(--bad)}
 .bleft .chips{gap:6px}
 .bjump{border:0;font-size:13px;padding:4px 9px}
+.fdrow{text-align:left;display:flex;flex-direction:column;gap:4px;width:100%}
+.fdcf{display:flex;flex-direction:column;gap:3px;font-size:13px;font-variant-numeric:tabular-nums}
 .bkcs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;align-items:center}
 .bkcs>span{font-size:11px;color:var(--muted)}
 .bkc{display:inline-flex;align-items:center;gap:2px;min-width:26px;height:24px;padding:0 6px;border-radius:6px;background:var(--ai-soft);color:var(--ai);font-weight:800;font-size:14px;font-variant-numeric:tabular-nums}
@@ -483,8 +485,8 @@ const S = {
   f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', picker: '', packer: '', date: '', q: '' },
   pickNo: null, pickChoices: null,
   pk: null, packChoices: null,
-  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', sl: { paid: true, noPickup: true, unpacked: true, hidePrinted: false, per: 8, off: new Set(), date: '' }, labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
-  stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, qmin: 0, qmax: 0, busy: false },
+  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', fd: { date: null, mode: 'left' }, sl: { paid: true, noPickup: true, unpacked: true, hidePrinted: false, per: 8, off: new Set(), date: '' }, labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
+  stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, qmin: 0, qmax: 0, date: '', ship: 'all', busy: false },
   sk: null, stockQ: '', stockMulti: true, poQty: {}, poOff: new Set(), poVendor: '',
   set: { sound: true, autoCam: true, fastScan: true, tapScan: true, requirePhoto: false, requireLabel: true, lastCarrier: '', pickupTitle: '', vrichUrl: null }
 };
@@ -1480,9 +1482,10 @@ function vMore() {
   if (S.more === 'settings') return vSettings();
   if (S.more === 'data') return vData();
   if (S.more === 'slips') return vSlips();
+  if (S.more === 'find') return vFind();
   const ic = (p) => "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\">" + p + "</svg>";
   return "<div class=\"stack\"><div class=\"menu\">\n    <button data-act=\"startImport\">" +
-  ic('<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>') + "<div><b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E08\u0E32\u0E01 Vrich</b><span>\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich (\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E42\u0E2D\u0E19/\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38\u0E44\u0E14\u0E49 \u0E44\u0E21\u0E48\u0E25\u0E49\u0E32\u0E07\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14)</span></div></button>\n    <button data-act=\"more\" data-m=\"slips\">" + ic('<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M7 15v3M9 15v3M11 15v3M14 15v3M16 15v3M7 7h6M7 10h10"/>') + "<div><b>พิมพ์ใบออเดอร์ (รอใบปะหน้า)</b><span>เลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด QR · A4 หลายออเดอร์ต่อแผ่น</span></div></button>\n    <button data-act=\"more\" data-m=\"labels\">" +
+  ic('<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>') + "<div><b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E08\u0E32\u0E01 Vrich</b><span>\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich (\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E42\u0E2D\u0E19/\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38\u0E44\u0E14\u0E49 \u0E44\u0E21\u0E48\u0E25\u0E49\u0E32\u0E07\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14)</span></div></button>\n    <button data-act=\"more\" data-m=\"find\">" + ic('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5M11 8v3l2 1.5"/>') + "<div><b>ตามหาสินค้า (เวลาในไลฟ์)</b><span>สินค้าที่ยังไม่จัด/หาไม่เจอ พร้อมเวลา CF และนาทีในวิดีโอไลฟ์</span></div></button>\n    <button data-act=\"more\" data-m=\"slips\">" + ic('<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M7 15v3M9 15v3M11 15v3M14 15v3M16 15v3M7 7h6M7 10h10"/>') + "<div><b>พิมพ์ใบออเดอร์ (รอใบปะหน้า)</b><span>เลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด QR · A4 หลายออเดอร์ต่อแผ่น</span></div></button>\n    <button data-act=\"more\" data-m=\"labels\">" +
   ic('<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>') + "<div><b>\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E09\u0E25\u0E32\u0E01 QR \u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</b><span>\u0E15\u0E34\u0E14\u0E17\u0E35\u0E48\u0E16\u0E38\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u0E2A\u0E41\u0E01\u0E19\u0E44\u0E14\u0E49\u0E40\u0E23\u0E47\u0E27\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E23\u0E2B\u0E31\u0E2A</span></div></button>\n    " + moreExtra(ic) + "<button data-act=\"more\" data-m=\"summary\">" +
   ic('<path d="M5 20V10M12 20V4M19 20v-7"/>') + "<div><b>\u0E2A\u0E23\u0E38\u0E1B\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49</b><span>\u0E43\u0E04\u0E23\u0E08\u0E31\u0E14/\u0E41\u0E1E\u0E47\u0E04\u0E44\u0E1B\u0E01\u0E35\u0E48\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</span></div></button>\n    <button data-act=\"more\" data-m=\"data\">" + ic('<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>') + "<div><b>จัดการข้อมูล</b><span>เก็บข้อมูลไปไฟล์ใหม่ เริ่มรอบใหม่ หรือล้างข้อมูลทดสอบ</span></div></button>\n    <button data-act=\"more\" data-m=\"settings\">" +
   ic('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>') + "<div><b>\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32</b><span>\u0E40\u0E2A\u0E35\u0E22\u0E07, \u0E01\u0E25\u0E49\u0E2D\u0E07, \u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</span></div></button>\n    <button data-act=\"refresh\">" +
@@ -1491,6 +1494,65 @@ function vMore() {
   '<button data-act="reconnect">' + ic('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>') + '<div><b>เปลี่ยนการเชื่อมต่อ</b><span>ใส่ลิงก์ /exec หรือรหัสเข้าแอปใหม่</span></div></button>' : '') + "\n  </div></div>";
 
 }
+/* ---------- ตามหาสินค้า: ยังไม่จัด/หาไม่เจอ + เวลา CF → นาทีในวิดีโอไลฟ์ ---------- */
+function hmsSec(t) {const m = String(t || '').match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);return m ? Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3] || 0) : null;}
+function secHms(x) {const p2 = (n) => (n < 10 ? '0' : '') + n;return Math.floor(x / 3600) + ':' + p2(Math.floor(x % 3600 / 60)) + ':' + p2(x % 60);}
+function liveStarts() {return LS.get('liveStart', {});}
+function vidAt(cfAt) {
+  const day = String(cfAt || '').slice(0, 10),ls = liveStarts(),st = hmsSec(ls[day]),cf = hmsSec(String(cfAt).slice(11));
+  if (cf == null) return '';
+  // ไลฟ์ข้ามเที่ยงคืน: CF หลังเที่ยงคืนนับต่อจากเวลาเริ่มของวันก่อน (ถ้าไม่เกิน 12 ชั่วโมง)
+  const pd = new Date(day + 'T00:00:00Z');pd.setUTCDate(pd.getUTCDate() - 1);
+  const pst = hmsSec(ls[pd.toISOString().slice(0, 10)]);
+  if ((st == null || cf < st) && pst != null && cf + 86400 - pst < 12 * 3600) return 'วิดีโอ ' + secHms(cf + 86400 - pst);
+  if (st == null) return '';
+  const d = cf - st;
+  return d < 0 ? 'ก่อนเริ่มไลฟ์' : 'วิดีโอ ' + secHms(d);
+}
+function findRows() {
+  const f = S.fd,lv = liveNeeds(),groups = {};
+  S.orders.forEach((o) => {
+    if (o.packStatus === PACK.done) return;
+    itemsOf(o).forEach((i) => {
+      if (isSkip(i)) return;
+      const left = qtyOf(i) - pickedOf(i);
+      const k = norm(i.code);
+      const short = effShort(stockRec(i.code), lv[k] ? lv[k].need : 0) > 0;
+      if (f.mode === 'left' && left <= 0) return;
+      if (f.mode === 'short' && !short) return;
+      const day = String(i.cfAt || '').slice(0, 10) || String(o.date || '').slice(0, 10);
+      if (f.date && day !== f.date) return;
+      const g = groups[k] = groups[k] || { code: i.code, key: k, name: i.name, short: short, left: 0, rows: [] };
+      g.left += Math.max(0, left);
+      g.rows.push({ no: o.orderNo, cfAt: String(i.cfAt || ''), qty: qtyOf(i), left: left });
+    });
+  });
+  const first = (g) => g.rows.map((r) => r.cfAt || '9').sort()[0];
+  return Object.values(groups).map((g) => {g.rows.sort((a, b) => (a.cfAt || '9').localeCompare(b.cfAt || '9'));return g;}).sort((a, b) => first(a).localeCompare(first(b)) || natCmp(a.code, b.code));
+}
+function vFind() {
+  const f = S.fd;
+  const days = [...new Set(S.orders.filter((o) => o.packStatus !== PACK.done).flatMap((o) => itemsOf(o).map((i) => String(i.cfAt || '').slice(0, 10) || String(o.date || '').slice(0, 10)))).values()].filter(Boolean).sort().reverse();
+  if (f.date === null) f.date = days[0] || '';
+  const rows = findRows();
+  const db = (d, l) => "<button class=\"seg\" data-act=\"fdDay\" data-d=\"" + esc(d) + "\" aria-pressed=\"" + (f.date === d) + "\">" + l + "</button>";
+  const mb = (m, l) => "<button class=\"seg\" data-act=\"fdMode\" data-m=\"" + m + "\" aria-pressed=\"" + (f.mode === m) + "\">" + l + "</button>";
+  const noCf = rows.some((g) => g.rows.some((r) => !r.cfAt));
+  return "<div class=\"stack\">" + back() + "<div class=\"card stack\"><b>ตามหาสินค้า (เวลาในไลฟ์)</b>" +
+  "<div class=\"muted\" style=\"font-size:13px\">ใส่เวลาเริ่มไลฟ์ ระบบจะบอกว่าสินค้าแต่ละชิ้นถูก CF ตอนนาทีไหนของวิดีโอ เปิดคลิปไลฟ์แล้วเลื่อนไปดูได้เลย</div>" +
+  "<div class=\"fgroup\"><label>วันที่</label>" + db('', 'ทุกวัน') + days.map((d) => db(d, esc(dayLabel(d)))).join('') + "</div>" +
+  "<div class=\"fgroup\"><label>แสดง</label>" + mb('left', 'ยังไม่จัด') + mb('short', 'หาไม่เจอ/สต็อกขาด') + mb('all', 'ทั้งหมด') + "</div>" +
+  (f.date ? "<label class=\"field\"><span>เวลาเริ่มไลฟ์ วันที่ " + esc(dayLabel(f.date)) + " (ชั่วโมง:นาที:วินาที)</span><input id=\"fdStart\" type=\"time\" step=\"1\" value=\"" + esc(liveStarts()[f.date] || '') + "\"></label>" :
+  "<div class=\"muted\" style=\"font-size:12px\">เลือกวันที่ เพื่อกรอกเวลาเริ่มไลฟ์ของวันนั้น</div>") + "</div>" +
+  "<div class=\"sec\">" + rows.length + " รายการ · " + rows.reduce((t, g) => t + g.left, 0) + " ชิ้นที่ยังไม่จัด · เรียงตามเวลา CF</div>" +
+  (noCf ? "<div class=\"alert warn\">บางรายการไม่มีเวลา CF ให้นำเข้าไฟล์ Vrich ใหม่อีกครั้ง</div>" : '') +
+  "<div class=\"stack\" id=\"fdList\">" + (rows.slice(0, 300).map((g) => "<button class=\"card fdrow\" data-act=\"stockOpen\" data-c=\"" + esc(g.code) + "\">" +
+    "<div class=\"head-top\"><span class=\"code\" style=\"font-size:17px\">" + esc(g.code) + "</span>" + (g.left ? "<span class=\"chip warn\">ยังไม่จัด " + g.left + "</span>" : "<span class=\"chip ok\">จัดแล้ว</span>") + (g.short ? "<span class=\"chip bad\">หาไม่เจอ/ขาด</span>" : '') + "</div>" +
+    "<div class=\"nm\" style=\"font-size:13px;color:var(--muted)\">" + esc(g.name) + "</div><div class=\"fdcf\">" +
+    g.rows.map((r) => {const v = r.cfAt ? vidAt(r.cfAt) : '';return "<div><b>" + (r.cfAt ? esc(r.cfAt.slice(11, 19)) : '—') + "</b>" + (v ? " <span class=\"chip ai\">" + esc(v) + "</span>" : '') + " <span class=\"muted\">#" + esc(r.no) + (r.qty > 1 ? ' ×' + r.qty : '') + (r.left <= 0 ? ' ✓' : '') + "</span></div>";}).join('') +
+    "</div></button>").join('') || '<div class="empty">ไม่มีสินค้าตามเงื่อนไข</div>') + "</div></div>";
+}
+
 /* ---------- ใบออเดอร์ (ติดถุงระหว่างรอใบปะหน้าจริง) ---------- */
 const SL_PER = [2, 4, 6, 8, 10];
 function slPrinted() {return LS.get('slPrinted', {});}
@@ -1695,7 +1757,7 @@ async function readVrich(file) {
   S.more = 'import';S.imp = null;go('more');
   try {
     if (!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });   // วันที่เป็นเลข serial ของ Excel แปลงเองให้ตรงเป๊ะ ไม่ขึ้นกับโซนเวลาเครื่อง
     let orderRows = null,stockRows = [];
     wb.SheetNames.forEach((n) => {
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[n], { defval: '' });
@@ -1705,8 +1767,16 @@ async function readVrich(file) {
       if (keys.includes('รหัสสินค้า') && keys.includes('ยอดคงเหลือ')) stockRows = rows;
     });
     if (!orderRows) throw new Error('ไม่พบชีตออเดอร์ (ต้องมีคอลัมน์ "เลขที่ Order" และ "รหัสสินค้า") ใช้ไฟล์ export ออเดอร์จาก Vrich');
-    const d = (v) => v instanceof Date ? v.toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' }) : String(v || '').slice(0, 10);
+    const p2 = (x) => (x < 10 ? '0' : '') + x;
+    // เลข serial วันที่ของ Excel → "YYYY-MM-DD HH:MM:SS" ตามเวลาที่เขียนในไฟล์
+    const xl = (v) => {
+      if (typeof v === 'number' && v > 20000) {const D = new Date(Math.round((v - 25569) * 86400) * 1000);return D.getUTCFullYear() + '-' + p2(D.getUTCMonth() + 1) + '-' + p2(D.getUTCDate()) + ' ' + p2(D.getUTCHours()) + ':' + p2(D.getUTCMinutes()) + ':' + p2(D.getUTCSeconds());}
+      if (v instanceof Date) return v.toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' }).slice(0, 19);
+      return String(v == null ? '' : v).trim();
+    };
+    const d = (v) => xl(v).slice(0, 10);
     const str = (v) => String(v == null ? '' : v).trim();
+    const dt = (v) => xl(v).slice(0, 19);
     const phone = (v) => {let s = str(v).replace(/\D/g, '');if (s.length === 9) s = '0' + s;return s;};
     const n = (v) => Number(String(v).replace(/,/g, '')) || 0;
     const orders = {},items = {};
@@ -1720,8 +1790,10 @@ async function readVrich(file) {
       };
       const code = str(r['รหัสสินค้า']);if (!code) return;
       const key = no + '|' + norm(code);
-      if (items[key]) items[key].qty += n(r['จำนวน']) || 1;else
-      items[key] = { orderNo: no, code: code, name: str(r['รายละเอียด']), qty: n(r['จำนวน']) || 1, price: n(r['ราคา']) };
+      // เวลา CF ของแต่ละชิ้น (คอลัมน์ "วันที่-เวลา") ใช้หาว่าสินค้าอยู่ช่วงไหนของวิดีโอไลฟ์
+      const cf = dt(r['วันที่-เวลา']);
+      if (items[key]) {items[key].qty += n(r['จำนวน']) || 1;if (cf && (!items[key].cfAt || cf < items[key].cfAt)) items[key].cfAt = cf;} else
+      items[key] = { orderNo: no, code: code, name: str(r['รายละเอียด']), qty: n(r['จำนวน']) || 1, price: n(r['ราคา']), cfAt: cf };
     });
     const products = stockRows.map((r) => ({ code: str(r['รหัสสินค้า']), stockCode: str(r['รหัสสต็อก']), name: str(r['รายละเอียด']), price: n(r['ราคา']), qty: n(r['จำนวน']), sold: n(r['ขายไป']), remain: n(r['ยอดคงเหลือ']) })).filter((p) => p.code);
     S.imp = { fileName: file.name, orders: Object.values(orders), items: Object.values(items), products: products };
@@ -1792,6 +1864,8 @@ const ACT = {
     toast('ตั้งเป็นรับหน้าร้านแล้ว · ' + m.found.length + ' ออเดอร์', 'ok');
     S.puQ = '';const i = $('puQ');if (i) i.value = '';renderPuList();render();
   },
+  fdDay: (d) => {S.fd.date = d.d;render();},
+  fdMode: (d) => {S.fd.mode = d.m;render();},
   slDay: (d) => {S.sl.date = d.d;render();},
   slPer: (d) => {S.sl.per = Number(d.n);LS.set('slPer', S.sl.per);render();},
   slAll: () => {S.sl.off.clear();render();},
@@ -2178,7 +2252,8 @@ function batchCandidates() {
   const busy = inOpenBatch();
   return S.orders.filter((o) => o.pickStatus !== PICK.done && o.packStatus !== PACK.done && !busy[norm(o.orderNo)] && (
   !S.nb.paidOnly || o.payStatus === PAY.paid) && (o.itemQty || 0) > 0 &&
-  (!S.nb.qmin || (o.itemQty || 0) >= S.nb.qmin) && (!S.nb.qmax || (o.itemQty || 0) <= S.nb.qmax)).
+  (!S.nb.qmin || (o.itemQty || 0) >= S.nb.qmin) && (!S.nb.qmax || (o.itemQty || 0) <= S.nb.qmax) &&
+  (!S.nb.date || String(o.date || '').slice(0, 10) === S.nb.date) && (S.nb.ship === 'all' || (S.nb.ship === 'pickup') === isPickup(o))).
   sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0)).slice(0, S.nb.size);
 }
 function vBatch() {
@@ -2234,6 +2309,13 @@ function vBatch() {
 const NB_SIZES = [2, 5, 10, 20];
 function nbSave() {LS.set('nb', { size: S.nb.size, paidOnly: S.nb.paidOnly, qmin: S.nb.qmin, qmax: S.nb.qmax });}
 /* จำนวนชิ้นสินค้าต่อออเดอร์ (ไม่นับโค้ด/ส่วนลด) เช่น เฉพาะออเดอร์ 1–2 ชิ้น */
+function nbDayShipCtl() {
+  const days = [...new Set(S.orders.filter((o) => o.pickStatus !== PICK.done && o.packStatus !== PACK.done).map((o) => String(o.date || '').slice(0, 10)).filter(Boolean))].sort().reverse();
+  const db = (d, l) => "<button class=\"seg\" data-act=\"nbDay\" data-d=\"" + esc(d) + "\" aria-pressed=\"" + (S.nb.date === d) + "\">" + l + "</button>";
+  const sb = (v, l) => "<button class=\"seg\" data-act=\"nbShip\" data-v=\"" + v + "\" aria-pressed=\"" + (S.nb.ship === v) + "\">" + l + "</button>";
+  return "<div class=\"fgroup\"><label>วันที่</label>" + db('', 'รวมทุกวัน') + days.map((d) => db(d, esc(dayLabel(d)))).join('') + "</div>" +
+  "<div class=\"fgroup\"><label>ส่ง</label>" + sb('all', 'ทั้งหมด') + sb('ship', 'จัดส่ง') + sb('pickup', 'เฉพาะรับหน้าร้าน') + "</div>";
+}
 function nbQtyCtl() {
   const q = (a, b, l) => "<button class=\"seg\" data-act=\"nbQty\" data-a=\"" + a + "\" data-b=\"" + b + "\" aria-pressed=\"" + (S.nb.qmin === a && S.nb.qmax === b) + "\">" + l + "</button>";
   return "<div class=\"fgroup\"><label>ชิ้น/ออเดอร์</label>" + q(0, 0, 'ทั้งหมด') + q(1, 5, '1–5 ชิ้น') + q(6, 10, '6–10 ชิ้น') + q(11, 15, '11–15 ชิ้น') + q(16, 0, 'มากกว่า 15 ชิ้น') + "</div>" +
@@ -2250,7 +2332,7 @@ function vBatchList() {
   return "<div class=\"stack\">\n    <div class=\"card stack\"><h2 style=\"margin:0\">\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E23\u0E2D\u0E1A\u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21</h2>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E23\u0E27\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27\u0E17\u0E31\u0E49\u0E07\u0E23\u0E2D\u0E1A \u0E41\u0E25\u0E49\u0E27\u0E2A\u0E41\u0E01\u0E19\u0E41\u0E22\u0E01\u0E25\u0E07\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32\u0E15\u0E32\u0E21\u0E40\u0E25\u0E02 \u0E40\u0E23\u0E47\u0E27\u0E01\u0E27\u0E48\u0E32\u0E40\u0E14\u0E34\u0E19\u0E2B\u0E22\u0E34\u0E1A\u0E17\u0E35\u0E25\u0E30\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</div>\n      <div class=\"fgroup\"><label>\u0E08\u0E33\u0E19\u0E27\u0E19</label>" +
 
 
-  NB_SIZES.map((n) => "<button class=\"seg\" data-act=\"nbSize\" data-n=\"" + n + "\" aria-pressed=\"" + (S.nb.size === n) + "\">" + n + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</button>").join('') + "</div>" + nbQtyCtl() + "\n      <label class=\"toggle\"><span>\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E42\u0E2D\u0E19\u0E41\u0E25\u0E49\u0E27</span><input type=\"checkbox\" id=\"nbPaid\" " + (
+  NB_SIZES.map((n) => "<button class=\"seg\" data-act=\"nbSize\" data-n=\"" + n + "\" aria-pressed=\"" + (S.nb.size === n) + "\">" + n + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</button>").join('') + "</div>" + nbDayShipCtl() + nbQtyCtl() + "\n      <label class=\"toggle\"><span>\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E42\u0E2D\u0E19\u0E41\u0E25\u0E49\u0E27</span><input type=\"checkbox\" id=\"nbPaid\" " + (
   S.nb.paidOnly ? 'checked' : '') + "></label>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E08\u0E30\u0E44\u0E14\u0E49 " +
   cand.length + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C (" + qty + " \u0E0A\u0E34\u0E49\u0E19) \u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E08\u0E31\u0E14\u0E44\u0E21\u0E48\u0E04\u0E23\u0E1A \u0E44\u0E21\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E2D\u0E37\u0E48\u0E19 \u0E40\u0E23\u0E35\u0E22\u0E07\u0E15\u0E32\u0E21\u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C" + (cand.length ? ': #' + cand.slice(0, 6).map((o) => esc(o.orderNo)).join(', #') + (cand.length > 6 ? ' …' : '') : '') + "</div>\n      <button class=\"big\" data-act=\"bCreate\" " + (
   cand.length && !S.nb.busy ? '' : 'disabled') + ">" + (S.nb.busy ? 'กำลังสร้าง…' : 'สร้างรอบ ' + cand.length + ' ออเดอร์') + "</button></div>\n    " + (
@@ -2301,7 +2383,10 @@ function batchScan(code) {
     const left = qtyOf(it) - pickedOf(it);
     return { ok: true, big: true, msg: 'ตะกร้า ' + x.n + '  →  #' + x.o.orderNo, sub: it.code + ' ' + pickedOf(it) + '/' + qtyOf(it) + (x.o.pickStatus === PICK.done ? ' · ตะกร้านี้ครบแล้ว ✓' : left ? '' : ' · ตะกร้านี้เหลือ ' + (x.o.itemQty - x.o.pickedQty) + ' ชิ้น') };
   }
-  if (batchNeeds(b)[k]) return { ok: false, msg: code + ' แยกครบทุกตะกร้าแล้ว', sub: 'ชิ้นนี้เกิน ไม่ต้องใส่' };
+  if (batchNeeds(b)[k]) {
+    const where = (batchBasketMap(b)[k] || []).map((t) => t.n + (t.q > 1 ? '×' + t.q : '')).join(', ');
+    return { kind: 'warn', big: true, msg: code + ' หยิบครบแล้ว · ตะกร้า ' + where, sub: 'ใส่ครบทุกตะกร้าแล้ว ชิ้นนี้เกิน ไม่ต้องใส่' };
+  }
   return { ok: false, msg: code + ' ไม่อยู่ในรอบนี้', sub: S.codeIdx[k] ? 'อยู่ใน #' + S.codeIdx[k].join(', #') : '' };
 }
 function printBatch(b) {
@@ -2379,6 +2464,8 @@ Object.assign(ACT, {
   batchBack: () => {S.batchId = null;render();},
   bStep: (d) => {S.batchStep = d.s;render();$('main').scrollTop = 0;},
   nbSize: (d) => {S.nb.size = Number(d.n);nbSave();render();},
+  nbDay: (d) => {S.nb.date = d.d;render();},
+  nbShip: (d) => {S.nb.ship = d.v;if (d.v === 'pickup') S.nb.paidOnly = false;render();},
   nbQty: (d) => {S.nb.qmin = Number(d.a) || 0;S.nb.qmax = Number(d.b) || 0;nbSave();render();},
   bCreate: async () => {
     const ns = needStaff();if (ns) return feedback(ns);
@@ -2460,6 +2547,7 @@ document.addEventListener('change', (e) => {
     const o = S.byNo[t.dataset.pu];
     if (o) {o.pickup = t.checked ? 'ใช่' : 'ไม่';enqueue({ type: 'pickup', orderNo: o.orderNo, val: t.checked, staff: S.staff });renderPuList();render();}
   } else
+  if (t.id === 'fdStart') {const ls = liveStarts();ls[S.fd.date] = t.value;LS.set('liveStart', ls);render();} else
   if (t.dataset.slf) {S.sl[t.dataset.slf] = t.checked;render();} else
   if (t.dataset.sl) {const k = t.dataset.sl;t.checked ? S.sl.off.delete(k) : S.sl.off.add(k);softRender();} else
   if (t.id === 'setVrichUrl') {S.set.vrichUrl = t.value.trim();LS.set('set', S.set);} else
@@ -2933,6 +3021,29 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ตามหาสินค้า": "ပစ္စည်းရှာ",
+  "เวลาในไลฟ์": "လိုက်ဗ်အတွင်း အချိန်",
+  "สินค้าที่ยังไม่จัด{0}หาไม่เจอ พร้อมเวลา {1} และนาทีในวิดีโอไลฟ์": "မရွေးရသေး{0}ရှာမတွေ့သော ပစ္စည်း · {1} အချိန်နှင့် လိုက်ဗ်ဗီဒီယိုမိနစ်",
+  "รวมทุกวัน": "ရက်အားလုံးပေါင်း",
+  "เฉพาะรับหน้าร้าน": "ဆိုင်မှာလာယူသာ",
+  "ใส่ครบทุกตะกร้าแล้ว ชิ้นนี้เกิน ไม่ต้องใส่": "ခြင်းအားလုံး ပြည့်ပြီ · ဤတစ်ခု ပိုနေသည် မထည့်ပါနှင့်",
+  "ใส่เวลาเริ่มไลฟ์ ระบบจะบอกว่าสินค้าแต่ละชิ้นถูก {0} ตอนนาทีไหนของวิดีโอ เปิดคลิปไลฟ์แล้วเลื่อนไปดูได้เลย": "လိုက်ဗ်စချိန် ထည့်ပါ · ပစ္စည်းတစ်ခုချင်း {0} လုပ်ခဲ့သော ဗီဒီယိုမိနစ်ကို ပြမည် · လိုက်ဗ်ကလစ်ဖွင့်ပြီး ရွှေ့ကြည့်ပါ",
+  "แสดง": "ပြ",
+  "หาไม่เจอ{0}สต็อกขาด": "ရှာမတွေ့{0}စတော့လို",
+  "หาไม่เจอ": "ရှာမတွေ့",
+  "เวลาเริ่มไลฟ์ วันที่ {0}": "လိုက်ဗ်စချိန် ရက် {0}",
+  "ชั่วโมง:นาที:วินาที": "နာရီ:မိနစ်:စက္ကန့်",
+  "เลือกวันที่ เพื่อกรอกเวลาเริ่มไลฟ์ของวันนั้น": "ထိုနေ့၏ လိုက်ဗ်စချိန် ထည့်ရန် ရက်ရွေးပါ",
+  "{0} ชิ้นที่ยังไม่จัด": "မရွေးရသေး {0} ခု",
+  "เรียงตามเวลา {0}": "{0} အချိန်အလိုက်",
+  "วิดีโอ {0}": "ဗီဒီယို {0}",
+  "ก่อนเริ่มไลฟ์": "လိုက်ဗ်မစမီ",
+  "ยังไม่จัด {0}": "မရွေးရသေး {0}",
+  "หาไม่เจอ/ขาด": "ရှာမတွေ့/လို",
+  "ไม่มีสินค้าตามเงื่อนไข": "စည်းကမ်းနှင့်ကိုက်သော ပစ္စည်းမရှိ",
+  "บางรายการไม่มีเวลา {0} ให้นำเข้าไฟล์ Vrich ใหม่อีกครั้ง": "အချို့တွင် {0} အချိန်မရှိ · Vrich ဖိုင်ကို ပြန်တင်ပါ",
+  "สร้าง {0} {1} ไฟล์ใหม่ ตั้งชื่อตามช่วงวันที่ออเดอร์ คัดลอกออเดอร์ สินค้า สต็อก รอบหยิบ และประวัติทั้งหมดไปเก็บ แล้วล้างชีตหลักให้ว่างพร้อมนำเข้าไลฟ์ใหม่": "{0} {1} ဖိုင်အသစ်ဖန်တီး · အော်ဒါရက်အလိုက် အမည်ပေး · ဒေတာအားလုံး ကူးသိမ်းပြီး မူလစာရွက်ကို ရှင်းကာ လိုက်ဗ်အသစ်အတွက် အဆင်သင့်ထား",
+  "เก็บ {0} ออเดอร์ไปไฟล์ใหม่แล้ว ชีตหลักว่าง พร้อมนำเข้าไลฟ์ใหม่": "အော်ဒါ {0} ခု ဖိုင်အသစ်သို့ သိမ်းပြီး · လိုက်ဗ်အသစ် တင်ရန် အဆင်သင့်",
   "ยังขาด {0} รายการ": "{0} မျိုး လိုသေး",
   "ดูทั้งหมด": "အားလုံးကြည့်",
   "ดูเฉพาะที่ขาด": "လိုသည်များသာ ကြည့်",
