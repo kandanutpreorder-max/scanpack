@@ -485,7 +485,7 @@ const S = {
   f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', picker: '', packer: '', date: '', q: '' },
   pickNo: null, pickChoices: null,
   pk: null, packChoices: null,
-  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', fd: { date: null, mode: 'left' }, sl: { paid: true, noPickup: true, unpacked: true, hidePrinted: false, per: 8, off: new Set(), date: '' }, labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
+  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', fd: { date: null, mode: 'left', q: '', batch: '' }, sl: { paid: true, noPickup: true, unpacked: true, hidePrinted: false, per: 8, off: new Set(), date: '' }, labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
   stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, qmin: 0, qmax: 0, date: '', ship: 'all', busy: false },
   sk: null, stockQ: '', stockMulti: true, poQty: {}, poOff: new Set(), poVendor: '',
   set: { sound: true, autoCam: true, fastScan: true, tapScan: true, requirePhoto: false, requireLabel: true, lastCarrier: '', pickupTitle: '', vrichUrl: null }
@@ -1510,21 +1510,27 @@ function vidAt(cfAt) {
   return d < 0 ? 'ก่อนเริ่มไลฟ์' : 'วิดีโอ ' + secHms(d);
 }
 function findRows() {
-  const f = S.fd,lv = liveNeeds(),groups = {};
+  const f = S.fd,lv = liveNeeds(),groups = {},q = norm(f.q || '');
+  // รอบหยิบรวม: เฉพาะออเดอร์ในรอบ และนับ "ยังไม่หยิบ" จากยอดหยิบรวมของรอบ
+  const b = f.batch && S.batches.find((x) => x.id === f.batch);
+  const bnos = b ? new Set(parseJ(b.orders, []).map(norm)) : null;
+  const bneed = b ? batchNeeds(b) : null;
   S.orders.forEach((o) => {
     if (o.packStatus === PACK.done) return;
+    if (bnos && !bnos.has(norm(o.orderNo))) return;
     itemsOf(o).forEach((i) => {
       if (isSkip(i)) return;
-      const left = qtyOf(i) - pickedOf(i);
       const k = norm(i.code);
+      if (q && k.indexOf(q) < 0 && norm(i.name).indexOf(q) < 0) return;
+      const left = bneed ? (bneed[k] ? bneed[k].total - bneed[k].picked : 0) : qtyOf(i) - pickedOf(i);
       const short = effShort(stockRec(i.code), lv[k] ? lv[k].need : 0) > 0;
       if (f.mode === 'left' && left <= 0) return;
       if (f.mode === 'short' && !short) return;
       const day = String(i.cfAt || '').slice(0, 10) || String(o.date || '').slice(0, 10);
       if (f.date && day !== f.date) return;
       const g = groups[k] = groups[k] || { code: i.code, key: k, name: i.name, short: short, left: 0, rows: [] };
-      g.left += Math.max(0, left);
-      g.rows.push({ no: o.orderNo, cfAt: String(i.cfAt || ''), qty: qtyOf(i), left: left });
+      g.left = bneed ? Math.max(0, left) : g.left + Math.max(0, left);
+      g.rows.push({ no: o.orderNo, cfAt: String(i.cfAt || ''), qty: qtyOf(i), left: qtyOf(i) - pickedOf(i) });
     });
   });
   const first = (g) => g.rows.map((r) => r.cfAt || '9').sort()[0];
@@ -1536,12 +1542,16 @@ function vFind() {
   if (f.date === null) f.date = days[0] || '';
   const rows = findRows();
   const db = (d, l) => "<button class=\"seg\" data-act=\"fdDay\" data-d=\"" + esc(d) + "\" aria-pressed=\"" + (f.date === d) + "\">" + l + "</button>";
+  const bb = (id, l) => "<button class=\"seg\" data-act=\"fdBatch\" data-id=\"" + esc(id) + "\" aria-pressed=\"" + ((f.batch || '') === id) + "\">" + l + "</button>";
+  if (f.batch && !S.batches.some((x) => x.id === f.batch && x.status !== BATCH.closed)) f.batch = '';
   const mb = (m, l) => "<button class=\"seg\" data-act=\"fdMode\" data-m=\"" + m + "\" aria-pressed=\"" + (f.mode === m) + "\">" + l + "</button>";
   const noCf = rows.some((g) => g.rows.some((r) => !r.cfAt));
   return "<div class=\"stack\">" + back() + "<div class=\"card stack\"><b>ตามหาสินค้า (เวลาในไลฟ์)</b>" +
   "<div class=\"muted\" style=\"font-size:13px\">ใส่เวลาเริ่มไลฟ์ ระบบจะบอกว่าสินค้าแต่ละชิ้นถูก CF ตอนนาทีไหนของวิดีโอ เปิดคลิปไลฟ์แล้วเลื่อนไปดูได้เลย</div>" +
   "<div class=\"fgroup\"><label>วันที่</label>" + db('', 'ทุกวัน') + days.map((d) => db(d, esc(dayLabel(d)))).join('') + "</div>" +
   "<div class=\"fgroup\"><label>แสดง</label>" + mb('left', 'ยังไม่จัด') + mb('short', 'หาไม่เจอ/สต็อกขาด') + mb('all', 'ทั้งหมด') + "</div>" +
+  "<div class=\"fgroup\"><label>รอบ</label>" + bb('', 'ทุกออเดอร์') + S.batches.filter((x) => x.status !== BATCH.closed).map((x) => bb(x.id, 'หยิบรวม ' + esc(x.id))).join('') + "</div>" +
+  "<label class=\"field\"><span>รหัสสินค้า (พิมพ์บางส่วนได้ เช่น Y หรือ A1)</span><input id=\"fdQ\" autocomplete=\"off\" value=\"" + esc(f.q || '') + "\" placeholder=\"ทุกรหัส\"></label>" +
   (f.date ? "<label class=\"field\"><span>เวลาเริ่มไลฟ์ วันที่ " + esc(dayLabel(f.date)) + " (ชั่วโมง:นาที:วินาที)</span><input id=\"fdStart\" type=\"time\" step=\"1\" value=\"" + esc(liveStarts()[f.date] || '') + "\"></label>" :
   "<div class=\"muted\" style=\"font-size:12px\">เลือกวันที่ เพื่อกรอกเวลาเริ่มไลฟ์ของวันนั้น</div>") + "</div>" +
   "<div class=\"sec\">" + rows.length + " รายการ · " + rows.reduce((t, g) => t + g.left, 0) + " ชิ้นที่ยังไม่จัด · เรียงตามเวลา CF</div>" +
@@ -1870,6 +1880,7 @@ const ACT = {
   },
   fdDay: (d) => {S.fd.date = d.d;render();},
   fdMode: (d) => {S.fd.mode = d.m;render();},
+  fdBatch: (d) => {S.fd.batch = d.id;if (d.id) S.fd.date = '';render();},
   slDay: (d) => {S.sl.date = d.d;render();},
   slPer: (d) => {S.sl.per = Number(d.n);LS.set('slPer', S.sl.per);render();},
   slAll: () => {S.sl.off.clear();render();},
@@ -2283,6 +2294,7 @@ function vBatch() {
     const sum = left.length ? "<div class=\"card stack bleft\"><div class=\"head-top\"><b>ยังขาด " + left.length + " รายการ · " + left.reduce((t, r) => t + r.total - r.picked, 0) + " ชิ้น</b>" +
     (shortN ? "<span class=\"chip bad\">สต็อกขาด " + shortN + "</span>" : '') +
     "<button class=\"x\" data-act=\"bOnlyLeft\">" + (S.bOnlyLeft ? 'ดูทั้งหมด' : 'ดูเฉพาะที่ขาด') + "</button></div>" +
+    "<button class=\"btn\" data-act=\"bFind\" style=\"padding:8px 12px;font-size:13px\">ดูเวลาในไลฟ์ของที่ยังขาด</button>" +
     "<div class=\"chips\">" + left.map((r) => "<button class=\"chip bad bjump\" data-act=\"stockOpen\" data-c=\"" + esc(r.code) + "\"><b>" + esc(r.code) + "</b> ×" + (r.total - r.picked) + "</button>").join('') + "</div></div>" : '';
     body = sum + "<div class=\"muted\" style=\"font-size:13px\">\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E38\u0E01\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19 \u0E2A\u0E41\u0E01\u0E19\u0E2B\u0E23\u0E37\u0E2D\u0E01\u0E14 + \u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19 \u0E41\u0E15\u0E30\u0E0A\u0E37\u0E48\u0E2D\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E0A\u0E47\u0E01\u0E2A\u0E15\u0E47\u0E2D\u0E01\u0E41\u0E25\u0E30\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B</div>\n      <div class=\"items\">" +
     pickList.map((r) => {
@@ -2463,6 +2475,7 @@ Object.assign(ACT, {
     enqueue({ type: 'ordered', codes: codes, staff: S.staff });render();
     toast('บันทึกว่าสั่งแล้ว ' + codes.length + ' รายการ', 'ok');
   },
+  bFind: () => {const b = curBatch();if (!b) return;Object.assign(S.fd, { batch: b.id, date: '', mode: 'left', q: '' });S.more = 'find';go('more');},
   bOnlyLeft: () => {S.bOnlyLeft = !S.bOnlyLeft;render();},
   bOpen: (d) => {S.batchId = d.id;S.batchStep = 'pick';S.lastPut = null;S.confirmReset = null;render();$('main').scrollTop = 0;},
   batchBack: () => {S.batchId = null;render();},
@@ -2540,6 +2553,7 @@ document.addEventListener('input', (e) => {
     const ok = t.id === 'dc1' ? S.dc1 === 'ยืนยัน' : S.dc2 === 'ลบทั้งหมด';
     const bt = $(t.id === 'dc1' ? 'dcb1' : 'dcb2');if (bt) bt.disabled = !(ok && !S.dataBusy && !Q.list.length);
   } else
+  if (t.id === 'fdQ') {S.fd.q = t.value;clearTimeout(S._fq);S._fq = setTimeout(() => {render();const i = $('fdQ');if (i) {i.focus();i.setSelectionRange(i.value.length, i.value.length);}}, 250);} else
   if (t.id === 'puQ') {S.puQ = t.value;renderPuList();} else
   if (t.id === 'lblQ') {S.labelQ = t.value;clearTimeout(S._lq);S._lq = setTimeout(() => {render();const i = $('lblQ');if (i) {i.focus();i.setSelectionRange(i.value.length, i.value.length);}}, 250);}
 });
@@ -3025,6 +3039,12 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ดูเวลาในไลฟ์ของที่ยังขาด": "လိုနေသည်များ၏ လိုက်ဗ်အချိန် ကြည့်",
+  "รอบ": "အကြိမ်",
+  "ทุกออเดอร์": "အော်ဒါအားလုံး",
+  "หยิบรวม {0}": "ပေါင်းကောက် {0}",
+  "พิมพ์บางส่วนได้ เช่น {0} หรือ {1}": "တစ်စိတ်တစ်ပိုင်း ရိုက်နိုင် ဥပမာ {0} သို့မဟုတ် {1}",
+  "ทุกรหัส": "ကုဒ်အားလုံး",
   "ไฟล์มีเวลา {0} แต่ระบบยังไม่ได้เก็บ{1} อัปเดต {2} แล้วกด {3}เวอร์ชันใหม่{4} จากนั้นนำเข้าไฟล์อีกครั้ง": "ဖိုင်တွင် {0} အချိန်ပါသော်လည်း စနစ်က မသိမ်းရသေး{1} {2} ကို အပ်ဒိတ်ပြီး {3}ဗားရှင်းအသစ်{4} နှိပ်ကာ ဖိုင်ကို ပြန်တင်ပါ",
   "ตามหาสินค้า": "ပစ္စည်းရှာ",
   "เวลาในไลฟ์": "လိုက်ဗ်အတွင်း အချိန်",
