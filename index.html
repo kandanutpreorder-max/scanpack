@@ -637,6 +637,8 @@ function enqueue(op) {
     Object.keys(op.deltas).forEach((c) => {last.deltas[c] = (last.deltas[c] || 0) + op.deltas[c];});
   } else if (op.type === 'batch' && last && last.type === 'batch' && !last.sent && last.id === op.id) {
     Object.assign(last.patch, op.patch);
+  } else if (op.type === 'packprog' && last && last.type === 'packprog' && !last.sent && last.orderNo === op.orderNo) {
+    last.payload = op.payload;
   } else if (op.type === 'stock' && last && last.type === 'stock' && !last.sent && last.key === op.key) {
     last.rec = op.rec;
   } else Q.list.push(Object.assign({ id: uid() }, op));
@@ -657,6 +659,7 @@ async function qRun() {
       } else if (op.type === 'pack') b = await api('savePack', op.orderNo, op.payload);else
       if (op.type === 'reset') b = await api('resetStatus', op.orderNo, op.which, op.staff);else
       if (op.type === 'stock') {const r = await api('saveStock', op.rec);if (!Q.list.slice(1).some((x) => x.type === 'stock' && x.key === op.key)) {const loc = S.stock[op.key] || {};S.stock[op.key] = Object.assign({}, r, { thumb: r.thumb || loc.thumb || '' });}} else
+      if (op.type === 'packprog') b = await api('savePackProgress', op.orderNo, op.payload);else
       if (op.type === 'pickup') b = await api('setPickup', op.orderNo, op.val, op.staff);else
       if (op.type === 'ordered') {const rows = await api('markOrdered', op.codes, op.staff);(rows || []).forEach((r) => {const k = norm(r.code);S.stock[k] = Object.assign({}, S.stock[k] || {}, { ordered: r.ordered });});} else
       if (op.type === 'batch') {const r = await api('saveBatch', op.id, op.patch, op.staff);if (r && !Q.list.slice(1).some((x) => x.type === 'batch' && x.id === op.id)) {const i = S.batches.findIndex((x) => x.id === r.id);if (i >= 0) S.batches[i] = r;}}
@@ -989,6 +992,7 @@ function openPick(no, silent) {
   if (!o) return null;
   S.pickNo = norm(no);S.pickChoices = null;
   go('pick');
+  fetchLatest(no);
   if (silent) return o;
   return null;
 }
@@ -1048,18 +1052,53 @@ function openPack(no) {
   const saved = LS.get(packDraftKey(no), null);
   const packed = {};
   itemsOf(o).forEach((i) => {packed[i.code] = Number(i.packedQty) || 0;});
+  if (saved) {saved.editAt = 0;itemsOf(o).forEach((i) => {saved.packed[i.code] = Math.max(saved.packed[i.code] || 0, packed[i.code]);});}
   S.pk = saved || {
     no: norm(no), packed: packed, photos: [],
     carrier: o.carrier || (isPickup(o) ? (S.carriers.find((c) => PICKUP_RE.test(c)) || 'ลูกค้ามารับเอง') : '') || o.vrichCarrier || S.set.lastCarrier || S.carriers[0] || '',
     tracking: String(o.tracking || o.vrichTracking || ''), labelOk: null, note: o.packNote || '', confirm: null
   };
-  if ((o.packStatus === PACK.done || o.packStatus === PACK.part) && !saved) {
-    S.pk.photos = String(o.photos || '').split('\n').filter(Boolean).map((u) => ({ lid: uid(), url: u, status: 'ok' }));
-  }
+  if (!saved) S.pk.photos = String(o.photos || '').split('\n').filter(Boolean).map((u) => ({ lid: uid(), url: u, status: 'ok' }));
+  else pkMerge();
   S.pk.confirm = null;S.packChoices = null;
   go('pack');
+  fetchLatest(no);
 }
-function packSave() {if (S.pk) LS.set(packDraftKey(S.pk.no), Object.assign({}, S.pk, { photos: S.pk.photos.filter((p) => p.status === 'ok') }));}
+function packSave() {
+  if (!S.pk) return;
+  S.pk.editAt = Date.now();
+  LS.set(packDraftKey(S.pk.no), Object.assign({}, S.pk, { photos: S.pk.photos.filter((p) => p.status === 'ok') }));
+  // ส่งความคืบหน้าขึ้นชีต (จำนวนที่สแกน + รูป) ให้เครื่องอื่นเห็นทันที ไม่ต้องรอกดแพ็คเสร็จ/พักรอของ
+  const pk = S.pk;clearTimeout(S._ppT);
+  S._ppT = setTimeout(() => {
+    const o = S.byNo[pk.no];if (!o || S.pk !== pk) return;
+    enqueue({ type: 'packprog', orderNo: String(o.orderNo), payload: {
+      packed: itemsOf(o).map((i) => ({ code: i.code, packedQty: pk.packed[i.code] || 0 })),
+      photos: pk.photos.filter((p) => p.status === 'ok' && p.url).map((p) => p.url), staff: S.staff } });
+  }, 900);
+}
+/* รวมข้อมูลจากชีต (เครื่องอื่นแพ็คต่อ) เข้ากับงานแพ็คที่เปิดอยู่: จำนวนเอาค่าที่มากกว่า รูปรวมกัน */
+function pkMerge() {
+  const pk = S.pk;if (!pk) return false;
+  const o = S.byNo[pk.no];if (!o) return false;
+  if (pk.editAt && Date.now() - pk.editAt < 5000) return false;
+  if (Q.list.some((x) => x.orderNo === String(o.orderNo))) return false;
+  let ch = false;
+  itemsOf(o).forEach((i) => {const sv = Number(i.packedQty) || 0;if (sv > (pk.packed[i.code] || 0)) {pk.packed[i.code] = sv;ch = true;}});
+  const have = new Set(pk.photos.map((p) => p.url).filter(Boolean)),gone = new Set(pk.removed || []);
+  String(o.photos || '').split('\n').filter(Boolean).forEach((u) => {if (!have.has(u) && !gone.has(u)) {pk.photos.push({ lid: uid(), url: u, status: 'ok' });ch = true;}});
+  if (ch) LS.set(packDraftKey(pk.no), Object.assign({}, pk, { photos: pk.photos.filter((p) => p.status === 'ok') }));
+  return ch;
+}
+/* เปิดออเดอร์แล้วดึงข้อมูลล่าสุดของออเดอร์นั้นจากชีต (เผื่อเครื่องอื่นเพิ่งจัด/แพ็ค) */
+async function fetchLatest(no) {
+  try {
+    const o = S.byNo[norm(no)];if (!o || Q.list.some((x) => x.orderNo === String(o.orderNo))) return;
+    const b = await api('getOrder', String(o.orderNo));
+    if (!b || !b.order || Q.list.some((x) => x.orderNo === String(o.orderNo))) return;
+    applyBundle(b);pkMerge();softRender();
+  } catch (e) {}
+}
 function packCounts(o) {
   const phys = itemsOf(o).filter((i) => !isSkip(i));
   const total = phys.reduce((s, i) => s + qtyOf(i), 0);
@@ -1831,7 +1870,7 @@ async function refresh(quiet) {
   try {
     const d = await api('getActive');
     if (Q.list.length) return;
-    setData(d);softRender();
+    setData(d);pkMerge();softRender();
     if (!quiet) toast('อัปเดตข้อมูลแล้ว', 'ok');
   } catch (e) {if (!quiet) toast('ดึงข้อมูลไม่ได้: ' + errMsg(e), 'bad');}
 }
@@ -1910,7 +1949,7 @@ const ACT = {
     if (dd > 0 && n < q) beep('ok');
   },
   finishPack: () => finishPack(),
-  rmPhoto: (d) => {const i = S.pk.photos.findIndex((p) => p.lid === d.l);if (i < 0) return;const p = S.pk.photos.splice(i, 1)[0];if (p.id) api('deletePhoto', p.id).catch(() => {});packSave();render();},
+  rmPhoto: (d) => {const i = S.pk.photos.findIndex((p) => p.lid === d.l);if (i < 0) return;const p = S.pk.photos.splice(i, 1)[0];if (p.url) (S.pk.removed = S.pk.removed || []).push(p.url);if (p.id) api('deletePhoto', p.id).catch(() => {});packSave();render();},
   retryPhoto: (d) => {const i = S.pk.photos.findIndex((p) => p.lid === d.l);if (i < 0) return;const p = S.pk.photos.splice(i, 1)[0];if (p.file) addPhotos([p.file]);},
   resetPack: (d) => {
     if (S.confirmReset !== 'pack' + d.no) {S.confirmReset = 'pack' + d.no;render();return;}
@@ -2598,9 +2637,15 @@ $('manualForm').addEventListener('submit', (e) => {
 function camBack() {setTimeout(() => {if (!document.hidden && !Cam.on && S.set.autoCam && ['pick', 'pack', 'stock', 'batch'].includes(S.view)) camStart();Cam.resume = false;}, 400);}
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {if (Cam.on) {camStop();Cam.resume = true;}} else
-  {if (Cam.resume && ['pick', 'pack', 'stock', 'batch'].includes(S.view)) camStart();Cam.resume = false;if (Q.list.length) qKick();}
+  {if (Cam.resume && ['pick', 'pack', 'stock', 'batch'].includes(S.view)) camStart();Cam.resume = false;if (Q.list.length) qKick();else if (bgRefreshOk()) refresh(true);}
 });
-setInterval(() => {if (!document.hidden && !Q.list.length && !Q.busy && S.view === 'orders') refresh(true);}, 60000);
+// ดึงข้อมูลล่าสุดเบื้องหลังทุก 30 วินาที (เห็นงานที่เครื่องอื่นจัด/แพ็ค) ยกเว้นตอนกำลังพิมพ์ในช่องบนหน้าจอ
+function bgRefreshOk() {
+  const a = document.activeElement;
+  return !document.hidden && !Q.list.length && !Q.busy && ['orders', 'pick', 'pack', 'batch'].includes(S.view) &&
+  !(a && $('main').contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) && !(S.pk && S.pk.editAt && Date.now() - S.pk.editAt < 5000);
+}
+setInterval(() => {if (bgRefreshOk()) refresh(true);}, 30000);
 
 /* ================= ภาษา: ไทย / မြန်မာ =================
  * แปลข้อความบนหน้าจอหลังวาดเสร็จ โดยเทียบ "แม่แบบ" ของข้อความ (ตัวเลข/รหัส/สัญลักษณ์ถูกแทนด้วย {0},{1}…)
