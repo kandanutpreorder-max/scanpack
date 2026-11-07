@@ -114,7 +114,12 @@ header{background:var(--bar);color:var(--bar-ink);padding:calc(env(safe-area-ins
 #camOverlay p{margin:0 0 10px;opacity:.8;font-size:13px}
 .camBtns{position:absolute;top:8px;left:8px;right:8px;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;z-index:3;pointer-events:none}
 .camBtns>*{pointer-events:auto}
-.camModeRow{flex-basis:100%;display:flex;pointer-events:none}
+.camModeRow{flex-basis:100%;display:flex;gap:6px;pointer-events:none}
+#camLook{pointer-events:auto;background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600}
+#camLook[aria-pressed="true"]{background:#FFD54A;color:#000;border-color:#FFD54A}
+.wherebar{border-color:var(--warn);background:var(--warn-soft)}
+.wherebar .chips{gap:6px}
+.wherebar .chip{border:0;font-size:13px;padding:4px 9px}
 .camBtns button{background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 11px;font-size:12px}
 #camFb{position:absolute;left:8px;right:8px;bottom:8px;z-index:3;border-radius:10px;padding:8px 12px;color:#fff;
   background:rgba(0,0,0,.6);transition:opacity .25s;opacity:0;pointer-events:none}
@@ -323,7 +328,9 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .bleft{border-color:var(--bad)}
 .bleft .chips{gap:6px}
 .bjump{border:0;font-size:13px;padding:4px 9px}
-.fdrow{text-align:left;display:flex;flex-direction:column;gap:4px;width:100%}
+.fdrow{cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:4px;width:100%}
+.fdwho{font-size:12px;color:var(--muted);margin:0 0 3px}
+.fdwho a{color:var(--ai)}
 .fdcf{display:flex;flex-direction:column;gap:3px;font-size:13px;font-variant-numeric:tabular-nums}
 .bkcs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;align-items:center}
 .bkcs>span{font-size:11px;color:var(--muted)}
@@ -442,7 +449,7 @@ html.lang-my .tile span{font-size:10px;line-height:1.3}
     <button id="camTrig" data-act="camArm" hidden>แตะเพื่อสแกน</button>
     <div id="camOverlay"><div><p id="camOvMsg">แตะเพื่อเปิดกล้องสแกน</p><button class="btn pri" data-act="camOn">เปิดกล้อง</button>
       <div style="margin-top:10px"><button class="btn" data-act="photoScan" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.35)">ถ่ายรูปบาร์โค้ดแทน</button></div></div></div>
-    <div class="camBtns"><button data-act="camTorch" id="camTorch" hidden aria-pressed="false">ไฟฉาย</button><button data-act="camZoom" id="camZoom" hidden>ซูม 1x</button><button data-act="camShot" id="camShot">ถ่ายรูป</button><button data-act="camToggle" id="camToggle">ปิดกล้อง</button><div class="camModeRow"><div id="camMode" hidden><button data-act="camMode" data-m="tap" aria-pressed="true">แตะสแกน</button><button data-act="camMode" data-m="cont" aria-pressed="false">ต่อเนื่อง</button></div></div></div>
+    <div class="camBtns"><button data-act="camTorch" id="camTorch" hidden aria-pressed="false">ไฟฉาย</button><button data-act="camZoom" id="camZoom" hidden>ซูม 1x</button><button data-act="camShot" id="camShot">ถ่ายรูป</button><button data-act="camToggle" id="camToggle">ปิดกล้อง</button><div class="camModeRow"><button id="camLook" data-act="camLook" hidden aria-pressed="false">ตรวจรหัส</button><div id="camMode" hidden><button data-act="camMode" data-m="tap" aria-pressed="true">แตะสแกน</button><button data-act="camMode" data-m="cont" aria-pressed="false">ต่อเนื่อง</button></div></div></div>
     <div id="camFb"><b></b><span></span></div>
   </div>
   <form class="manual" id="manualForm" autocomplete="off">
@@ -727,6 +734,7 @@ function camArmUI() {
   const tap = tapOn();
   const b = $('camTrig');
   b.hidden = !tap || !Cam.on;
+  const lk = $('camLook');lk.hidden = !Cam.on;lk.setAttribute('aria-pressed', String(!!S.lookup));lk.textContent = S.lookup ? 'ตรวจรหัส: สแกนเลย' : 'ตรวจรหัส';
   const md = $('camMode');md.hidden = !Cam.on;md.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String((x.dataset.m === 'tap') === tap)));
   b.classList.toggle('armed', Cam.armed);
   b.textContent = Cam.armed ? 'กำลังสแกน…' : 'แตะเพื่อสแกน';
@@ -871,7 +879,7 @@ function camZoom() {
 async function camStop() {
   if (Cam.engine === 'fast') fastStop();else
   if (Cam.inst && Cam.on) {try {await Cam.inst.stop();} catch (e) {}}
-  Cam.engine = '';$('camTorch').hidden = true;$('camZoom').hidden = true;clearTimeout(Cam.armT);Cam.armed = false;$('camTrig').hidden = true;$('camMode').hidden = true;$('camPanel').classList.remove('tapwait');
+  Cam.engine = '';$('camTorch').hidden = true;$('camZoom').hidden = true;clearTimeout(Cam.armT);Cam.armed = false;$('camTrig').hidden = true;$('camMode').hidden = true;$('camLook').hidden = true;$('camPanel').classList.remove('tapwait');
   Cam.on = false;$('camOverlay').hidden = false;$('camOvMsg').textContent = 'กล้องปิดอยู่';$('camToggle').textContent = 'เปิดกล้อง';
 }
 /* ถ่ายรูปจากกล้องสแกนที่เปิดอยู่ (ไม่ต้องสลับไปแอปกล้อง ซึ่งทำให้ Android ปิดแอปเราบ่อย) */
@@ -969,6 +977,15 @@ function handleScan(raw) {
   const code = cleanScan(raw);
   if (!code) return;
   let r;
+  // โหมดตรวจรหัส: สแกนแล้วไม่นับ แค่บอกว่าอยู่ออเดอร์ไหน
+  if (S.lookup) {
+    S.lookup = false;camArmUI();
+    const o = findOrder(code);
+    if (o && !itemsOf(o).some((i) => norm(i.code) === norm(code))) {openDetail(o.orderNo);return feedback({ ok: true, msg: '#' + o.orderNo, sub: o.customer || '' });}
+    openWhere(code);const n = whereList(code).length;
+    return feedback(n ? { ok: true, msg: code + ' อยู่ใน ' + n + ' ออเดอร์', sub: 'ตรวจรหัสเท่านั้น ไม่นับเป็นการจัด/แพ็ค' } : { ok: false, msg: 'ไม่พบ ' + code, sub: 'ไม่มีในออเดอร์ที่อยู่ในเครื่อง' });
+  }
+  S.where = null;
   if (S.view === 'pick') r = pickScan(code);else
   if (S.view === 'pack') r = packScan(code);else
   if (S.view === 'stock') r = stockScan(code);else
@@ -978,7 +995,41 @@ function handleScan(raw) {
     if (o) {openDetail(o.orderNo);r = { ok: true, msg: '#' + o.orderNo, sub: o.customer };} else
     {S.f.q = code;render();r = { ok: false, msg: 'ค้นหา ' + code };}
   }
+  if (S.where) softRender();
   feedback(r);
+}
+
+/* ---------- รหัสนี้อยู่ออเดอร์ไหน (รวมที่จัด/แพ็คครบแล้ว) ---------- */
+function whereList(code) {
+  const k = norm(code);
+  const open = S.batches.filter((b) => b.status !== BATCH.closed);
+  return S.orders.filter((o) => itemsOf(o).some((i) => norm(i.code) === k)).map((o) => {
+    const its = itemsOf(o).filter((i) => norm(i.code) === k);
+    const q = its.reduce((t, i) => t + qtyOf(i), 0),pk = its.reduce((t, i) => t + pickedOf(i), 0),pc = its.reduce((t, i) => t + (Number(i.packedQty) || 0), 0);
+    let bk = '';
+    open.forEach((b) => {const x = batchBaskets(b).find((y) => y.o && norm(y.o.orderNo) === norm(o.orderNo));if (x) bk = b.id + ' ตะกร้า ' + x.n;});
+    const st = o.packStatus === PACK.done ? 'แพ็คแล้ว' : o.packStatus === PACK.part ? 'แพ็คบางส่วน' : pk >= q ? 'จัดครบ' : pk > 0 ? 'จัด ' + pk + '/' + q : 'ยังไม่จัด';
+    return { o: o, q: q, picked: pk, packed: pc, by: its.map((i) => i.pickedBy).filter(Boolean)[0] || '', at: its.map((i) => i.pickedAt).filter(Boolean)[0] || '', st: st, bk: bk, skip: its.every(isSkip) };
+  }).sort((a, b) => (a.o.packStatus === PACK.done) - (b.o.packStatus === PACK.done) || (Number(a.o.orderNo) || 0) - (Number(b.o.orderNo) || 0));
+}
+function setWhere(code) {S.where = code ? { code: code } : null;}
+function whereBanner() {
+  if (!S.where) return '';
+  const w = whereList(S.where.code);
+  return "<div class=\"card wherebar\"><div class=\"head-top\"><b>รหัส <span class=\"code\">" + esc(S.where.code) + "</span> อยู่ใน " + w.length + " ออเดอร์</b>" +
+  "<button class=\"x\" data-act=\"whereOpen\">ดูละเอียด</button><button class=\"x\" data-act=\"whereClose\" aria-label=\"ปิด\">✕</button></div>" +
+  "<div class=\"chips\">" + (w.slice(0, 8).map((r) => "<button class=\"chip" + (r.o.packStatus === PACK.done ? ' ink' : r.picked >= r.q ? ' ok' : ' warn') + "\" data-act=\"detail\" data-no=\"" + esc(norm(r.o.orderNo)) + "\">#" + esc(r.o.orderNo) + " · " + esc(r.st) + (r.bk ? ' · ' + esc(r.bk.replace(/^.* ตะกร้า /, 'ตะกร้า ')) : '') + "</button>").join('') || '<span class="muted">ไม่พบในออเดอร์ที่อยู่ในเครื่อง</span>') + (w.length > 8 ? "<span class=\"muted\">+" + (w.length - 8) + "</span>" : '') + "</div></div>";
+}
+function openWhere(code) {
+  const w = whereList(code);
+  $('sheetRoot').innerHTML = "<div class=\"sheetBg\" data-act=\"closeSheet\"><div class=\"sheet\" data-stop=\"1\"><div class=\"grab\"></div><div class=\"stack\">" +
+  "<h2>รหัส <span class=\"code\">" + esc(code) + "</span> อยู่ออเดอร์ไหน</h2><div class=\"muted\" style=\"font-size:13px\">" + w.length + " ออเดอร์ · รวมที่จัดครบหรือแพ็คไปแล้ว แตะเพื่อเปิดออเดอร์</div>" +
+  "<div class=\"list\">" + (w.map((r) => "<button class=\"lrow\" data-act=\"detail\" data-no=\"" + esc(norm(r.o.orderNo)) + "\"><span class=\"ord-no\" style=\"min-width:62px\">#" + esc(r.o.orderNo) + "</span>" +
+    "<span class=\"grow\"><b>" + esc(r.o.customer || r.o.fbName || '-') + "</b><span class=\"muted\" style=\"display:block;font-size:12px\">" +
+    "ต้องการ " + r.q + " · จัด " + r.picked + (r.by ? " (" + esc(r.by) + (r.at ? " " + esc(String(r.at).slice(11, 16)) : '') + ")" : '') + " · แพ็ค " + r.packed + (r.o.packedBy && r.o.packStatus !== PACK.none ? " (" + esc(r.o.packedBy) + ")" : '') +
+    (r.bk ? " · " + esc(r.bk) : '') + (r.skip ? ' · ไม่ต้องจัด' : '') + "</span></span>" +
+    "<span class=\"chip" + (r.o.packStatus === PACK.done ? ' ink' : r.picked >= r.q ? ' ok' : ' warn') + "\">" + esc(r.st) + "</span></button>").join('') ||
+    '<div class="empty">ไม่พบรหัสนี้ในออเดอร์ที่อยู่ในเครื่อง (ออเดอร์เก่าเกิน 14 วันอยู่ในชีต Archive)</div>') + "</div></div></div></div>";
 }
 
 /* ---------- จัดของ ---------- */
@@ -1005,7 +1056,7 @@ function pickWarn(o) {
 function pickInc(o, it, d) {
   const ns = needStaff();if (ns) return ns;
   const p = pickedOf(it),q = qtyOf(it);
-  if (d > 0 && p >= q) return { ok: false, msg: it.code + ' ครบแล้ว', sub: 'ต้องการ ' + q + ' ชิ้น' };
+  if (d > 0 && p >= q) {setWhere(it.code);return { ok: false, msg: it.code + ' ครบแล้ว', sub: 'ต้องการ ' + q + ' ชิ้น · ดูว่าอยู่ออเดอร์ไหนในกล่องสีเหลือง' };}
   if (d < 0 && p <= 0) return null;
   it.pickedQty = p + d;it.pickedBy = S.staff;
   recalc(o);
@@ -1028,6 +1079,7 @@ function pickScan(code) {
   const owners = (S.codeIdx[k] || []).map((n) => S.byNo[n]).filter((x) => x && x.packStatus !== PACK.done &&
   itemsOf(x).some((i) => norm(i.code) === k && !isSkip(i) && pickedOf(i) < qtyOf(i)));
   if (cur && cur.pickStatus !== PICK.done) {
+    setWhere(code);
     return { ok: false, msg: code + ' ไม่อยู่ในออเดอร์นี้', sub: owners.length ? 'อยู่ใน #' + owners.map((x) => x.orderNo).join(', #') : 'ไม่พบในออเดอร์ที่ค้างจัด' };
   }
   if (owners.length === 1) {
@@ -1039,7 +1091,7 @@ function pickScan(code) {
     S.pickNo = null;S.pickChoices = { code: code, nos: owners.map((x) => norm(x.orderNo)) };render();
     return { kind: 'warn', msg: code + ' มี ' + owners.length + ' ออเดอร์', sub: 'แตะเลือกออเดอร์ที่จะใส่' };
   }
-  if (S.codeIdx[k]) return { ok: false, msg: code + ' จัดครบทุกออเดอร์แล้ว' };
+  if (S.codeIdx[k]) {setWhere(code);render();return { ok: false, msg: code + ' จัดครบทุกออเดอร์แล้ว', sub: 'ดูว่าอยู่ออเดอร์ไหนในกล่องสีเหลือง' };}
   remoteFind(code, 'pick');
   return { kind: 'warn', msg: 'กำลังค้นหา ' + code, sub: 'ไม่มีในเครื่อง กำลังถามจากชีต…' };
 }
@@ -1119,7 +1171,7 @@ function packScan(code) {
     const it = itemsOf(cur).find((i) => norm(i.code) === k && !isSkip(i));
     if (it) {
       const n = S.pk.packed[it.code] || 0,q = qtyOf(it);
-      if (n >= q) return { ok: false, msg: it.code + ' ครบแล้ว', sub: 'ต้องการ ' + q + ' ชิ้น' };
+      if (n >= q) {setWhere(it.code);return { ok: false, msg: it.code + ' ครบแล้ว', sub: 'ต้องการ ' + q + ' ชิ้น · ดูว่าอยู่ออเดอร์ไหนในกล่องสีเหลือง' };}
       S.pk.packed[it.code] = n + 1;S.pk.confirm = null;packSave();
       S.flashCode = norm(it.code);softRender();
       const c = packCounts(cur);
@@ -1166,6 +1218,7 @@ function packScan(code) {
     S.packChoices = { code: code, nos: owners.map((x) => norm(x.orderNo)) };render();
     return { kind: 'warn', msg: code + ' มี ' + owners.length + ' ออเดอร์', sub: 'แตะเลือกออเดอร์ที่จะแพ็ค' };
   }
+  if (S.codeIdx[k]) {setWhere(code);render();return { ok: false, msg: code + ' แพ็คครบทุกออเดอร์แล้ว', sub: 'ดูว่าอยู่ออเดอร์ไหนในกล่องสีเหลือง' };}
   remoteFind(code, 'pack');
   return { kind: 'warn', msg: 'กำลังค้นหา ' + code, sub: 'ไม่มีในเครื่อง กำลังถามจากชีต…' };
 }
@@ -1271,6 +1324,7 @@ function render() {
   if (S.view === 'pick') m.innerHTML = vPick();else
   if (S.view === 'pack') m.innerHTML = vPack();else
   m.innerHTML = vMore();
+  if (S.where && ['pick', 'pack', 'batch'].includes(S.view)) m.insertAdjacentHTML('afterbegin', whereBanner());
   m.scrollTop = keepScroll;
   if (S.view === 'orders') renderOrderList();
   if (S.flashCode) {
@@ -1560,7 +1614,7 @@ function findRows() {
     itemsOf(o).forEach((i) => {
       if (isSkip(i)) return;
       const k = norm(i.code);
-      if (q && k.indexOf(q) < 0 && norm(i.name).indexOf(q) < 0) return;
+      if (q && k.indexOf(q) < 0 && norm(i.name).indexOf(q) < 0 && norm([o.orderNo, o.customer, o.fbName, o.phone].join('|')).indexOf(q) < 0) return;
       const left = bneed ? (bneed[k] ? bneed[k].total - bneed[k].picked : 0) : qtyOf(i) - pickedOf(i);
       const short = effShort(stockRec(i.code), lv[k] ? lv[k].need : 0) > 0;
       if (f.mode === 'left' && left <= 0) return;
@@ -1569,7 +1623,7 @@ function findRows() {
       if (f.date && day !== f.date) return;
       const g = groups[k] = groups[k] || { code: i.code, key: k, name: i.name, short: short, left: 0, rows: [] };
       g.left = bneed ? Math.max(0, left) : g.left + Math.max(0, left);
-      g.rows.push({ no: o.orderNo, cfAt: String(i.cfAt || ''), qty: qtyOf(i), left: qtyOf(i) - pickedOf(i) });
+      g.rows.push({ no: o.orderNo, cfAt: String(i.cfAt || ''), qty: qtyOf(i), left: qtyOf(i) - pickedOf(i), who: o.customer || o.fbName || '', fb: o.fbName && o.fbName !== o.customer ? o.fbName : '', tel: o.phone || '' });
     });
   });
   const first = (g) => g.rows.map((r) => r.cfAt || '9').sort()[0];
@@ -1590,16 +1644,17 @@ function vFind() {
   "<div class=\"fgroup\"><label>วันที่</label>" + db('', 'ทุกวัน') + days.map((d) => db(d, esc(dayLabel(d)))).join('') + "</div>" +
   "<div class=\"fgroup\"><label>แสดง</label>" + mb('left', 'ยังไม่จัด') + mb('short', 'หาไม่เจอ/สต็อกขาด') + mb('all', 'ทั้งหมด') + "</div>" +
   "<div class=\"fgroup\"><label>รอบ</label>" + bb('', 'ทุกออเดอร์') + S.batches.filter((x) => x.status !== BATCH.closed).map((x) => bb(x.id, 'หยิบรวม ' + esc(x.id))).join('') + "</div>" +
-  "<label class=\"field\"><span>รหัสสินค้า (พิมพ์บางส่วนได้ เช่น Y หรือ A1)</span><input id=\"fdQ\" autocomplete=\"off\" value=\"" + esc(f.q || '') + "\" placeholder=\"ทุกรหัส\"></label>" +
+  "<label class=\"field\"><span>ค้นหา: รหัสสินค้า ชื่อลูกค้า ชื่อ FB เบอร์โทร หรือเลขออเดอร์</span><input id=\"fdQ\" type=\"search\" autocomplete=\"off\" value=\"" + esc(f.q || '') + "\" placeholder=\"เช่น Y12 · สมใจ · 0812345678\"></label>" +
   (f.date ? "<label class=\"field\"><span>เวลาเริ่มไลฟ์ วันที่ " + esc(dayLabel(f.date)) + " (ชั่วโมง:นาที:วินาที)</span><input id=\"fdStart\" type=\"time\" step=\"1\" value=\"" + esc(liveStarts()[f.date] || '') + "\"></label>" :
   "<div class=\"muted\" style=\"font-size:12px\">เลือกวันที่ เพื่อกรอกเวลาเริ่มไลฟ์ของวันนั้น</div>") + "</div>" +
   "<div class=\"sec\">" + rows.length + " รายการ · " + rows.reduce((t, g) => t + g.left, 0) + " ชิ้นที่ยังไม่จัด · เรียงตามเวลา CF</div>" +
   (noCf ? "<div class=\"alert warn\">บางรายการไม่มีเวลา CF ให้นำเข้าไฟล์ Vrich ใหม่อีกครั้ง</div>" : '') +
-  "<div class=\"stack\" id=\"fdList\">" + (rows.slice(0, 300).map((g) => "<button class=\"card fdrow\" data-act=\"stockOpen\" data-c=\"" + esc(g.code) + "\">" +
+  "<div class=\"stack\" id=\"fdList\">" + (rows.slice(0, 300).map((g) => "<div class=\"card fdrow\" role=\"button\" tabindex=\"0\" data-act=\"stockOpen\" data-c=\"" + esc(g.code) + "\">" +
     "<div class=\"head-top\"><span class=\"code\" style=\"font-size:17px\">" + esc(g.code) + "</span>" + (g.left ? "<span class=\"chip warn\">ยังไม่จัด " + g.left + "</span>" : "<span class=\"chip ok\">จัดแล้ว</span>") + (g.short ? "<span class=\"chip bad\">หาไม่เจอ/ขาด</span>" : '') + "</div>" +
     "<div class=\"nm\" style=\"font-size:13px;color:var(--muted)\">" + esc(g.name) + "</div><div class=\"fdcf\">" +
-    g.rows.map((r) => {const v = r.cfAt ? vidAt(r.cfAt) : '';return "<div><b>" + (r.cfAt ? esc(r.cfAt.slice(11, 19)) : '—') + "</b>" + (v ? " <span class=\"chip ai\">" + esc(v) + "</span>" : '') + " <span class=\"muted\">#" + esc(r.no) + (r.qty > 1 ? ' ×' + r.qty : '') + (r.left <= 0 ? ' ✓' : '') + "</span></div>";}).join('') +
-    "</div></button>").join('') || '<div class="empty">ไม่มีสินค้าตามเงื่อนไข</div>') + "</div></div>";
+    g.rows.map((r) => {const v = r.cfAt ? vidAt(r.cfAt) : '';return "<div><b>" + (r.cfAt ? esc(r.cfAt.slice(11, 19)) : '—') + "</b>" + (v ? " <span class=\"chip ai\">" + esc(v) + "</span>" : '') + " <span class=\"muted\">#" + esc(r.no) + (r.qty > 1 ? ' ×' + r.qty : '') + (r.left <= 0 ? ' ✓' : '') + "</span>" +
+    "<div class=\"fdwho\">" + esc(r.who) + (r.fb ? " · FB: " + esc(r.fb) : '') + (r.tel ? " · <a href=\"tel:" + esc(r.tel) + "\" data-stop=\"1\">" + esc(r.tel) + "</a>" : '') + "</div></div>";}).join('') +
+    "</div></div>").join('') || '<div class="empty">ไม่มีสินค้าตามเงื่อนไข</div>') + "</div></div>";
 }
 
 /* ---------- ใบออเดอร์ (ติดถุงระหว่างรอใบปะหน้าจริง) ---------- */
@@ -1760,10 +1815,15 @@ function vLabels() {
   const openCodes = new Set();
   S.orders.forEach((o) => {if (o.packStatus !== PACK.done) itemsOf(o).forEach((i) => {if (!isSkip(i)) openCodes.add(norm(i.code));});});
   const q = norm(S.labelQ);
-  const list = labelList().filter((p) => (!S.labelOnlyOpen || openCodes.has(norm(p.code))) && (!q || norm(p.code + '|' + p.name).includes(q)));
+  const dm = S.labelDate ? daySoldMap(S.labelDate) : null;S._dayMap = dm ? { d: S.labelDate, m: dm } : null;
+  const list = labelList().filter((p) => (!S.labelOnlyOpen || openCodes.has(norm(p.code))) && (!q || norm(p.code + '|' + p.name).includes(q)) && (!dm || dm[norm(p.code)] > 0));
+  const days = [...new Set(S.orders.flatMap((o) => itemsOf(o).map((i) => itemDay(o, i))).filter(Boolean))].sort().reverse();
+  const ldb = (d, l) => "<button class=\"seg\" data-act=\"lblDay\" data-d=\"" + esc(d) + "\" aria-pressed=\"" + ((S.labelDate || '') === d) + "\">" + l + "</button>";
+  const dayRow = "<div class=\"fgroup\"><label>วันที่ขาย</label>" + ldb('', 'ทุกวัน') + days.map((d) => ldb(d, esc(dayLabel(d)))).join('') + "</div>" +
+  (S.labelDate ? "<div class=\"muted\" style=\"font-size:12px\">แสดงเฉพาะสินค้าที่ขายวันที่ " + esc(dayLabel(S.labelDate)) + " · จำนวนดวงเริ่มต้น = จำนวนที่ขายวันนั้น</div>" : '');
   S._labelList = list;
   const sel = S.labelSel;
-  return "<div class=\"stack\">" + back() + "\n    <div class=\"card stack\">\n      <div class=\"row2\"><label class=\"field\"><span>\u0E02\u0E19\u0E32\u0E14\u0E09\u0E25\u0E32\u0E01</span><select id=\"lblSize\"><option value=\"s5030\" " + (
+  return "<div class=\"stack\">" + back() + "\n    <div class=\"card stack\">" + dayRow + "\n      <div class=\"row2\"><label class=\"field\"><span>\u0E02\u0E19\u0E32\u0E14\u0E09\u0E25\u0E32\u0E01</span><select id=\"lblSize\"><option value=\"s5030\" " + (
 
   S.labelSize === 's5030' ? 'selected' : '') + ">50\xD730 \u0E21\u0E21.</option><option value=\"sA4\" " + (S.labelSize === 'sA4' ? 'selected' : '') + ">A4 21 \u0E14\u0E27\u0E07</option></select></label><label class=\"field\"><span>เรียงตาม</span><select id=\"lblSort\"><option value=\"qty\" " + (S.labelSort === 'qty' ? 'selected' : '') + ">จำนวน มาก→น้อย</option><option value=\"code\" " + (S.labelSort === 'code' ? 'selected' : '') + ">รหัสสินค้า</option></select></label>\n      <label class=\"field\"><span>\u0E04\u0E49\u0E19\u0E2B\u0E32</span><input id=\"lblQ\" value=\"" +
   esc(S.labelQ) + "\" placeholder=\"\u0E23\u0E2B\u0E31\u0E2A/\u0E0A\u0E37\u0E48\u0E2D\"></label></div>\n      <label class=\"toggle\"><span>\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E43\u0E19\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E41\u0E1E\u0E47\u0E04</span><input type=\"checkbox\" id=\"lblOpen\" " + (
@@ -1884,6 +1944,9 @@ const ACT = {
   camOn: () => camStart(),
   camToggle: () => Cam.on ? camStop() : camStart(),
   camArm: () => camArm(),
+  camLook: () => {S.lookup = !S.lookup;if (S.lookup && tapOn()) camArm();camArmUI();if (S.lookup) feedback({ kind: 'warn', msg: 'ตรวจรหัส', sub: 'สแกนรหัสสินค้าที่อยากรู้ว่าอยู่ออเดอร์ไหน (ไม่นับเป็นการจัด/แพ็ค)' });},
+  whereOpen: () => {if (S.where) openWhere(S.where.code);},
+  whereClose: () => {S.where = null;render();},
   // สลับโหมดชั่วคราว (เปิดแอปใหม่กลับไปใช้ค่าในตั้งค่า ซึ่งเริ่มต้นเป็นแตะสแกน)
   // เลือกโหมดบนกล้อง (ชั่วคราว เปิดแอปใหม่กลับไปใช้ค่าในตั้งค่า)
   camMode: (d) => {const want = d.m === 'tap';if (want === tapOn()) return;Cam.tapTemp = want;camDisarm();toast(want ? 'โหมดแตะสแกน: แตะทุกครั้งก่อนสแกน' : 'โหมดสแกนต่อเนื่อง: อ่านทุกรหัสที่อยู่ในกรอบ', 'ok');},
@@ -1920,6 +1983,8 @@ const ACT = {
   fdDay: (d) => {S.fd.date = d.d;render();},
   fdMode: (d) => {S.fd.mode = d.m;render();},
   fdBatch: (d) => {S.fd.batch = d.id;if (d.id) S.fd.date = '';render();},
+  stockDay: (d) => {S.stockDate = d.d;render();},
+  lblDay: (d) => {S.labelDate = d.d;S.lblQty = {};S.labelSel = new Set();S._dayMap = null;render();},
   slDay: (d) => {S.sl.date = d.d;render();},
   slPer: (d) => {S.sl.per = Number(d.n);LS.set('slPer', S.sl.per);render();},
   slAll: () => {S.sl.off.clear();render();},
@@ -2014,10 +2079,10 @@ const isPackOpen = (o) => (o.packStatus || PACK.none) === PACK.none;
 const isPackPart = (o) => o.packStatus === PACK.part;
 
 /** รวมสินค้าที่ต้องใช้จากออเดอร์ที่ให้มา: need = ยังไม่ได้หยิบ, total = ทั้งหมด */
-function needsOf(orders) {
+function needsOf(orders, only) {
   const m = {};
   orders.forEach((o) => itemsOf(o).forEach((i) => {
-    if (isSkip(i)) return;
+    if (isSkip(i) || only && !only(o, i)) return;
     const k = norm(i.code),rem = qtyOf(i) - pickedOf(i);
     const r = m[k] || (m[k] = { key: k, code: String(i.code), name: i.name || '', price: Number(i.price) || 0, need: 0, total: 0, nos: [] });
     r.total += qtyOf(i);
@@ -2052,7 +2117,11 @@ function thumbHtml(r, cls) {
   cls + " ph0\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"M3 8l9-4 9 4v8l-9 4-9-4z\"/><path d=\"M3 8l9 4 9-4M12 12v8\"/></svg></span>";
 }
 function vStock() {
-  const needs = Object.values(liveNeeds()).filter((r) => r.need > 0);
+  // กรองวันที่ขาย: เฉพาะสินค้าที่ CF วันนั้น และจำนวนที่ต้องหยิบเฉพาะของวันนั้น
+  const needs = Object.values(S.stockDate ? needsOf(openOrders(), (o, i) => itemDay(o, i) === S.stockDate) : liveNeeds()).filter((r) => r.need > 0);
+  const sdays = [...new Set(openOrders().flatMap((o) => itemsOf(o).filter((i) => !isSkip(i) && qtyOf(i) > pickedOf(i)).map((i) => itemDay(o, i))).filter(Boolean))].sort().reverse();
+  const sdb = (d, l) => "<button class=\"seg\" data-act=\"stockDay\" data-d=\"" + esc(d) + "\" aria-pressed=\"" + ((S.stockDate || '') === d) + "\">" + l + "</button>";
+  const sDayRow = "<div class=\"fgroup\"><label>วันที่ขาย</label>" + sdb('', 'ทุกวัน') + sdays.map((d) => sdb(d, esc(dayLabel(d)))).join('') + "</div>";
   const q = norm(S.stockQ);
   const list = needs.filter((r) => (!S.stockMulti || r.need >= 2) && (!q || norm(r.code + '|' + r.name).includes(q))).
   sort((a, b) => b.need - a.need || natCmp(a.code, b.code));
@@ -2060,7 +2129,7 @@ function vStock() {
   const short = shortList().length;
   return "<div class=\"stack\">\n    <div class=\"btns\"><button class=\"btn\" data-act=\"go\" data-v=\"more\">\u2190 \u0E01\u0E25\u0E31\u0E1A</button>\n      <button class=\"btn " + (
 
-  short ? 'danger' : '') + "\" data-act=\"toShort\">\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E02\u0E32\u0E14 " + short + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23</button></div>\n    <div class=\"card stack\">\n      <h2 style=\"margin:0\">\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01</h2>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E22\u0E31\u0E07\u0E23\u0E2D\u0E2B\u0E22\u0E34\u0E1A \u0E41\u0E15\u0E30\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E43\u0E2A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E17\u0E35\u0E48\u0E21\u0E35/\u0E2B\u0E22\u0E34\u0E1A\u0E44\u0E14\u0E49 \u0E41\u0E25\u0E30\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B\u0E2A\u0E15\u0E47\u0E2D\u0E01 \u0E2A\u0E41\u0E01\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22</div>\n      <div class=\"chips\"><span class=\"chip\">" +
+  short ? 'danger' : '') + "\" data-act=\"toShort\">\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E02\u0E32\u0E14 " + short + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23</button></div>\n    <div class=\"card stack\">" + sDayRow + "\n      <h2 style=\"margin:0\">\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01</h2>\n      <div class=\"muted\" style=\"font-size:13px\">\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E22\u0E31\u0E07\u0E23\u0E2D\u0E2B\u0E22\u0E34\u0E1A \u0E41\u0E15\u0E30\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E43\u0E2A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E17\u0E35\u0E48\u0E21\u0E35/\u0E2B\u0E22\u0E34\u0E1A\u0E44\u0E14\u0E49 \u0E41\u0E25\u0E30\u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B\u0E2A\u0E15\u0E47\u0E2D\u0E01 \u0E2A\u0E41\u0E01\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22</div>\n      <div class=\"chips\"><span class=\"chip\">" +
 
 
 
@@ -2402,7 +2471,7 @@ function saveBatchPicked(b, map) {
 function batchInc(b, key, d) {
   const ns = needStaff();if (ns) return ns;
   const r = batchNeeds(b)[key];if (!r) return null;
-  if (d > 0 && r.picked >= r.total) return { ok: false, msg: r.code + ' หยิบครบแล้ว', sub: 'รอบนี้ใช้ ' + r.total + ' ชิ้น' };
+  if (d > 0 && r.picked >= r.total) {setWhere(r.code);return { ok: false, msg: r.code + ' หยิบครบแล้ว', sub: 'รอบนี้ใช้ ' + r.total + ' ชิ้น · ดูว่าอยู่ออเดอร์ไหนในกล่องสีเหลือง' };}
   if (d < 0 && r.picked <= r.sorted) return d < 0 && r.sorted ? { ok: false, msg: 'ลดไม่ได้', sub: 'แยกลงตะกร้าไปแล้ว ' + r.sorted + ' ชิ้น' } : null;
   const map = parseJ(b.picked, {});map[key] = r.picked + d;
   saveBatchPicked(b, map);
@@ -2424,7 +2493,7 @@ function batchScan(code) {
     return x ? { ok: true, msg: 'ตะกร้า ' + x.n, sub: '#' + ord.orderNo + ' ' + (ord.customer || '') } : { ok: false, msg: '#' + ord.orderNo + ' ไม่อยู่ในรอบนี้' };
   }
   if (S.batchStep === 'pick') {
-    if (!batchNeeds(b)[k]) return { ok: false, msg: code + ' ไม่อยู่ในรอบนี้', sub: S.codeIdx[k] ? 'อยู่ใน #' + S.codeIdx[k].join(', #') : '' };
+    if (!batchNeeds(b)[k]) {setWhere(code);return { ok: false, msg: code + ' ไม่อยู่ในรอบนี้', sub: S.codeIdx[k] ? 'อยู่ใน #' + S.codeIdx[k].join(', #') : '' };}
     return batchInc(b, k, 1);
   }
   for (const x of bs) {
@@ -2440,9 +2509,10 @@ function batchScan(code) {
   }
   if (batchNeeds(b)[k]) {
     const where = (batchBasketMap(b)[k] || []).map((t) => t.n + (t.q > 1 ? '×' + t.q : '')).join(', ');
+    setWhere(code);
     return { kind: 'warn', big: true, msg: code + ' หยิบครบแล้ว · ตะกร้า ' + where, sub: 'ใส่ครบทุกตะกร้าแล้ว ชิ้นนี้เกิน ไม่ต้องใส่' };
   }
-  return { ok: false, msg: code + ' ไม่อยู่ในรอบนี้', sub: S.codeIdx[k] ? 'อยู่ใน #' + S.codeIdx[k].join(', #') : '' };
+  {setWhere(code);return { ok: false, msg: code + ' ไม่อยู่ในรอบนี้', sub: S.codeIdx[k] ? 'อยู่ใน #' + S.codeIdx[k].join(', #') : '' };}
 }
 function printBatch(b) {
   const needs = Object.values(batchNeeds(b)).sort((x, y) => natCmp(x.code, y.code));
@@ -2487,8 +2557,16 @@ function partialList() {
 }
 
 /* ---------- จำนวนฉลาก ---------- */
+/* ยอดขายของรหัสนี้ในวันที่เลือก (วันจากเวลา CF หรือวันที่ออเดอร์) */
+function itemDay(o, i) {return String(i.cfAt || '').slice(0, 10) || String(o.date || '').slice(0, 10);}
+function daySoldMap(day) {
+  const m = {};
+  S.orders.forEach((o) => itemsOf(o).forEach((i) => {if (!isSkip(i) && itemDay(o, i) === day) {const k = norm(i.code);m[k] = (m[k] || 0) + qtyOf(i);}}));
+  return m;
+}
 function soldQty(code) {
   const k = norm(code);
+  if (S.labelDate) {const m = S._dayMap && S._dayMap.d === S.labelDate ? S._dayMap.m : (S._dayMap = { d: S.labelDate, m: daySoldMap(S.labelDate) }).m;return Math.max(1, m[k] || 0);}
   const p = (S.products || []).find((x) => norm(x.code) === k);
   if (p && Number(p.sold) > 0) return Number(p.sold);
   let n = 0;Object.values(S.itemsBy).forEach((arr) => arr.forEach((i) => {if (norm(i.code) === k && !isSkip(i)) n += qtyOf(i);}));
@@ -2570,6 +2648,7 @@ document.addEventListener('change', (e) => {
 async function loadProducts() {try {S.products = await api('getProducts');} catch (e) {S.products = [];toast('โหลดสินค้าไม่ได้: ' + errMsg(e), 'bad');}render();}
 
 document.addEventListener('click', (e) => {
+  if (e.target.closest('a[href]')) return;   // ลิงก์ (เช่น โทรออก) ทำงานปกติ
   const el = e.target.closest('[data-act]');
   if (!el) return;
   if (el.classList.contains('sheetBg') && e.target !== el) return;
@@ -3084,6 +3163,32 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "วันที่ขาย": "ရောင်းသည့်ရက်",
+  "แสดงเฉพาะสินค้าที่ขายวันที่ {0}": "{0} ရက်တွင် ရောင်းသော ပစ္စည်းသာ ပြ",
+  "จำนวนดวงเริ่มต้น = จำนวนที่ขายวันนั้น": "မူလ တံဆိပ်အရေအတွက် = ထိုနေ့ ရောင်းအရေအတွက်",
+  "รหัส {0} อยู่ใน {1} ออเดอร์": "ကုဒ် {0} သည် အော်ဒါ {1} ခုတွင် ရှိ",
+  "ดูละเอียด": "အသေးစိတ်",
+  "รหัส {0} อยู่ออเดอร์ไหน": "ကုဒ် {0} ဘယ်အော်ဒါမှာလဲ",
+  "รวมที่จัดครบหรือแพ็คไปแล้ว แตะเพื่อเปิดออเดอร์": "ရွေးပြီး/ထုပ်ပြီးသားများ ပါ · နှိပ်၍ အော်ဒါဖွင့်",
+  "ต้องการ {0}": "လို {0}",
+  "จัด {0}": "ရွေး {0}",
+  "แพ็ค {0}": "ထုပ် {0}",
+  "จัดครบ": "ရွေးပြီးပြည့်စုံ",
+  "จัด {0}/{1}": "ရွေး {0}/{1}",
+  "{0} ตะกร้า {1}": "{0} ခြင်း {1}",
+  "ไม่พบในออเดอร์ที่อยู่ในเครื่อง": "စက်ထဲရှိ အော်ဒါတွင် မတွေ့",
+  "ไม่พบรหัสนี้ในออเดอร์ที่อยู่ในเครื่อง": "ဤကုဒ်ကို စက်ထဲရှိ အော်ဒါတွင် မတွေ့",
+  "ออเดอร์เก่าเกิน {0} วันอยู่ในชีต {1}": "{0} ရက်ထက်ဟောင်းသော အော်ဒါများ {1} စာရွက်တွင်",
+  "ตรวจรหัส": "ကုဒ်စစ်",
+  "ตรวจรหัส{0} สแกนเลย": "ကုဒ်စစ်{0} စကင်ဖတ်ပါ",
+  "สแกนรหัสสินค้าที่อยากรู้ว่าอยู่ออเดอร์ไหน": "ဘယ်အော်ဒါမှာလဲ သိလိုသော ပစ္စည်းကုဒ်ကို စကင်ဖတ်ပါ",
+  "ไม่นับเป็นการจัด/แพ็ค": "ရွေး/ထုပ် အဖြစ် မရေတွက်",
+  "{0} อยู่ใน {1} ออเดอร์": "{0} သည် အော်ဒါ {1} ခုတွင်",
+  "ตรวจรหัสเท่านั้น ไม่นับเป็นการจัด/แพ็ค": "ကုဒ်စစ်ရုံသာ · ရွေး/ထုပ် အဖြစ် မရေတွက်",
+  "ดูว่าอยู่ออเดอร์ไหนในกล่องสีเหลือง": "ဘယ်အော်ဒါမှာလဲ အဝါရောင်ဘောက်စ်တွင်ကြည့်",
+  "{0} แพ็คครบทุกออเดอร์แล้ว": "{0} အော်ဒါအားလုံး ထုပ်ပြီး",
+  "ค้นหา{0} รหัสสินค้า ชื่อลูกค้า ชื่อ {1} เบอร์โทร หรือเลขออเดอร์": "ရှာ{0} ပစ္စည်းကုဒ် ဖောက်သည်အမည် {1} အမည် ဖုန်း သို့မဟုတ် အော်ဒါနံပါတ်",
+  "เช่น {0} สมใจ {1}": "ဥပမာ {0} စမ်ကျိုင် {1}",
   "ดูเวลาในไลฟ์ของที่ยังขาด": "လိုနေသည်များ၏ လိုက်ဗ်အချိန် ကြည့်",
   "รอบ": "အကြိမ်",
   "ทุกออเดอร์": "အော်ဒါအားလုံး",
