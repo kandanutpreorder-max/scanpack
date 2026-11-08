@@ -331,6 +331,7 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .fdrow{cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:4px;width:100%}
 .fdwho{font-size:12px;color:var(--muted);margin:0 0 3px}
 .fdwho a{color:var(--ai)}
+.impfiles{display:flex;flex-direction:column;gap:3px;font-size:13px;word-break:break-all}
 .fdcf{display:flex;flex-direction:column;gap:3px;font-size:13px;font-variant-numeric:tabular-nums}
 .bkcs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;align-items:center}
 .bkcs>span{font-size:11px;color:var(--muted)}
@@ -473,7 +474,7 @@ html.lang-my .tile span{font-size:10px;line-height:1.3}
 <input type="file" id="fileScan" accept="image/*" capture="environment" hidden>
 <input type="file" id="filePhoto" accept="image/*" hidden>
 <input type="file" id="fileStock" accept="image/*" hidden>
-<input type="file" id="fileImport" accept=".xlsx,.xls,.csv" hidden>
+<input type="file" id="fileImport" accept=".xlsx,.xls,.csv" multiple hidden>
 <div id="printArea"></div>
 
 <script>
@@ -1773,7 +1774,8 @@ function vImport() {
   if (im.error) return "<div class=\"stack\">" + back() + "<div class=\"alert bad\">" + esc(im.error) + "</div><button class=\"btn pri\" data-act=\"startImport\">\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E1F\u0E25\u0E4C\u0E43\u0E2B\u0E21\u0E48</button></div>";
   const known = im.orders.filter((o) => S.byNo[norm(o.orderNo)]).length;
   return "<div class=\"stack\">" + back() + "\n    <div class=\"card stack\"><h2>" +
-  esc(im.fileName) + "</h2>\n      <dl class=\"kv\"><dt>\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</dt><dd><b>" +
+  esc(im.fileName) + "</h2>" + (im.files ? "<div class=\"impfiles\">" + im.files.map((f) => "<div><span class=\"code\">" + esc(f.name) + "</span> · " + f.orders + " ออเดอร์</div>").join('') +
+  "<div class=\"muted\" style=\"font-size:12px\">ออเดอร์ที่อยู่หลายไฟล์ ใช้ข้อมูลจากไฟล์ที่ export ทีหลังสุด ไม่ซ้ำกัน</div></div>" : '') + "\n      <dl class=\"kv\"><dt>\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</dt><dd><b>" +
   im.orders.length + "</b> (\u0E43\u0E2B\u0E21\u0E48 " + (im.orders.length - known) + ", \u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15 " + known + ")</dd>\n      <dt>\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32</dt><dd>" +
   im.items.length + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \xB7 \u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14 " + im.items.filter((i) => !autoSkip(i)).reduce((s, i) => s + i.qty, 0) + " \u0E0A\u0E34\u0E49\u0E19</dd>\n      <dt>\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14</dt><dd>" +
   im.items.filter((i) => autoSkip(i)).length + " รายการ (มีคำว่าโค้ด หรือราคาติดลบ)</dd>\n      <dt>\u0E42\u0E2D\u0E19</dt><dd>\u0E42\u0E2D\u0E19\u0E41\u0E25\u0E49\u0E27 " +
@@ -1862,10 +1864,30 @@ async function printLabels() {
 }
 
 /* ---------- นำเข้า Vrich ---------- */
-async function readVrich(file) {
+/* นำเข้าหลายไฟล์พร้อมกัน: อ่านทุกไฟล์ แล้วรวม (ออเดอร์เดียวกันในหลายไฟล์ ใช้ข้อมูลจากไฟล์ที่ export ทีหลัง) */
+function vrichStamp(f) {const m = String(f.name).match(/(\d{14})(?=\D*$)/);return m ? m[1] : String(1e13 + (f.lastModified || 0));}
+async function readVrich(fileList) {
+  const files = Array.from(fileList || []).filter(Boolean).sort((a, b) => vrichStamp(a).localeCompare(vrichStamp(b)));
+  if (!files.length) return;
   S.more = 'import';S.imp = null;go('more');
   try {
     if (!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    const orders = {},itemsBy = {},prods = {},info = [];
+    for (const f of files) {
+      let r;
+      try {r = await parseVrich(f);} catch (e) {throw new Error(f.name + ': ' + errMsg(e));}
+      r.orders.forEach((o) => {orders[o.orderNo] = o;itemsBy[o.orderNo] = [];});
+      r.items.forEach((i) => {(itemsBy[i.orderNo] = itemsBy[i.orderNo] || []).push(i);});
+      r.products.forEach((p) => {if (p.code) prods[norm(p.code)] = p;});
+      info.push({ name: f.name, orders: r.orders.length });
+    }
+    S.imp = { fileName: files.length > 1 ? files.length + ' ไฟล์' : files[0].name, files: files.length > 1 ? info : null,
+      orders: Object.values(orders), items: Object.values(itemsBy).flat(), products: Object.values(prods) };
+  } catch (e) {S.imp = { error: errMsg(e) };}
+  render();
+}
+async function parseVrich(file) {
+  {
     const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });   // วันที่เป็นเลข serial ของ Excel แปลงเองให้ตรงเป๊ะ ไม่ขึ้นกับโซนเวลาเครื่อง
     let orderRows = null,stockRows = [];
     wb.SheetNames.forEach((n) => {
@@ -1905,9 +1927,8 @@ async function readVrich(file) {
       items[key] = { orderNo: no, code: code, name: str(r['รายละเอียด']), qty: n(r['จำนวน']) || 1, price: n(r['ราคา']), cfAt: cf };
     });
     const products = stockRows.map((r) => ({ code: str(r['รหัสสินค้า']), stockCode: str(r['รหัสสต็อก']), name: str(r['รายละเอียด']), price: n(r['ราคา']), qty: n(r['จำนวน']), sold: n(r['ขายไป']), remain: n(r['ยอดคงเหลือ']) })).filter((p) => p.code);
-    S.imp = { fileName: file.name, orders: Object.values(orders), items: Object.values(items), products: products };
-  } catch (e) {S.imp = { error: errMsg(e) };}
-  render();
+    return { orders: Object.values(orders), items: Object.values(items), products: products };
+  }
 }
 async function doImport() {
   const im = S.imp;if (!im || im.busy) return;
@@ -2696,7 +2717,7 @@ document.addEventListener('change', (e) => {
   if (t.id === 'lblSize') {S.labelSize = t.value;} else
   if (t.id === 'lblSort') {S.labelSort = t.value;LS.set('labelSort', t.value);render();} else
   if (t.id === 'filePhoto') {const f = [...t.files];t.value = '';addPhotos(f);camBack();} else
-  if (t.id === 'fileImport') {const f = t.files[0];t.value = '';if (f) readVrich(f);} else
+  if (t.id === 'fileImport') {const fs = Array.from(t.files || []);t.value = '';if (fs.length) readVrich(fs);} else
   if (t.id === 'fileScan') {
     const f = t.files[0];t.value = '';if (!f) return;
     const wasOn = Cam.on;
@@ -3163,6 +3184,8 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "{0} ไฟล์": "ဖိုင် {0} ခု",
+  "ออเดอร์ที่อยู่หลายไฟล์ ใช้ข้อมูลจากไฟล์ที่ export ทีหลังสุด ไม่ซ้ำกัน": "ဖိုင်များစွာတွင်ပါသော အော်ဒါကို နောက်ဆုံး export ဖိုင်မှ ယူမည် · မထပ်ပါ",
   "วันที่ขาย": "ရောင်းသည့်ရက်",
   "แสดงเฉพาะสินค้าที่ขายวันที่ {0}": "{0} ရက်တွင် ရောင်းသော ပစ္စည်းသာ ပြ",
   "จำนวนดวงเริ่มต้น = จำนวนที่ขายวันนั้น": "မူလ တံဆိပ်အရေအတွက် = ထိုနေ့ ရောင်းအရေအတွက်",
