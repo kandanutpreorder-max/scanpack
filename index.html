@@ -332,6 +332,13 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .fdwho{font-size:12px;color:var(--muted);margin:0 0 3px}
 .fdwho a{color:var(--ai)}
 .impfiles{display:flex;flex-direction:column;gap:3px;font-size:13px;word-break:break-all}
+.duebar{border-color:var(--warn);gap:6px;display:flex;flex-direction:column}
+.duebar.late{border-color:var(--bad)}
+.duebar .chips button{border:0;font-size:13px;padding:4px 10px}
+.trbox summary{cursor:pointer;list-style:revert}
+.row3{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row3>:first-child{grid-column:1/-1}
+.row3 input{min-width:0;width:100%;box-sizing:border-box}
 .fdcf{display:flex;flex-direction:column;gap:3px;font-size:13px;font-variant-numeric:tabular-nums}
 .bkcs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;align-items:center}
 .bkcs>span{font-size:11px;color:var(--muted)}
@@ -490,7 +497,8 @@ const PAY = { paid: 'โอนแล้ว', none: 'ยังไม่โอน'
 const S = {
   view: 'orders', staff: '', staffList: [], carriers: [], sheetUrl: '',
   orders: [], itemsBy: {}, byNo: {}, byTrack: {}, codeIdx: {},
-  f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', picker: '', packer: '', date: '', q: '' },
+  f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', due: 'all', picker: '', packer: '', date: '', q: '', tr: { kind: 'pack', date: '', from: '', to: '' } },
+  cfg: { packDays: 1, cutoff: '15:00' },
   pickNo: null, pickChoices: null,
   pk: null, packChoices: null,
   more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', fd: { date: null, mode: 'left', q: '', batch: '' }, sl: { paid: true, noPickup: true, unpacked: true, hidePrinted: false, per: 8, off: new Set(), date: '' }, labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
@@ -609,12 +617,50 @@ function rebuild() {
   }));
 }
 function setData(d) {
+  if (d.cfg) S.cfg = d.cfg;
   S.stock = {};(d.stock || []).forEach((r) => {S.stock[norm(r.code)] = r;});
   S.batches = (d.batches || []).slice();
   S.orders = (d.orders || []).slice();
   S.itemsBy = {};
   (d.items || []).forEach((i) => {const k = norm(i.orderNo);(S.itemsBy[k] = S.itemsBy[k] || []).push(i);});
   rebuild();
+}
+/* ---------- กำหนดเวลาแพ็ค ---------- */
+function ymd(D) {const p2 = (x) => (x < 10 ? '0' : '') + x;return D.getFullYear() + '-' + p2(D.getMonth() + 1) + '-' + p2(D.getDate());}
+function todayStr() {return ymd(new Date());}
+function addDays(day, n) {const D = new Date(day + 'T12:00:00');D.setDate(D.getDate() + n);return ymd(D);}
+function cutoffMs() {const m = String(S.cfg.cutoff || '15:00').match(/(\d{1,2}):(\d{2})/);const D = new Date();D.setHours(m ? Number(m[1]) : 15, m ? Number(m[2]) : 0, 0, 0);return D.getTime();}
+/* ต้องแพ็คส่ง = โอนแล้ว ยังไม่แพ็คเสร็จ ไม่ใช่รับหน้าร้าน */
+function needPack(o) {return o.packStatus !== PACK.done && !isPickup(o) && o.payStatus === PAY.paid && !!String(o.date || '').slice(0, 10);}
+function dueDay(o) {return addDays(String(o.date).slice(0, 10), Number(S.cfg.packDays) || 0);}
+/* 'over' เกินกำหนด · 'today' ครบกำหนดวันนี้ · 'later' ยังไม่ถึง · '' ไม่ต้องนับ */
+function dueState(o) {
+  if (!needPack(o)) return '';
+  const d = dueDay(o),t = todayStr();
+  return d < t ? 'over' : d === t ? 'today' : 'later';
+}
+function dueChip(o) {
+  const st = dueState(o);
+  if (st === 'over') {const n = Math.round((new Date(todayStr() + 'T12:00:00') - new Date(dueDay(o) + 'T12:00:00')) / 864e5);return '<span class="chip bad">เกินกำหนด ' + n + ' วัน</span>';}
+  if (st === 'today') return Date.now() > cutoffMs() ? '<span class="chip bad">ไม่ทันรอบวันนี้</span>' : '<span class="chip warn">ต้องส่งวันนี้</span>';
+  return '';
+}
+function dueBanner() {
+  const all = S.orders,over = all.filter((o) => dueState(o) === 'over').length,today = all.filter((o) => dueState(o) === 'today').length;
+  const left = cutoffMs() - Date.now();
+  const hm = left > 0 ? 'อีก ' + (Math.floor(left / 3600e3) ? Math.floor(left / 3600e3) + ' ชม. ' : '') + Math.floor(left % 3600e3 / 60e3) + ' นาที' : 'เลยเวลาตัดรอบแล้ว';
+  const packedToday = all.filter((o) => o.packStatus === PACK.done && String(o.packedAt || '').slice(0, 10) === todayStr()).length;
+  return "<div class=\"card duebar" + (left <= 0 && today ? ' late' : '') + "\"><div class=\"head-top\"><b>รอบส่งวันนี้ · ตัดรอบ " + esc(S.cfg.cutoff || '15:00') + "</b><span class=\"chip" + (left > 0 ? '' : ' bad') + "\">" + hm + "</span></div>" +
+  "<div class=\"chips\"><button class=\"chip warn\" data-act=\"dueF\" data-v=\"today\">ต้องแพ็ควันนี้ " + today + "</button>" +
+  "<button class=\"chip bad\" data-act=\"dueF\" data-v=\"over\">เกินกำหนด " + over + "</button><span class=\"chip ok\">แพ็ควันนี้แล้ว " + packedToday + "</span></div>" +
+  "<div class=\"muted\" style=\"font-size:12px\">นับเฉพาะออเดอร์ที่โอนแล้ว ไม่รวมรับหน้าร้าน · กำหนดแพ็คภายใน " + (Number(S.cfg.packDays) || 0) + " วันหลังวันไลฟ์ (แก้ได้ที่ ตั้งค่า)</div></div>";
+}
+function trMatch(o) {
+  const tr = S.f.tr;if (!tr.date) return true;
+  const t = String((tr.kind === 'pick' ? o.pickedAt : o.packedAt) || '');
+  if (t.slice(0, 10) !== tr.date) return false;
+  const hm = t.slice(11, 16);
+  return (!tr.from || hm >= tr.from) && (!tr.to || hm <= tr.to);
 }
 function findOrder(code) {const k = norm(code);return S.byNo[k] || S.byTrack[k] || null;}
 function recalc(o) {
@@ -1358,6 +1404,9 @@ function filtered() {
     if (f.packer && o.packedBy !== f.packer) return false;
     if (f.date && String(o.date || '').slice(0, 10) !== f.date) return false;
     if (f.ship !== 'all' && (f.ship === 'pickup') !== isPickup(o)) return false;
+    if (f.due === 'today' && dueState(o) !== 'today') return false;
+    if (f.due === 'over' && dueState(o) !== 'over') return false;
+    if (!trMatch(o)) return false;
     if (q) {
       const hay = norm([o.orderNo, o.customer, o.fbName, o.phone, o.vrichTracking, o.tracking].join('|'));
       if (!hay.includes(q) && !itemsOf(o).some((i) => norm(i.code) === q)) return false;
@@ -1387,16 +1436,21 @@ function vOrders() {
   const dayRow = "<div class=\"fgroup\"><label>วันที่</label>" + dayBtn('', 'ทุกวัน · ' + S.orders.length) + dates.map((d) => dayBtn(d, esc(dayLabel(d)) + ' · ' + dayN[d])).join('') + "</div>";
   const opt = (arr, cur, all) => "<option value=\"\">" + all + "</option>" + arr.map((x) => "<option " + (x === cur ? 'selected' : '') + ">" + esc(x) + "</option>").join('');
   if (!S.orders.length) return "<div class=\"stack\"><div class=\"empty card\"><b>\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C</b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E31\u0E14\u0E02\u0E2D\u0E07<div style=\"margin-top:12px\"><button class=\"btn pri\" data-act=\"startImport\">\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E44\u0E1F\u0E25\u0E4C Vrich</button></div></div></div>";
-  return "<div class=\"stack\">\n    " + dayRow + "\n    <div class=\"tiles\">" +
+  const tr = f.tr;
+  const trBox = "<details class=\"card trbox\"" + (tr.date ? ' open' : '') + "><summary><b>ดูตามช่วงเวลาที่จัด/แพ็ค</b>" + (tr.date ? " <span class=\"chip ai\">" + (tr.kind === 'pick' ? 'จัด' : 'แพ็ค') + " " + esc(dayLabel(tr.date)) + " " + esc(tr.from || '00:00') + "–" + esc(tr.to || '23:59') + "</span>" : '') + "</summary>" +
+  "<div class=\"stack\" style=\"margin-top:8px\"><div class=\"fgroup\"><label>ดู</label><button class=\"seg\" data-act=\"trKind\" data-v=\"pack\" aria-pressed=\"" + (tr.kind === 'pack') + "\">เวลาแพ็ค</button><button class=\"seg\" data-act=\"trKind\" data-v=\"pick\" aria-pressed=\"" + (tr.kind === 'pick') + "\">เวลาจัดเสร็จ</button></div>" +
+  "<div class=\"row3\"><label class=\"field\"><span>วันที่</span><input type=\"date\" id=\"trDate\" value=\"" + esc(tr.date) + "\"></label><label class=\"field\"><span>ตั้งแต่</span><input type=\"time\" id=\"trFrom\" value=\"" + esc(tr.from) + "\"></label><label class=\"field\"><span>ถึง</span><input type=\"time\" id=\"trTo\" value=\"" + esc(tr.to) + "\"></label></div>" +
+  "<div class=\"btns\"><button class=\"btn\" data-act=\"trToday\">วันนี้</button><button class=\"btn\" data-act=\"trClear\">ล้าง</button></div></div></details>";
+  return "<div class=\"stack\">\n    " + dueBanner() + "\n    " + dayRow + "\n    <div class=\"tiles\">" +
   tiles.map(([l, n, set]) => "<button class=\"tile\" data-act=\"tile\" data-set='" + JSON.stringify(set) + "'><b>" + n + "</b><span>" + l + "</span></button>").join('') + "</div>\n    <div class=\"search\"><input id=\"q\" type=\"search\" placeholder=\"\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E0A\u0E37\u0E48\u0E2D \u0E40\u0E1A\u0E2D\u0E23\u0E4C \u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38 \u0E23\u0E2B\u0E31\u0E2A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\" value=\"" +
   esc(f.q) + "\"></div>\n    <div class=\"fgroup\"><label>\u0E08\u0E31\u0E14</label>" +
   seg('pick', 'all', 'ทั้งหมด') + seg('pick', PICK.none, PICK.none) + seg('pick', PICK.part, PICK.part) + seg('pick', PICK.done, PICK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E41\u0E1E\u0E47\u0E04</label>" +
   seg('pack', 'all', 'ทั้งหมด') + seg('pack', PACK.none, PACK.none) + seg('pack', PACK.part, PACK.part) + seg('pack', PACK.done, PACK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E42\u0E2D\u0E19</label>" +
   seg('pay', 'all', 'ทั้งหมด') + seg('pay', PAY.paid, PAY.paid) + seg('pay', PAY.none, PAY.none) + seg('pay', PAY.part, PAY.part) + "</div>\n    <div class=\"fgroup\"><label>ส่ง</label>" +
-  seg('ship', 'all', 'ทั้งหมด') + seg('ship', 'ship', 'จัดส่ง') + seg('ship', 'pickup', 'รับหน้าร้าน') + "<button class=\"seg\" data-act=\"puOpen\" style=\"border-style:dashed\">+ ตั้งรับหน้าร้าน</button></div>\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
+  seg('ship', 'all', 'ทั้งหมด') + seg('ship', 'ship', 'จัดส่ง') + seg('ship', 'pickup', 'รับหน้าร้าน') + "<button class=\"seg\" data-act=\"puOpen\" style=\"border-style:dashed\">+ ตั้งรับหน้าร้าน</button></div>\n    <div class=\"fgroup\"><label>กำหนด</label>" + seg('due', 'all', 'ทั้งหมด') + seg('due', 'today', 'ต้องส่งวันนี้') + seg('due', 'over', 'เกินกำหนด') + "</div>\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
 
   opt(people, f.picker, 'จัดโดย') + "</select>\n      <select id=\"fPacker\" aria-label=\"\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22\">" +
-  opt(people, f.packer, 'แพ็คโดย') + "</select>\n    </div>\n    <div class=\"sec\" id=\"olCount\"></div>\n    <div class=\"stack\" id=\"olist\"></div>\n  </div>";
+  opt(people, f.packer, 'แพ็คโดย') + "</select>\n    </div>\n    " + trBox + "\n    <div class=\"sec\" id=\"olCount\"></div>\n    <div class=\"stack\" id=\"olist\"></div>\n  </div>";
 
 
 
@@ -1406,14 +1460,16 @@ function renderOrderList() {
   const el = $('olist');if (!el) return;
   const list = filtered();
   const nPu = list.filter(isPickup).length;
-  $('olCount').innerHTML = "<span>" + list.length + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \xB7 " + list.reduce((s, o) => s + (Number(o.itemQty) || 0), 0) + " \u0E0A\u0E34\u0E49\u0E19</span>" +
+  let byWho = '';
+  if (S.f.tr.date) {const m = {};list.forEach((o) => {const w = (S.f.tr.kind === 'pick' ? o.pickedBy : o.packedBy) || '-';m[w] = (m[w] || 0) + 1;});byWho = Object.keys(m).sort((a, b) => m[b] - m[a]).map((w) => esc(w) + ' ' + m[w]).join(' · ');}
+  $('olCount').innerHTML = "<span>" + list.length + " \u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \xB7 " + list.reduce((s, o) => s + (Number(o.itemQty) || 0), 0) + " \u0E0A\u0E34\u0E49\u0E19</span>" + (byWho ? "<div class=\"muted\" style=\"font-size:12px\">" + (S.f.tr.kind === 'pick' ? 'จัดโดย ' : 'แพ็คโดย ') + byWho + "</div>" : '') +
   (S.f.ship === 'pickup' && nPu ? "<button class=\"btn pri\" data-act=\"printPickupList\" style=\"margin-top:6px;width:100%\">พิมพ์ใบรับหน้าร้าน · " + nPu + " ใบ</button>" : '');
   el.innerHTML = list.length ? list.map((o) => {
     const pct = o.itemQty ? Math.round((o.pickedQty || 0) / o.itemQty * 100) : 0;
     return "<button class=\"ord\" data-act=\"detail\" data-no=\"" + esc(norm(o.orderNo)) + "\">\n      <div class=\"ord-top\"><span class=\"ord-no\">#" +
     esc(o.orderNo) + "</span><span class=\"ord-name\">" + esc(o.customer || o.fbName || '-') + "</span><span class=\"ord-amt\">" + baht(o.total) + "</span></div>\n      <div class=\"ord-meta\">" +
     (isPickup(o) ? 'รับหน้าร้าน' : esc(o.vrichCarrier || 'ยังไม่ระบุขนส่ง')) + (o.vrichTracking ? ' · <span class="code">' + esc(o.vrichTracking) + '</span>' : '') + " \xB7 " + (o.itemQty || 0) + " \u0E0A\u0E34\u0E49\u0E19</div>\n      <div class=\"chips\">" +
-    puChip(o) + pickChip(o) + packChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + (Number(o.hold) ? '<span class="chip ai">มีของฝาก</span>' : '') + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
+    dueChip(o) + puChip(o) + pickChip(o) + packChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + (Number(o.hold) ? '<span class="chip ai">มีของฝาก</span>' : '') + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
     pct >= 100 ? 'done' : '') + "\"><i style=\"width:" + pct + "%\"></i></div>\n    </button>";
 
   }).join('') : "<div class=\"empty\">\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E15\u0E32\u0E21\u0E15\u0E31\u0E27\u0E01\u0E23\u0E2D\u0E07\u0E19\u0E35\u0E49</div>";
@@ -1805,6 +1861,10 @@ function vSettings() {
   "<div class=\"card toggle\"><span><b>โหมดสแกนเริ่มต้น</b><br><span class=\"muted\" style=\"font-size:12px\">แตะสแกน = อ่านเมื่อแตะปุ่ม ครั้งละ 1 รหัส · ต่อเนื่อง = อ่านทุกรหัสในกรอบทันที · สลับชั่วคราวได้ที่มุมซ้ายบนของกล้อง</span></span><div class=\"modesw\"><button data-act=\"setScanMode\" data-m=\"tap\" aria-pressed=\"" + (S.set.tapScan !== false) + "\">แตะสแกน</button><button data-act=\"setScanMode\" data-m=\"cont\" aria-pressed=\"" + (S.set.tapScan === false) + "\">ต่อเนื่อง</button></div></div>\n    " +
   t('fastScan', 'สแกนเร็ว (ใช้ตัวอ่านบาร์โค้ดของเครื่อง)', 'อ่านเร็วแบบแอปสแกนใน Play Store · ปิดถ้าสแกนไม่ติด จะกลับไปใช้ตัวอ่านแบบเดิม') + "\n    " +
   t('requirePhoto', 'บังคับถ่ายรูปก่อนแพ็คเสร็จ', 'กดแพ็คเสร็จไม่ได้ถ้ายังไม่มีรูป') + "\n    " +
+  "<div class=\"card stack\"><b>กำหนดเวลาแพ็ค (ทุกเครื่องใช้ค่าเดียวกัน)</b><div class=\"row2\"><label class=\"field\"><span>แพ็คภายใน (วันหลังวันไลฟ์)</span><input id=\"cfgDays\" type=\"number\" min=\"0\" max=\"30\" inputmode=\"numeric\" value=\"" + (Number(S.cfg.packDays) || 0) + "\"></label>" +
+  "<label class=\"field\"><span>ตัดรอบส่งทุกวัน (เวลา)</span><input id=\"cfgCut\" type=\"time\" value=\"" + esc(S.cfg.cutoff || '15:00') + "\"></label></div>" +
+  "<div class=\"muted\" style=\"font-size:12px\">0 = ต้องแพ็ควันเดียวกับวันไลฟ์ · 1 = ภายในวันถัดไป · ออเดอร์ที่โอนแล้วแต่เลยกำหนดจะขึ้นป้ายแดง 'เกินกำหนด'</div>" +
+  "<button class=\"btn pri\" data-act=\"cfgSave\">บันทึกกำหนดเวลา</button></div>\n    " +
   t('requireLabel', 'เตือนถ้ายังไม่สแกนยืนยันใบปะหน้า', 'ก่อนแพ็คเสร็จ ให้สแกนใบปะหน้าหรือใบออเดอร์ของถุงนั้น ถ้าไม่ได้สแกนต้องกดยืนยันอีกครั้ง (ไม่รวมรับหน้าร้าน)') + "\n    " +
   t('autoScroll', 'เลื่อนหน้าจอไปที่สินค้าที่สแกน', 'ปิดไว้ = หน้าจออยู่กับที่ ดูผลสแกนที่แถบบนกล้อง') + "\n    <label class=\"field card\"><span>หัวใบรับหน้าร้าน</span><input id=\"setPuTitle\" value=\"" + esc(S.set.pickupTitle || PU_TITLE) + "\"></label>\n    <label class=\"field card\"><span>ลิงก์ออเดอร์ Vrich (QR บนใบรับหน้าร้าน)</span><input id=\"setVrichUrl\" inputmode=\"url\" value=\"" + esc(S.set.vrichUrl == null ? VRICH_URL : S.set.vrichUrl) + "\"><span class=\"muted\" style=\"font-size:12px\">{no} = เลขออเดอร์ · ลบให้ว่างถ้าอยากให้ QR เป็นเลขออเดอร์อย่างเดียว</span></label>\n    <div class=\"card muted\" style=\"font-size:13px\">\u0E43\u0E0A\u0E49\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E1A\u0E32\u0E23\u0E4C\u0E42\u0E04\u0E49\u0E14\u0E1A\u0E25\u0E39\u0E17\u0E39\u0E18\u0E01\u0E31\u0E1A\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49 \u0E22\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E23\u0E31\u0E1A\u0E17\u0E31\u0E19\u0E17\u0E35\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C (\u0E15\u0E31\u0E49\u0E07\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1B\u0E49\u0E19\u0E20\u0E32\u0E29\u0E32\u0E2D\u0E31\u0E07\u0E01\u0E24\u0E29 \u0E41\u0E25\u0E30\u0E2A\u0E48\u0E07 Enter \u0E17\u0E49\u0E32\u0E22\u0E23\u0E2B\u0E31\u0E2A)</div>\n  </div>";
 
@@ -2005,6 +2065,14 @@ const ACT = {
   fdMode: (d) => {S.fd.mode = d.m;render();},
   fdBatch: (d) => {S.fd.batch = d.id;if (d.id) S.fd.date = '';render();},
   stockDay: (d) => {S.stockDate = d.d;render();},
+  dueF: (d) => {S.f.due = d.v;render();},
+  trKind: (d) => {S.f.tr.kind = d.v;render();},
+  trToday: () => {S.f.tr.date = todayStr();render();},
+  trClear: () => {S.f.tr = { kind: S.f.tr.kind, date: '', from: '', to: '' };render();},
+  cfgSave: async () => {
+    const c = { packDays: Number($('cfgDays').value) || 0, cutoff: $('cfgCut').value || '15:00' };
+    try {S.cfg = await api('saveConfig', c, S.staff);toast('บันทึกกำหนดเวลาแพ็คแล้ว', 'ok');render();} catch (e) {toast('บันทึกไม่สำเร็จ: ' + errMsg(e), 'bad');}
+  },
   lblDay: (d) => {S.labelDate = d.d;S.lblQty = {};S.labelSel = new Set();S._dayMap = null;render();},
   slDay: (d) => {S.sl.date = d.d;render();},
   slPer: (d) => {S.sl.per = Number(d.n);LS.set('slPer', S.sl.per);render();},
@@ -2692,6 +2760,7 @@ document.addEventListener('input', (e) => {
     const ok = t.id === 'dc1' ? S.dc1 === 'ยืนยัน' : S.dc2 === 'ลบทั้งหมด';
     const bt = $(t.id === 'dc1' ? 'dcb1' : 'dcb2');if (bt) bt.disabled = !(ok && !S.dataBusy && !Q.list.length);
   } else
+  if (t.id === 'trDate' || t.id === 'trFrom' || t.id === 'trTo') {S.f.tr[{ trDate: 'date', trFrom: 'from', trTo: 'to' }[t.id]] = t.value;render();} else
   if (t.id === 'fdQ') {S.fd.q = t.value;clearTimeout(S._fq);S._fq = setTimeout(() => {render();const i = $('fdQ');if (i) {i.focus();i.setSelectionRange(i.value.length, i.value.length);}}, 250);} else
   if (t.id === 'puQ') {S.puQ = t.value;renderPuList();} else
   if (t.id === 'lblQ') {S.labelQ = t.value;clearTimeout(S._lq);S._lq = setTimeout(() => {render();const i = $('lblQ');if (i) {i.focus();i.setSelectionRange(i.value.length, i.value.length);}}, 250);}
@@ -2746,6 +2815,8 @@ function bgRefreshOk() {
   !(a && $('main').contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) && !(S.pk && S.pk.editAt && Date.now() - S.pk.editAt < 5000);
 }
 setInterval(() => {if (bgRefreshOk()) refresh(true);}, 30000);
+// นับถอยหลังเวลาตัดรอบในหน้าออเดอร์
+setInterval(() => {if (S.view === 'orders' && bgRefreshOk()) softRender();}, 60000);
 
 /* ================= ภาษา: ไทย / မြန်မာ =================
  * แปลข้อความบนหน้าจอหลังวาดเสร็จ โดยเทียบ "แม่แบบ" ของข้อความ (ตัวเลข/รหัส/สัญลักษณ์ถูกแทนด้วย {0},{1}…)
@@ -3184,6 +3255,38 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "รอบส่งวันนี้": "ယနေ့ ပို့ဆောင်အကြိမ်",
+  "ตัดรอบ {0}": "ဖြတ်ချိန် {0}",
+  "รอบส่งวันนี้ · ตัดรอบ {0}": "ယနေ့ ပို့ဆောင်အကြိမ် · ဖြတ်ချိန် {0}",
+  "อีก {0} ชม. {1} นาที": "နောက် {0} နာရီ {1} မိနစ်",
+  "อีก {0} นาที": "နောက် {0} မိနစ်",
+  "เลยเวลาตัดรอบแล้ว": "ဖြတ်ချိန် ကျော်ပြီ",
+  "ต้องแพ็ควันนี้ {0}": "ယနေ့ ထုပ်ရန် {0}",
+  "เกินกำหนด {0}": "သတ်မှတ်ချိန်ကျော် {0}",
+  "แพ็ควันนี้แล้ว {0}": "ယနေ့ ထုပ်ပြီး {0}",
+  "นับเฉพาะออเดอร์ที่โอนแล้ว ไม่รวมรับหน้าร้าน": "ငွေလွှဲပြီး အော်ဒါသာ ရေတွက် · ဆိုင်မှာလာယူ မပါ",
+  "กำหนดแพ็คภายใน {0} วันหลังวันไลฟ์": "လိုက်ဗ်ရက်နောက် {0} ရက်အတွင်း ထုပ်ရမည်",
+  "แก้ได้ที่ ตั้งค่า": "ဆက်တင်တွင် ပြင်နိုင်",
+  "เกินกำหนด {0} วัน": "{0} ရက် ကျော်နေ",
+  "ไม่ทันรอบวันนี้": "ယနေ့အကြိမ် မမီ",
+  "ต้องส่งวันนี้": "ယနေ့ ပို့ရမည်",
+  "กำหนด": "သတ်မှတ်ချိန်",
+  "เกินกำหนด": "သတ်မှတ်ချိန်ကျော်",
+  "ดูตามช่วงเวลาที่จัด/แพ็ค": "ရွေး/ထုပ် အချိန်အလိုက် ကြည့်",
+  "ดู": "ကြည့်",
+  "เวลาแพ็ค": "ထုပ်ချိန်",
+  "เวลาจัดเสร็จ": "ရွေးပြီးချိန်",
+  "วันนี้": "ယနေ့",
+  "แพ็คโดย {0}": "ထုပ်သူ {0}",
+  "จัดโดย {0}": "ရွေးသူ {0}",
+  "กำหนดเวลาแพ็ค": "ထုပ်ရန် သတ်မှတ်ချိန်",
+  "ทุกเครื่องใช้ค่าเดียวกัน": "စက်အားလုံး တူညီသောတန်ဖိုး",
+  "แพ็คภายใน": "အတွင်း ထုပ်ရန်",
+  "วันหลังวันไลฟ์": "လိုက်ဗ်ရက်နောက် ရက်",
+  "ตัดรอบส่งทุกวัน": "နေ့စဉ် ပို့ဆောင်ဖြတ်ချိန်",
+  "เวลา": "အချိန်",
+  "บันทึกกำหนดเวลา": "သတ်မှတ်ချိန် သိမ်း",
+  "บันทึกกำหนดเวลาแพ็คแล้ว": "ထုပ်ရန်သတ်မှတ်ချိန် သိမ်းပြီး",
   "{0} ไฟล์": "ဖိုင် {0} ခု",
   "ออเดอร์ที่อยู่หลายไฟล์ ใช้ข้อมูลจากไฟล์ที่ export ทีหลังสุด ไม่ซ้ำกัน": "ဖိုင်များစွာတွင်ပါသော အော်ဒါကို နောက်ဆုံး export ဖိုင်မှ ယူမည် · မထပ်ပါ",
   "วันที่ขาย": "ရောင်းသည့်ရက်",
