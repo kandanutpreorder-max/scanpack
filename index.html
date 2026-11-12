@@ -497,7 +497,7 @@ const PAY = { paid: 'โอนแล้ว', none: 'ยังไม่โอน'
 const S = {
   view: 'orders', staff: '', staffList: [], carriers: [], sheetUrl: '',
   orders: [], itemsBy: {}, byNo: {}, byTrack: {}, codeIdx: {},
-  f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', due: 'all', picker: '', packer: '', date: '', q: '', tr: { kind: 'pack', date: '', from: '', to: '' } },
+  f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', due: 'all', carrier: 'all', picker: '', packer: '', date: '', q: '', tr: { kind: 'pack', date: '', from: '', to: '' } },
   cfg: { packDays: 1, cutoff: '15:00' },
   pickNo: null, pickChoices: null,
   pk: null, packChoices: null,
@@ -656,6 +656,12 @@ function dueBanner() {
   "<div class=\"chips\"><button class=\"chip warn\" data-act=\"dueF\" data-v=\"today\">ต้องแพ็ควันนี้ " + today + "</button>" +
   "<button class=\"chip bad\" data-act=\"dueF\" data-v=\"over\">เกินกำหนด " + over + "</button><span class=\"chip ok\">แพ็ควันนี้แล้ว " + packedToday + "</span></div>" +
   "<div class=\"muted\" style=\"font-size:12px\">นับเฉพาะออเดอร์ที่โอนแล้ว ไม่รวมรับหน้าร้าน · กำหนดแพ็คภายใน " + (Number(S.cfg.packDays) || 0) + " วันหลังวันไลฟ์ (แก้ได้ที่ ตั้งค่า)</div></div>";
+}
+/* ขนส่งของออเดอร์: ที่เลือกตอนแพ็ค ถ้ายังไม่แพ็คใช้ของ Vrich · รับหน้าร้าน = รับหน้าร้าน */
+function carrierOf(o) {return isPickup(o) ? 'รับหน้าร้าน' : String(o.carrier || o.vrichCarrier || '').trim() || 'ไม่ระบุขนส่ง';}
+function carrierSegs(seg) {
+  const m = {};S.orders.forEach((o) => {if (!o.empty) {const c = carrierOf(o);m[c] = (m[c] || 0) + 1;}});
+  return Object.keys(m).sort((a, b) => m[b] - m[a]).map((c) => seg('carrier', c, esc(c) + ' · ' + m[c])).join('');
 }
 function trMatch(o) {
   const tr = S.f.tr;if (!tr.date) return true;
@@ -1409,6 +1415,7 @@ function filtered() {
     if (f.packer && o.packedBy !== f.packer) return false;
     if (f.date && String(o.date || '').slice(0, 10) !== f.date) return false;
     if (f.ship !== 'all' && (f.ship === 'pickup') !== isPickup(o)) return false;
+    if (f.carrier !== 'all' && carrierOf(o) !== f.carrier) return false;
     if (f.due === 'today' && dueState(o) !== 'today') return false;
     if (f.due === 'over' && dueState(o) !== 'over') return false;
     if (!trMatch(o)) return false;
@@ -1452,7 +1459,7 @@ function vOrders() {
   seg('pick', 'all', 'ทั้งหมด') + seg('pick', PICK.none, PICK.none) + seg('pick', PICK.part, PICK.part) + seg('pick', PICK.done, PICK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E41\u0E1E\u0E47\u0E04</label>" +
   seg('pack', 'all', 'ทั้งหมด') + seg('pack', PACK.none, PACK.none) + seg('pack', PACK.part, PACK.part) + seg('pack', PACK.done, PACK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E42\u0E2D\u0E19</label>" +
   seg('pay', 'all', 'ทั้งหมด') + seg('pay', PAY.paid, PAY.paid) + seg('pay', PAY.none, PAY.none) + seg('pay', PAY.part, PAY.part) + "</div>\n    <div class=\"fgroup\"><label>ส่ง</label>" +
-  seg('ship', 'all', 'ทั้งหมด') + seg('ship', 'ship', 'จัดส่ง') + seg('ship', 'pickup', 'รับหน้าร้าน') + "<button class=\"seg\" data-act=\"puOpen\" style=\"border-style:dashed\">+ ตั้งรับหน้าร้าน</button></div>\n    <div class=\"fgroup\"><label>กำหนด</label>" + seg('due', 'all', 'ทั้งหมด') + seg('due', 'today', 'ต้องส่งวันนี้') + seg('due', 'over', 'เกินกำหนด') + "</div>\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
+  seg('ship', 'all', 'ทั้งหมด') + seg('ship', 'ship', 'จัดส่ง') + seg('ship', 'pickup', 'รับหน้าร้าน') + "<button class=\"seg\" data-act=\"puOpen\" style=\"border-style:dashed\">+ ตั้งรับหน้าร้าน</button></div>\n    <div class=\"fgroup\"><label>กำหนด</label>" + seg('due', 'all', 'ทั้งหมด') + seg('due', 'today', 'ต้องส่งวันนี้') + seg('due', 'over', 'เกินกำหนด') + "</div>\n    <div class=\"fgroup\"><label>ขนส่ง</label>" + seg('carrier', 'all', 'ทั้งหมด') + carrierSegs(seg) + "</div>\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
 
   opt(people, f.picker, 'จัดโดย') + "</select>\n      <select id=\"fPacker\" aria-label=\"\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22\">" +
   opt(people, f.packer, 'แพ็คโดย') + "</select>\n    </div>\n    " + trBox + "\n    <div class=\"sec\" id=\"olCount\"></div>\n    <div class=\"stack\" id=\"olist\"></div>\n  </div>";
@@ -3264,6 +3271,8 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ไม่ระบุขนส่ง · {0}": "ပို့ဆောင်ရေး မသတ်မှတ် · {0}",
+  "รับหน้าร้าน · {0}": "ဆိုင်မှာလာယူ · {0}",
   "{0} ชิ้นที่จัดแล้วแต่ยังไม่แพ็ค": "ရွေးပြီး မထုပ်ရသေး {0} ခု",
   "ไม่มีสินค้า (โค้ด/ส่วนลด)": "ပစ္စည်းမရှိ (ကုဒ်/လျှော့စျေး)",
   "จัดแล้วแต่หาไม่เจอ": "ရွေးပြီးသော်လည်း ရှာမတွေ့",
