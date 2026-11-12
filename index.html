@@ -615,6 +615,8 @@ function rebuild() {
     const c = norm(i.code);
     (S.codeIdx[c] = S.codeIdx[c] || []).includes(k) || S.codeIdx[c].push(k);
   }));
+  // ออเดอร์ที่มีแต่โค้ด/ส่วนลด (ไม่มีสินค้าให้จัด) ไม่นับเป็นงานจัด/แพ็ค
+  S.orders.forEach((o) => {o.empty = !itemsOf(o).some((i) => !isSkip(i) && qtyOf(i) > 0);});
 }
 function setData(d) {
   if (d.cfg) S.cfg = d.cfg;
@@ -631,7 +633,7 @@ function todayStr() {return ymd(new Date());}
 function addDays(day, n) {const D = new Date(day + 'T12:00:00');D.setDate(D.getDate() + n);return ymd(D);}
 function cutoffMs() {const m = String(S.cfg.cutoff || '15:00').match(/(\d{1,2}):(\d{2})/);const D = new Date();D.setHours(m ? Number(m[1]) : 15, m ? Number(m[2]) : 0, 0, 0);return D.getTime();}
 /* ต้องแพ็คส่ง = โอนแล้ว ยังไม่แพ็คเสร็จ ไม่ใช่รับหน้าร้าน */
-function needPack(o) {return o.packStatus !== PACK.done && !isPickup(o) && o.payStatus === PAY.paid && !!String(o.date || '').slice(0, 10);}
+function needPack(o) {return !o.empty && o.packStatus !== PACK.done && !isPickup(o) && o.payStatus === PAY.paid && !!String(o.date || '').slice(0, 10);}
 function dueDay(o) {return addDays(String(o.date).slice(0, 10), Number(S.cfg.packDays) || 0);}
 /* 'over' เกินกำหนด · 'today' ครบกำหนดวันนี้ · 'later' ยังไม่ถึง · '' ไม่ต้องนับ */
 function dueState(o) {
@@ -668,6 +670,7 @@ function recalc(o) {
   const total = phys.reduce((s, i) => s + qtyOf(i), 0);
   const picked = phys.reduce((s, i) => s + pickedOf(i), 0);
   o.itemQty = total;o.pickedQty = picked;
+  o.empty = total <= 0;   // ออเดอร์ที่มีแต่โค้ด/ส่วนลด ไม่มีสินค้าให้จัด
   const prev = o.pickStatus;
   o.pickStatus = picked <= 0 ? PICK.none : picked >= total ? PICK.done : PICK.part;
   if (o.pickStatus === PICK.done && prev !== PICK.done) o.pickedAt = nowStr();
@@ -1388,15 +1391,17 @@ function payChip(o) {
   return "<span class=\"chip " + c + "\">" + esc(o.payStatus || '-') + "</span>";
 }
 function pickChip(o) {
+  if (o.empty) return '<span class="chip">ไม่มีสินค้า (โค้ด/ส่วนลด)</span>';
   const c = o.pickStatus === PICK.done ? 'ok' : o.pickStatus === PICK.part ? 'ai' : '';
   return "<span class=\"chip " + c + "\">" + esc(o.pickStatus || PICK.none) + (o.pickStatus !== PICK.none ? ' ' + (o.pickedQty || 0) + '/' + (o.itemQty || 0) : '') + "</span>";
 }
-function packChip(o) {return o.packStatus === PACK.done ? '<span class="chip ink">แพ็คแล้ว</span>' : o.packStatus === PACK.part ? '<span class="chip warn">แพ็คบางส่วน · รอของ</span>' : '';}
+function packChip(o) {if (o.empty) return '';return o.packStatus === PACK.done ? '<span class="chip ink">แพ็คแล้ว</span>' : o.packStatus === PACK.part ? '<span class="chip warn">แพ็คบางส่วน · รอของ</span>' : '';}
 
 /* ---------- หน้าออเดอร์ ---------- */
 function filtered() {
   const f = S.f,q = norm(f.q);
   return S.orders.filter((o) => {
+    if (o.empty && (f.pick !== 'all' || f.pack !== 'all' || f.due !== 'all')) return false;
     if (f.pick !== 'all' && o.pickStatus !== f.pick) return false;
     if (f.pack !== 'all' && (o.packStatus || PACK.none) !== f.pack) return false;
     if (f.pay !== 'all' && o.payStatus !== f.pay) return false;
@@ -1417,7 +1422,7 @@ function filtered() {
 function vOrders() {
   const dayOf = (o) => String(o.date || '').slice(0, 10);
   const all = S.f.date ? S.orders.filter((o) => dayOf(o) === S.f.date) : S.orders;
-  const cnt = (fn) => all.filter(fn).length;
+  const cnt = (fn) => all.filter((o) => !o.empty && fn(o)).length;
   const t = today();
   const tiles = [
   ['ยังไม่จัด', cnt((o) => o.pickStatus === PICK.none), { pick: PICK.none, pack: 'all', pay: 'all' }],
@@ -1487,7 +1492,7 @@ function orderHead(o, mode) {
 
 }
 function waitingList(filterFn, mode, title) {
-  const list = S.orders.filter(filterFn).sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0));
+  const list = S.orders.filter((o) => !o.empty && filterFn(o)).sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0));
   return "<div class=\"sec\">" + title + " (" + list.length + ")</div>\n    <div class=\"stack\">" + (
   list.slice(0, 60).map((o) => "<button class=\"ord\" data-act=\"" + mode + "\" data-no=\"" + esc(norm(o.orderNo)) + "\">\n      <div class=\"ord-top\"><span class=\"ord-no\">#" +
   esc(o.orderNo) + "</span><span class=\"ord-name\">" + esc(o.customer || '-') + "</span><span class=\"muted num\">" + (o.pickedQty || 0) + "/" + (o.itemQty || 0) + "</span></div>\n      <div class=\"chips\" style=\"margin-top:4px\">" +
@@ -1674,13 +1679,16 @@ function findRows() {
       if (q && k.indexOf(q) < 0 && norm(i.name).indexOf(q) < 0 && norm([o.orderNo, o.customer, o.fbName, o.phone].join('|')).indexOf(q) < 0) return;
       const left = bneed ? (bneed[k] ? bneed[k].total - bneed[k].picked : 0) : qtyOf(i) - pickedOf(i);
       const short = effShort(stockRec(i.code), lv[k] ? lv[k].need : 0) > 0;
+      // จัดแล้วแต่ยังไม่แพ็ค (ของที่หยิบไปแล้วแต่ตอนแพ็คหาไม่เจอ)
+      const lost = pickedOf(i) - (Number(i.packedQty) || 0);
+      if (f.mode === 'lost' && lost <= 0) return;
       if (f.mode === 'left' && left <= 0) return;
       if (f.mode === 'short' && !short) return;
       const day = String(i.cfAt || '').slice(0, 10) || String(o.date || '').slice(0, 10);
       if (f.date && day !== f.date) return;
       const g = groups[k] = groups[k] || { code: i.code, key: k, name: i.name, short: short, left: 0, rows: [] };
-      g.left = bneed ? Math.max(0, left) : g.left + Math.max(0, left);
-      g.rows.push({ no: o.orderNo, cfAt: String(i.cfAt || ''), qty: qtyOf(i), left: qtyOf(i) - pickedOf(i), who: o.customer || o.fbName || '', fb: o.fbName && o.fbName !== o.customer ? o.fbName : '', tel: o.phone || '' });
+      g.left = f.mode === 'lost' ? g.left + lost : bneed ? Math.max(0, left) : g.left + Math.max(0, left);
+      g.rows.push({ no: o.orderNo, cfAt: String(i.cfAt || ''), qty: qtyOf(i), left: qtyOf(i) - pickedOf(i), lost: lost, by: i.pickedBy || '', at: String(i.pickedAt || ''), part: o.packStatus === PACK.part, bk: lost > 0 ? (whereList(i.code).find((w) => norm(w.o.orderNo) === norm(o.orderNo)) || {}).bk || '' : '', who: o.customer || o.fbName || '', fb: o.fbName && o.fbName !== o.customer ? o.fbName : '', tel: o.phone || '' });
     });
   });
   const first = (g) => g.rows.map((r) => r.cfAt || '9').sort()[0];
@@ -1699,17 +1707,18 @@ function vFind() {
   return "<div class=\"stack\">" + back() + "<div class=\"card stack\"><b>ตามหาสินค้า (เวลาในไลฟ์)</b>" +
   "<div class=\"muted\" style=\"font-size:13px\">ใส่เวลาเริ่มไลฟ์ ระบบจะบอกว่าสินค้าแต่ละชิ้นถูก CF ตอนนาทีไหนของวิดีโอ เปิดคลิปไลฟ์แล้วเลื่อนไปดูได้เลย</div>" +
   "<div class=\"fgroup\"><label>วันที่</label>" + db('', 'ทุกวัน') + days.map((d) => db(d, esc(dayLabel(d)))).join('') + "</div>" +
-  "<div class=\"fgroup\"><label>แสดง</label>" + mb('left', 'ยังไม่จัด') + mb('short', 'หาไม่เจอ/สต็อกขาด') + mb('all', 'ทั้งหมด') + "</div>" +
+  "<div class=\"fgroup\"><label>แสดง</label>" + mb('left', 'ยังไม่จัด') + mb('lost', 'จัดแล้วแต่หาไม่เจอ') + mb('short', 'สต็อกขาด') + mb('all', 'ทั้งหมด') + "</div>" +
   "<div class=\"fgroup\"><label>รอบ</label>" + bb('', 'ทุกออเดอร์') + S.batches.filter((x) => x.status !== BATCH.closed).map((x) => bb(x.id, 'หยิบรวม ' + esc(x.id))).join('') + "</div>" +
   "<label class=\"field\"><span>ค้นหา: รหัสสินค้า ชื่อลูกค้า ชื่อ FB เบอร์โทร หรือเลขออเดอร์</span><input id=\"fdQ\" type=\"search\" autocomplete=\"off\" value=\"" + esc(f.q || '') + "\" placeholder=\"เช่น Y12 · สมใจ · 0812345678\"></label>" +
   (f.date ? "<label class=\"field\"><span>เวลาเริ่มไลฟ์ วันที่ " + esc(dayLabel(f.date)) + " (ชั่วโมง:นาที:วินาที)</span><input id=\"fdStart\" type=\"time\" step=\"1\" value=\"" + esc(liveStarts()[f.date] || '') + "\"></label>" :
   "<div class=\"muted\" style=\"font-size:12px\">เลือกวันที่ เพื่อกรอกเวลาเริ่มไลฟ์ของวันนั้น</div>") + "</div>" +
-  "<div class=\"sec\">" + rows.length + " รายการ · " + rows.reduce((t, g) => t + g.left, 0) + " ชิ้นที่ยังไม่จัด · เรียงตามเวลา CF</div>" +
+  "<div class=\"sec\">" + rows.length + " รายการ · " + rows.reduce((t, g) => t + g.left, 0) + " " + (f.mode === 'lost' ? 'ชิ้นที่จัดแล้วแต่ยังไม่แพ็ค' : 'ชิ้นที่ยังไม่จัด') + " · เรียงตามเวลา CF</div>" +
   (noCf ? "<div class=\"alert warn\">บางรายการไม่มีเวลา CF ให้นำเข้าไฟล์ Vrich ใหม่อีกครั้ง</div>" : '') +
   "<div class=\"stack\" id=\"fdList\">" + (rows.slice(0, 300).map((g) => "<div class=\"card fdrow\" role=\"button\" tabindex=\"0\" data-act=\"stockOpen\" data-c=\"" + esc(g.code) + "\">" +
-    "<div class=\"head-top\"><span class=\"code\" style=\"font-size:17px\">" + esc(g.code) + "</span>" + (g.left ? "<span class=\"chip warn\">ยังไม่จัด " + g.left + "</span>" : "<span class=\"chip ok\">จัดแล้ว</span>") + (g.short ? "<span class=\"chip bad\">หาไม่เจอ/ขาด</span>" : '') + "</div>" +
+    "<div class=\"head-top\"><span class=\"code\" style=\"font-size:17px\">" + esc(g.code) + "</span>" + (f.mode === 'lost' ? "<span class=\"chip bad\">จัดแล้ว ยังไม่แพ็ค " + g.left + "</span>" : g.left ? "<span class=\"chip warn\">ยังไม่จัด " + g.left + "</span>" : "<span class=\"chip ok\">จัดแล้ว</span>") + (g.short ? "<span class=\"chip bad\">หาไม่เจอ/ขาด</span>" : '') + "</div>" +
     "<div class=\"nm\" style=\"font-size:13px;color:var(--muted)\">" + esc(g.name) + "</div><div class=\"fdcf\">" +
     g.rows.map((r) => {const v = r.cfAt ? vidAt(r.cfAt) : '';return "<div><b>" + (r.cfAt ? esc(r.cfAt.slice(11, 19)) : '—') + "</b>" + (v ? " <span class=\"chip ai\">" + esc(v) + "</span>" : '') + " <span class=\"muted\">#" + esc(r.no) + (r.qty > 1 ? ' ×' + r.qty : '') + (r.left <= 0 ? ' ✓' : '') + "</span>" +
+    (f.mode === 'lost' ? "<div class=\"fdwho\" style=\"color:var(--bad)\">จัดแล้ว " + r.lost + " ชิ้น" + (r.by ? " โดย " + esc(r.by) : '') + (r.at ? " " + esc(r.at.slice(5, 16)) : '') + (r.bk ? " · " + esc(r.bk) : '') + (r.part ? " · แพ็คบางส่วน รอของ" : '') + "</div>" : '') +
     "<div class=\"fdwho\">" + esc(r.who) + (r.fb ? " · FB: " + esc(r.fb) : '') + (r.tel ? " · <a href=\"tel:" + esc(r.tel) + "\" data-stop=\"1\">" + esc(r.tel) + "</a>" : '') + "</div></div>";}).join('') +
     "</div></div>").join('') || '<div class="empty">ไม่มีสินค้าตามเงื่อนไข</div>') + "</div></div>";
 }
@@ -1719,7 +1728,7 @@ const SL_PER = [2, 4, 6, 8, 10];
 function slPrinted() {return LS.get('slPrinted', {});}
 function slList() {
   const c = S.sl,pr = slPrinted();
-  return S.orders.filter((o) => (!c.paid || o.payStatus === PAY.paid) && (!c.noPickup || !isPickup(o)) &&
+  return S.orders.filter((o) => !o.empty && (!c.paid || o.payStatus === PAY.paid) && (!c.noPickup || !isPickup(o)) &&
   (!c.unpacked || o.packStatus !== PACK.done) && (!c.date || String(o.date || '').slice(0, 10) === c.date) &&
   (!c.hidePrinted || !pr[norm(o.orderNo)])).
   sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0) || String(a.orderNo).localeCompare(String(b.orderNo)));
@@ -3255,6 +3264,11 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "{0} ชิ้นที่จัดแล้วแต่ยังไม่แพ็ค": "ရွေးပြီး မထုပ်ရသေး {0} ခု",
+  "ไม่มีสินค้า (โค้ด/ส่วนลด)": "ပစ္စည်းမရှိ (ကုဒ်/လျှော့စျေး)",
+  "จัดแล้วแต่หาไม่เจอ": "ရွေးပြီးသော်လည်း ရှာမတွေ့",
+  "จัดแล้ว ยังไม่แพ็ค {0}": "ရွေးပြီး မထုပ်ရသေး {0}",
+  "โดย {0}": "လုပ်သူ {0}",
   "รอบส่งวันนี้": "ယနေ့ ပို့ဆောင်အကြိမ်",
   "ตัดรอบ {0}": "ဖြတ်ချိန် {0}",
   "รอบส่งวันนี้ · ตัดรอบ {0}": "ယနေ့ ပို့ဆောင်အကြိမ် · ဖြတ်ချိန် {0}",
