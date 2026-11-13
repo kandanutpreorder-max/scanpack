@@ -347,6 +347,9 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .bkc.ok{background:var(--ok-soft);color:var(--ok)}
 .bk.done .bkn{background:var(--ok);color:#fff}
 .bk.hit{border-color:var(--ai);box-shadow:inset 0 0 0 2px var(--ai)}
+.bk .min .lb{font-weight:700;font-size:11px;color:var(--warn)} .bk .min .lb.y{color:var(--ok)}
+.bk.done.nolbl{background:var(--warn-soft)} .bk.done.nolbl .bkn{background:var(--warn);color:#fff}
+.lblcard{border-color:var(--warn)} .lblcard.ok{border-color:var(--ok)}
 .bk.hit .bkn{background:var(--ai);color:var(--ai-ink)}
 .putbig{display:flex;align-items:center;gap:14px;background:var(--ai);color:var(--ai-ink);border-radius:var(--r);padding:12px 16px}
 .putbig>span{font-size:13px;opacity:.85;writing-mode:vertical-rl;transform:rotate(180deg)}
@@ -725,7 +728,7 @@ async function qRun() {
       if (op.type === 'packprog') b = await api('savePackProgress', op.orderNo, op.payload);else
       if (op.type === 'pickup') b = await api('setPickup', op.orderNo, op.val, op.staff);else
       if (op.type === 'ordered') {const rows = await api('markOrdered', op.codes, op.staff);(rows || []).forEach((r) => {const k = norm(r.code);S.stock[k] = Object.assign({}, S.stock[k] || {}, { ordered: r.ordered });});} else
-      if (op.type === 'batch') {const r = await api('saveBatch', op.id, op.patch, op.staff);if (r && !Q.list.slice(1).some((x) => x.type === 'batch' && x.id === op.id)) {const i = S.batches.findIndex((x) => x.id === r.id);if (i >= 0) S.batches[i] = r;}}
+      if (op.type === 'batch') {const r = await api('saveBatch', op.id, op.patch, op.staff);if (r && op.patch.labels && r.labels === undefined) {r.labels = JSON.stringify(op.patch.labels);if (!S.oldGsWarned) {S.oldGsWarned = 1;toast('อัปเดต Code.gs เวอร์ชันใหม่ เพื่อให้เครื่องอื่นเห็นใบปะหน้าที่สแกน', 'bad');}}if (r && !Q.list.slice(1).some((x) => x.type === 'batch' && x.id === op.id)) {const i = S.batches.findIndex((x) => x.id === r.id);if (i >= 0) S.batches[i] = r;}}
       Q.list.shift();Q.fails = 0;qSave();
       if (b && b.order && !Q.list.some((x) => x.orderNo === op.orderNo)) applyBundle(b);
       softRender();
@@ -1771,8 +1774,8 @@ function barcodeSvg(text) {
     return sv.outerHTML;
   } catch (e) {return '';}
 }
-async function printSlips() {
-  const list = slChosen();if (!list.length) return toast('ยังไม่ได้เลือกออเดอร์');
+async function printSlips(only) {
+  const list = Array.isArray(only) && only.length ? only : slChosen();if (!list.length) return toast('ยังไม่ได้เลือกออเดอร์');
   try {
     if (!window.qrcode) await loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js');
     if (!window.JsBarcode) await loadScript('https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js');
@@ -2095,6 +2098,14 @@ const ACT = {
   slAll: () => {S.sl.off.clear();render();},
   slNone: () => {slList().forEach((o) => S.sl.off.add(norm(o.orderNo)));render();},
   slPrint: () => printSlips(),
+  bLbl: (el) => {
+    const b = curBatch(),k = el.k;if (!b) return;
+    if (S.confirmReset !== 'lbl' + k) {S.confirmReset = 'lbl' + k;return render();}
+    const ns = needStaff();if (ns) return feedback(ns);
+    S.confirmReset = null;setLbl(b, k, true);render();
+  },
+  bLblUndo: (el) => {const b = curBatch();if (!b) return;setLbl(b, el.k, false);S.lastPut = null;render();},
+  bLblPrint: () => {const b = curBatch();if (b) printSlips(lblMissing(b).map((x) => x.o));},
   dataArchive: () => dataRun('a'),
   dataClear: () => dataRun('c'),
   printPickupOne: (d) => printPickup([S.byNo[d.no]].filter(Boolean)),
@@ -2463,6 +2474,16 @@ function batchBasketMap(b) {
   });
   return m;
 }
+/* ใบปะหน้าที่สแกนลงตะกร้าแล้ว: {orderKey: 'HH:mm ชื่อ'} */
+function bLabels(b) {return parseJ(b.labels, {});}
+function hasLbl(b, x) {return !!bLabels(b)[x.key];}
+function setLbl(b, key, on) {
+  const m = bLabels(b);
+  if (on) m[key] = new Date().toTimeString().slice(0, 5) + ' ' + (S.staff || '');else delete m[key];
+  b.labels = JSON.stringify(m);
+  enqueue({ type: 'batch', id: b.id, patch: { labels: m }, staff: S.staff });
+}
+function lblMissing(b) {return batchBaskets(b).filter((x) => x.o && !hasLbl(b, x));}
 function bkChips(list) {
   if (!list || !list.length) return '';
   return "<div class=\"bkcs\"><span>ตะกร้า</span>" + list.map((t) => "<span class=\"bkc" + (t.ok ? ' ok' : '') + "\">" + t.n + (t.q > 1 ? "<small>×" + t.q + "</small>" : '') + "</span>").join('') + "</div>";
@@ -2521,13 +2542,22 @@ function vBatch() {
   } else {
     const lp = S.lastPut && S.lastPut.batch === b.id ? S.lastPut : null;
     const done = bs.filter((x) => x.o && x.o.pickStatus === PICK.done).length;
-    body = (lp ? "<div class=\"putbig\"><span>\u0E43\u0E2A\u0E48\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</span><b>" + lp.n + "</b><div><b>#" + esc(lp.no) + "</b><br><span class=\"code\">" + esc(lp.code) + "</span></div></div>" : "<div class=\"muted\" style=\"font-size:13px\">\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19 \u0E41\u0E2D\u0E1B\u0E08\u0E30\u0E1A\u0E2D\u0E01\u0E40\u0E25\u0E02\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2A\u0E48 \u0E15\u0E34\u0E14\u0E40\u0E25\u0E02 1\u2013" +
-    bs.length + " \u0E17\u0E35\u0E48\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32\u0E2B\u0E23\u0E37\u0E2D\u0E16\u0E38\u0E07\u0E15\u0E32\u0E21\u0E25\u0E33\u0E14\u0E31\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07</div>") + "\n      <div class=\"bgrid\">" +
+    const miss = lblMissing(b),nOrd = bs.filter((x) => x.o).length;
+    const lblCard = "<div class=\"card stack lblcard" + (miss.length ? '' : ' ok') + "\"><div class=\"head-top\"><b>ใบปะหน้า " + (nOrd - miss.length) + "/" + nOrd + "</b>" +
+    (miss.length ? "<span class=\"chip warn\">ขาด " + miss.length + " ใบ</span>" : "<span class=\"chip ok\">ครบทุกตะกร้า ✓</span>") + "</div>" +
+    (miss.length ? "<div class=\"muted\" style=\"font-size:13px\">สแกนใบปะหน้าทีละใบ แอปบอกเลขตะกร้า ตะกร้าที่ได้ใบแล้วขึ้น \"ใบ ✓\" · ที่ยังไม่มีใบ:</div>" +
+    "<div class=\"chips\">" + miss.map((x) => "<button class=\"chip warn\" data-act=\"bLbl\" data-k=\"" + esc(x.key) + "\">" + (S.confirmReset === 'lbl' + x.key ? 'แตะอีกครั้ง = มีใบแล้ว' : "<b>ตะกร้า " + x.n + "</b> · #" + esc(x.no)) + "</button>").join('') + "</div>" +
+    "<div class=\"muted\" style=\"font-size:12px\">สแกนไม่ติด: แตะเลขตะกร้า 2 ครั้ง เพื่อติ๊กว่ามีใบแล้ว</div>" +
+    "<button class=\"btn\" data-act=\"bLblPrint\">พิมพ์ใบออเดอร์แทนใบที่ขาด (" + miss.length + " ใบ)</button>" : '') + "</div>";
+    body = (lp ? "<div class=\"putbig\"><span>\u0E43\u0E2A\u0E48\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</span><b>" + lp.n + "</b><div><b>#" + esc(lp.no) + "</b><br><span class=\"code\">" + esc(lp.code) + "</span>" + (lp.lbl && bLabels(b)[lp.lbl] ? "<br><button class=\"x\" style=\"color:inherit;background:transparent;border:1px solid currentColor;margin-top:6px\" data-act=\"bLblUndo\" data-k=\"" + esc(lp.lbl) + "\">ยกเลิกใบนี้</button>" : '') + "</div></div>" : "<div class=\"muted\" style=\"font-size:13px\">\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19 \u0E41\u0E2D\u0E1B\u0E08\u0E30\u0E1A\u0E2D\u0E01\u0E40\u0E25\u0E02\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2A\u0E48 \u0E15\u0E34\u0E14\u0E40\u0E25\u0E02 1\u2013" +
+    bs.length + " \u0E17\u0E35\u0E48\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32\u0E2B\u0E23\u0E37\u0E2D\u0E16\u0E38\u0E07\u0E15\u0E32\u0E21\u0E25\u0E33\u0E14\u0E31\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07</div>") + lblCard + "\n      <div class=\"bgrid\">" +
     bs.map((x) => {
       const o = x.o;const q = o ? o.itemQty || 0 : 0,d = o ? o.pickedQty || 0 : 0;
-      return "<button class=\"bk " + (o && o.pickStatus === PICK.done ? 'done' : '') + " " + (lp && lp.n === x.n ? 'hit' : '') + "\" data-act=\"openPick\" data-no=\"" + esc(x.key) + "\">\n          <span class=\"bkn\">" +
-      x.n + "</span><span class=\"min\"><b>#" + esc(x.no) + "</b><span>" + esc(o ? o.customer || '' : 'ไม่พบออเดอร์') + "</span></span><span class=\"num\">" + d + "/" + q + "</span></button>";
+      const lb = o && hasLbl(b, x);
+      return "<button class=\"bk " + (o && o.pickStatus === PICK.done ? lb ? 'done' : 'done nolbl' : '') + " " + (lp && lp.n === x.n ? 'hit' : '') + "\" data-act=\"openPick\" data-no=\"" + esc(x.key) + "\">\n          <span class=\"bkn\">" +
+      x.n + "</span><span class=\"min\"><b>#" + esc(x.no) + "</b><span>" + esc(o ? o.customer || '' : 'ไม่พบออเดอร์') + "</span>" + (o ? "<span class=\"lb" + (lb ? ' y' : '') + "\">" + (lb ? 'ใบ ✓' : 'ยังไม่มีใบ') + "</span>" : '') + "</span><span class=\"num\">" + d + "/" + q + "</span></button>";
     }).join('') + "</div>\n      " + (
+    done === bs.length && miss.length ? "<div class=\"alert warn\">ของครบทุกตะกร้า แต่ยังขาดใบปะหน้า " + miss.length + " ใบ</div>" :
     done === bs.length ? "<div class=\"alert ok\">\u0E41\u0E22\u0E01\u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32 \u2713<button data-act=\"go\" data-v=\"pack\"><span>\u0E44\u0E1B\u0E41\u0E1E\u0E47\u0E04</span></button></div>" : '');
   }
   return "<div class=\"stack\">" + head + body + "\n    <div class=\"btns\"><button class=\"btn\" data-act=\"bPrint\">\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21</button>\n    " + (
@@ -2595,7 +2625,16 @@ function batchScan(code) {
   const ord = findOrder(k);
   if (ord) {
     const x = bs.find((y) => y.o === ord);
-    return x ? { ok: true, msg: 'ตะกร้า ' + x.n, sub: '#' + ord.orderNo + ' ' + (ord.customer || '') } : { ok: false, msg: '#' + ord.orderNo + ' ไม่อยู่ในรอบนี้' };
+    if (!x) {const ob = inOpenBatch()[norm(ord.orderNo)];return { ok: false, big: true, msg: '#' + ord.orderNo + ' ไม่อยู่ในรอบนี้', sub: ob ? 'อยู่รอบ ' + ob : 'ใบนี้ยังไม่ได้อยู่ในรอบหยิบไหน แยกเก็บไว้ก่อน' };}
+    if (S.batchStep === 'sort') {
+      const had = hasLbl(b, x);
+      if (!had) {const ns = needStaff();if (ns) return ns;setLbl(b, x.key, true);}
+      S.lastPut = { batch: b.id, n: x.n, no: ord.orderNo, code: 'ใบปะหน้า', lbl: x.key };
+      softRender();
+      const miss = lblMissing(b).length;
+      return { ok: true, big: true, msg: 'ใบปะหน้า → ตะกร้า ' + x.n, sub: '#' + ord.orderNo + ' ' + (ord.customer || '') + (had ? ' · สแกนไปแล้ว' : '') + (miss ? ' · ยังขาดใบ ' + miss + ' ตะกร้า' : ' · ใบปะหน้าครบทุกตะกร้า ✓') };
+    }
+    return { ok: true, msg: 'ตะกร้า ' + x.n, sub: '#' + ord.orderNo + ' ' + (ord.customer || '') };
   }
   if (S.batchStep === 'pick') {
     if (!batchNeeds(b)[k]) {setWhere(code);return { ok: false, msg: code + ' ไม่อยู่ในรอบนี้', sub: S.codeIdx[k] ? 'อยู่ใน #' + S.codeIdx[k].join(', #') : '' };}
@@ -2617,6 +2656,7 @@ function batchScan(code) {
     setWhere(code);
     return { kind: 'warn', big: true, msg: code + ' หยิบครบแล้ว · ตะกร้า ' + where, sub: 'ใส่ครบทุกตะกร้าแล้ว ชิ้นนี้เกิน ไม่ต้องใส่' };
   }
+  if (!S.codeIdx[k] && /^[A-Z0-9]{10,}$/i.test(code)) return { ok: false, big: true, msg: 'ไม่พบเลขพัสดุนี้ในระบบ', sub: 'ถ้าเป็นใบปะหน้า ให้นำเข้าไฟล์ Vrich ล่าสุดก่อน แล้วสแกนใหม่' };
   {setWhere(code);return { ok: false, msg: code + ' ไม่อยู่ในรอบนี้', sub: S.codeIdx[k] ? 'อยู่ใน #' + S.codeIdx[k].join(', #') : '' };}
 }
 function printBatch(b) {
@@ -3271,6 +3311,27 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ใบปะหน้า {0}": "လိပ်စာတံဆိပ် {0}",
+  "ใบปะหน้า": "လိပ်စာတံဆိပ်",
+  "ขาด {0} ใบ": "{0} ရွက် လို",
+  "ครบทุกตะกร้า {0}": "ခြင်းအားလုံး ပြည့်စုံ {0}",
+  "สแกนใบปะหน้าทีละใบ แอปบอกเลขตะกร้า ตะกร้าที่ได้ใบแล้วขึ้น {0}ใบ {1} {2} ที่ยังไม่มีใบ{3}": "လိပ်စာတံဆိပ်ကို တစ်ရွက်ချင်း စကင်ဖတ်ပါ အက်ပ်က ခြင်းနံပါတ်ပြမည် တံဆိပ်ရပြီးသောခြင်းတွင် {0}တံဆိပ် {1} ပြမည် {2} တံဆိပ်မရသေးသော ခြင်းများ{3}",
+  "แตะอีกครั้ง = มีใบแล้ว": "ထပ်နှိပ်ပါ = တံဆိပ်ရှိပြီ",
+  "สแกนไม่ติด{0} แตะเลขตะกร้า {1} ครั้ง เพื่อติ๊กว่ามีใบแล้ว": "စကင်မဖတ်နိုင်လျှင်{0} ခြင်းနံပါတ်ကို {1} ကြိမ်နှိပ်၍ တံဆိပ်ရှိပြီဟု အမှတ်ခြစ်ပါ",
+  "พิมพ์ใบออเดอร์แทนใบที่ขาด {0} ใบ{1}": "မရှိသောတံဆိပ်အစား အော်ဒါစာရွက် ပုံနှိပ် {0} ရွက်{1}",
+  "ใบ {0}": "တံဆိပ် {0}",
+  "ยังไม่มีใบ": "တံဆိပ် မရှိသေး",
+  "ของครบทุกตะกร้า แต่ยังขาดใบปะหน้า {0} ใบ": "ခြင်းအားလုံး ပစ္စည်းပြည့်ပြီ သို့သော် လိပ်စာတံဆိပ် {0} ရွက် လိုနေသေး",
+  "ยกเลิกใบนี้": "ဤတံဆိပ် ပယ်ဖျက်",
+  "ไม่พบเลขพัสดุนี้ในระบบ": "ဤပါဆယ်နံပါတ် စနစ်တွင် မတွေ့ပါ",
+  "ถ้าเป็นใบปะหน้า ให้นำเข้าไฟล์ {0} ล่าสุดก่อน แล้วสแกนใหม่": "လိပ်စာတံဆိပ်ဖြစ်လျှင် နောက်ဆုံး {0} ဖိုင်ကို အရင်တင်သွင်းပြီး ပြန်စကင်ဖတ်ပါ",
+  "ใบปะหน้า {0} ตะกร้า {1}": "လိပ်စာတံဆိပ် {0} ခြင်း {1}",
+  "สแกนไปแล้ว": "စကင်ဖတ်ပြီးသား",
+  "ยังขาดใบ {0} ตะกร้า": "တံဆိပ်လိုသော ခြင်း {0} ခု",
+  "ใบปะหน้าครบทุกตะกร้า {0}": "ခြင်းအားလုံး လိပ်စာတံဆိပ် ပြည့်စုံ {0}",
+  "ใบนี้ยังไม่ได้อยู่ในรอบหยิบไหน แยกเก็บไว้ก่อน": "ဤတံဆိပ်သည် မည်သည့်အသုတ်တွင်မှ မပါသေး သီးခြားသိမ်းထားပါ",
+  "อยู่รอบ {0}": "အသုတ် {0} တွင် ရှိသည်",
+  "อัปเดต {0} เวอร์ชันใหม่ เพื่อให้เครื่องอื่นเห็นใบปะหน้าที่สแกน": "အခြားစက်များ စကင်ဖတ်ထားသောတံဆိပ်ကို မြင်ရန် {0} ဗားရှင်းအသစ် တင်ပါ",
   "ไม่ระบุขนส่ง · {0}": "ပို့ဆောင်ရေး မသတ်မှတ် · {0}",
   "รับหน้าร้าน · {0}": "ဆိုင်မှာလာယူ · {0}",
   "{0} ชิ้นที่จัดแล้วแต่ยังไม่แพ็ค": "ရွေးပြီး မထုပ်ရသေး {0} ခု",
