@@ -535,7 +535,8 @@ const PU_TITLE = 'รายการสินค้า รับเอง ส่
 const VRICH_URL = 'https://madungshop.vrich619.com/order?id={no}';
 function vrichLink(no) {const u = S.set.vrichUrl == null ? VRICH_URL : String(S.set.vrichUrl).trim();return u ? u.split('{no}').join(encodeURIComponent(String(no))) : '';}
 function dayLabel(d) {const m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);return m ? Number(m[3]) + '/' + Number(m[2]) : String(d);}
-const pickedOf = (i) => Math.max(0, Math.min(qtyOf(i), Number(i.pickedQty) || 0));
+/* ของที่สแกนลงกล่องตอนแพ็คแล้ว นับว่าหยิบแล้วด้วย (กรณีข้ามขั้นจัดของ) */
+const pickedOf = (i) => Math.max(0, Math.min(qtyOf(i), Math.max(Number(i.pickedQty) || 0, Number(i.packedQty) || 0)));
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
 const nowStr = () => {const d = new Date();return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' }) + ' ' + d.toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' });};
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -629,6 +630,11 @@ function setData(d) {
   S.itemsBy = {};
   (d.items || []).forEach((i) => {const k = norm(i.orderNo);(S.itemsBy[k] = S.itemsBy[k] || []).push(i);});
   rebuild();
+  /* ซ่อมข้อมูลในชีตครั้งเดียว: ยอดหยิบต่ำกว่ายอดแพ็ค (Code.gs เก่าจะไม่รู้จักคำสั่งนี้ ก็ข้ามไป) */
+  if (!S.pickFixTried && S.staff && (d.items || []).some((i) => (Number(i.packedQty) || 0) > (Number(i.pickedQty) || 0))) {
+    S.pickFixTried = 1;
+    api('fixPickFromPack', S.staff).then((r) => {if (r && r.count) toast('ปรับยอดหยิบตามยอดแพ็คแล้ว ' + r.count + ' ออเดอร์');}).catch(() => {});
+  }
 }
 /* ---------- กำหนดเวลาแพ็ค ---------- */
 function ymd(D) {const p2 = (x) => (x < 10 ? '0' : '') + x;return D.getFullYear() + '-' + p2(D.getMonth() + 1) + '-' + p2(D.getDate());}
@@ -1483,7 +1489,7 @@ function renderOrderList() {
     const pct = o.itemQty ? Math.round((o.pickedQty || 0) / o.itemQty * 100) : 0;
     return "<button class=\"ord\" data-act=\"detail\" data-no=\"" + esc(norm(o.orderNo)) + "\">\n      <div class=\"ord-top\"><span class=\"ord-no\">#" +
     esc(o.orderNo) + "</span><span class=\"ord-name\">" + esc(o.customer || o.fbName || '-') + "</span><span class=\"ord-amt\">" + baht(o.total) + "</span></div>\n      <div class=\"ord-meta\">" +
-    (isPickup(o) ? 'รับหน้าร้าน' : esc(o.vrichCarrier || 'ยังไม่ระบุขนส่ง')) + (o.vrichTracking ? ' · <span class="code">' + esc(o.vrichTracking) + '</span>' : '') + " \xB7 " + (o.itemQty || 0) + " \u0E0A\u0E34\u0E49\u0E19</div>\n      <div class=\"chips\">" +
+    (carrierOf(o) === 'ไม่ระบุขนส่ง' ? 'ยังไม่ระบุขนส่ง' : esc(carrierOf(o))) + (o.tracking || o.vrichTracking ? ' · <span class="code">' + esc(o.tracking || o.vrichTracking) + '</span>' : '') + " \xB7 " + (o.itemQty || 0) + " \u0E0A\u0E34\u0E49\u0E19</div>\n      <div class=\"chips\">" +
     dueChip(o) + puChip(o) + pickChip(o) + packChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + (Number(o.hold) ? '<span class="chip ai">มีของฝาก</span>' : '') + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
     pct >= 100 ? 'done' : '') + "\"><i style=\"width:" + pct + "%\"></i></div>\n    </button>";
 
@@ -1495,7 +1501,7 @@ function orderHead(o, mode) {
   return "<div class=\"card head\">\n    <div class=\"head-top\"><span class=\"ord-no\">#" +
   esc(o.orderNo) + "</span>" + payChip(o) + puChip(o) + "<button class=\"x\" data-act=\"" + (mode === 'pick' ? 'closePick' : 'closePack') + "\">\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E2D\u0E37\u0E48\u0E19</button></div>\n    <div><b>" +
   esc(o.customer || '-') + "</b> <span class=\"muted\">\xB7 " + esc(o.fbName || '') + "</span></div>\n    <div class=\"addr\">" +
-  esc(o.phone || '') + " \xB7 " + esc(o.province || '') + " \xB7 " + esc(o.vrichCarrier || 'ไม่ระบุขนส่ง') + " " + (o.vrichTracking ? '<span class="code">' + esc(o.vrichTracking) + '</span>' : '') + "</div>\n    " + (
+  esc(o.phone || '') + " \xB7 " + esc(o.province || '') + " \xB7 " + esc(carrierOf(o)) + " " + (o.tracking || o.vrichTracking ? '<span class="code">' + esc(o.tracking || o.vrichTracking) + '</span>' : '') + "</div>\n    " + (
   o.note ? "<div class=\"note\">\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38: " + esc(o.note) + "</div>" : '') + "\n    " + (
   Number(o.hold) ? "<div class=\"note\">\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E21\u0E35\u0E02\u0E2D\u0E07\u0E1D\u0E32\u0E01\u0E44\u0E27\u0E49</div>" : '') + "\n    " + (
   o.payStatus !== PAY.paid ? "<div class=\"alert " + (o.payStatus === PAY.none ? 'bad' : 'warn') + "\">" + esc(o.payStatus) + " \xB7 \u0E42\u0E2D\u0E19 " + baht(o.paid) + " \u0E08\u0E32\u0E01 " + baht(o.total) + "</div>" : '') + "\n  </div>";
@@ -3311,6 +3317,7 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ปรับยอดหยิบตามยอดแพ็คแล้ว {0} ออเดอร์": "ထုပ်ပြီးအရေအတွက်အတိုင်း ရွေးပြီးအရေအတွက် ပြင်ပြီး အော်ဒါ {0} ခု",
   "ใบปะหน้า {0}": "လိပ်စာတံဆိပ် {0}",
   "ใบปะหน้า": "လိပ်စာတံဆိပ်",
   "ขาด {0} ใบ": "{0} ရွက် လို",
