@@ -1531,7 +1531,7 @@ function vPick() {
 
     waitingList((x) => x.pickStatus !== PICK.done && x.packStatus !== PACK.done, 'openPick', 'รอจัด') + "</div>";
   }
-  const items = itemsOf(o).slice().sort((a, b) => isSkip(a) - isSkip(b) || (pickedOf(a) >= qtyOf(a)) - (pickedOf(b) >= qtyOf(b)));
+  const items = itemsOf(o).slice().sort((a, b) => isSkip(a) - isSkip(b) || natCmp(a.code, b.code));   // เรียงตามรหัส 1→1000 ไม่สลับที่ตอนหยิบ
   const total = o.itemQty || 0,done = o.pickedQty || 0;
   return "<div class=\"stack\">\n    " +
   orderHead(o, 'pick') + "\n    <div class=\"prog\"><b>" +
