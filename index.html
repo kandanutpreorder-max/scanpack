@@ -1381,6 +1381,7 @@ function go(v) {
   if (scanning && S.set.autoCam) camStart();else if (!scanning && Cam.on) camStop();
   render();
   $('main').scrollTop = 0;
+  if (v === 'sale') livePoll();else clearTimeout(LIVE.timer);
 }
 let rT = null;
 function softRender() {cancelAnimationFrame(rT);rT = requestAnimationFrame(render);}
@@ -2112,7 +2113,8 @@ const ACT = {
   stockDay: (d) => {S.stockDate = d.d;render();},
   saleDay: (d) => {S.saleDay = d.d;S.saleLast = null;render();},
   saleTab: (d) => {S.saleTab = d.k;render();},
-  saleReset: () => {if (S.confirmReset !== 'sale') {S.confirmReset = 'sale';return render();}S.confirmReset = null;saleSet(saleDay(), {});S.saleLast = null;render();},
+  saleMovedOk: () => {const day = saleDay(),m = saleMap(day),no = saleNo(day);Object.keys(no).forEach((k) => {if (m[k] && m[k].q > 0) delete no[k];});saleNoSet(day, no);render();},
+  saleReset: () => {if (S.confirmReset !== 'sale') {S.confirmReset = 'sale';return render();}S.confirmReset = null;saleSet(saleDay(), {});saleNoSet(saleDay(), {});S.saleLast = null;render();},
   dueF: (d) => {S.f.due = d.v;render();},
   trKind: (d) => {S.f.tr.kind = d.v;render();},
   trToday: () => {S.f.tr.date = todayStr();render();},
@@ -2735,23 +2737,82 @@ function partialList() {
 }
 
 /* ---------- เช็คออก/ไม่ออก: สแกนสินค้าหลังไลฟ์ ดูว่าขายออกในวันนั้นไหม ---------- */
+/* ---------- ยอดขายสดจากหน้า "ขาย" ของ Vrich ----------
+ * สคริปต์ Tampermonkey บนคอมที่เปิดหน้า "ขาย" ส่งยอดขายแต่ละรหัสเข้าชีต (LiveSale.gs) ทุกไม่กี่วินาที
+ * หน้านี้ดึงมาทุก 4 วินาที จึงรู้ว่าออก/ไม่ออกโดยไม่ต้องนำเข้าไฟล์ Vrich ใหม่ */
+const LIVE = { shops: [], skew: 0, got: 0, err: '', busy: false, timer: 0, noApi: false, stamp: '' };
+const LIVE_FRESH = 90e3, LIVE_KEEP = 12 * 3600e3;
+function liveNow() {return Date.now() + LIVE.skew;}
+function liveShops() {return LIVE.shops.filter((x) => liveNow() - x.at < LIVE_KEEP);}
+async function livePoll() {
+  clearTimeout(LIVE.timer);
+  if (S.view !== 'sale') return;
+  if (!document.hidden && !LIVE.busy && !LIVE.noApi) {
+    LIVE.busy = true;
+    try {
+      const r = await api('getLiveSale');
+      LIVE.err = '';LIVE.got = Date.now();
+      if (r && r.now) LIVE.skew = r.now - Date.now();
+      const shops = r && r.shops || [];
+      const st = shops.map((x) => x.shop + x.at).join('|');
+      if (st !== LIVE.stamp) {LIVE.stamp = st;LIVE.shops = shops;S._sale = null;}
+      if (S.view === 'sale' && (shops.length || st !== LIVE.stamp)) softRender();   // อัปเดตเวลา "เมื่อกี่วิที่แล้ว" ด้วย
+    } catch (e) {
+      const m = errMsg(e);
+      if (/ไม่รู้จักคำสั่ง|getLiveSale/.test(m)) LIVE.noApi = true;
+      if (LIVE.err !== m) {LIVE.err = m;if (S.view === 'sale') softRender();}
+    }
+    LIVE.busy = false;
+  }
+  if (S.view === 'sale') LIVE.timer = setTimeout(livePoll, 4000);
+}
+/* รหัส → {code, name, sold, qty} ของวันนั้น จากทุกร้านที่ส่งมาใน 12 ชม. (ร้านที่อัปเดตล่าสุดทับ) */
+function liveMap(day) {
+  const list = liveShops().filter((x) => x.day === day).sort((a, b) => a.at - b.at);
+  if (!list.length) return null;
+  const m = {};
+  list.forEach((x) => (x.items || []).forEach((r) => {m[norm(r[0])] = { code: String(r[0]), name: String(r[1] || ''), sold: Number(r[2]) || 0, qty: Number(r[3]) || 0 };}));
+  return m;
+}
+function liveInfo(day) {
+  const list = liveShops().filter((x) => x.day === day);
+  if (!list.length) return null;
+  const at = Math.max(...list.map((x) => x.at));
+  return { at: at, age: Math.max(0, liveNow() - at), n: list.reduce((t, x) => t + (x.items || []).length, 0) };
+}
 function saleDays() {
   const m = {};
   S.orders.forEach((o) => itemsOf(o).forEach((i) => {if (!isSkip(i)) {const d = itemDay(o, i);if (d) m[d] = 1;}}));
+  liveShops().forEach((x) => {if (x.day) m[x.day] = 1;});
   return Object.keys(m).sort().reverse();
 }
 function saleDay() {const ds = saleDays();if (!S.saleDay || !ds.includes(S.saleDay)) S.saleDay = ds[0] || '';return S.saleDay;}
 /* รหัส → {q: จำนวนขาย, nos: [เลขออเดอร์]} ของวันนั้น */
 function saleMap(day) {
-  if (S._sale && S._sale.d === day && S._sale.n === S.orders.length) return S._sale.m;
+  if (S._sale && S._sale.d === day && S._sale.n === S.orders.length && S._sale.l === LIVE.stamp) return S._sale.m;
   const m = {};
   S.orders.forEach((o) => itemsOf(o).forEach((i) => {
     if (isSkip(i) || itemDay(o, i) !== day) return;
     const k = norm(i.code),r = m[k] || (m[k] = { code: String(i.code), name: i.name || '', q: 0, nos: [] });
     r.q += qtyOf(i);if (!r.nos.includes(o.orderNo)) r.nos.push(o.orderNo);
   }));
-  S._sale = { d: day, n: S.orders.length, m: m };
+  /* ยอดสดจาก Vrich: ใช้ยอดที่มากกว่า (ไฟล์ที่นำเข้าอาจยังไม่มีออเดอร์ล่าสุด) */
+  const L = liveMap(day);
+  if (L) Object.keys(L).forEach((k) => {
+    const x = L[k];if (x.sold <= 0) return;
+    const r = m[k] || (m[k] = { code: x.code, name: x.name, q: 0, nos: [] });
+    if (!r.name) r.name = x.name;
+    if (x.sold > r.q) {r.q = x.sold;r.live = true;}
+  });
+  S._sale = { d: day, n: S.orders.length, l: LIVE.stamp, m: m };
   return m;
+}
+/* รหัสที่สแกนตอนยังไม่ออก (วางกองไม่ออก) แต่ตอนนี้ออกแล้ว → ต้องย้ายกอง */
+function saleNo(day) {const all = LS.get('saleNo', {});return all[day] || {};}
+function saleNoSet(day, v) {
+  const all = LS.get('saleNo', {});all[day] = v;
+  Object.keys(all).sort().reverse().slice(10).forEach((d) => {delete all[d];});
+  LS.set('saleNo', all);
 }
 function saleChk(day) {const all = LS.get('saleChk', {});return all[day] || {};}
 function saleSet(day, chk) {
@@ -2764,32 +2825,48 @@ function saleScan(code) {
   const k = norm(code),r = saleMap(day)[k],chk = saleChk(day);
   chk[k] = (chk[k] || 0) + 1;saleSet(day, chk);
   const c = chk[k];
-  if (r) {
-    S.saleLast = { code: r.code, out: true, q: r.q, c: c, nos: r.nos };softRender();
+  if (r && r.q > 0) {
+    {const no = saleNo(day);if (no[k]) {delete no[k];saleNoSet(day, no);}}
+    S.saleLast = { code: r.code, out: true, q: r.q, c: c, nos: r.nos, name: r.name };softRender();
     const more = c > r.q;
-    return { ok: !more, kind: more ? 'warn' : 'ok', big: true, msg: 'ออก ×' + r.q + ' · ' + r.code, sub: (more ? 'สแกนเกินยอดขาย เหลือ ' + (c - r.q) + ' ชิ้น เก็บเข้าสต็อก · ' : 'สแกนแล้ว ' + c + '/' + r.q + ' · ') + '#' + r.nos.join(', #') };
+    const nos = r.nos.length ? '#' + r.nos.join(', #') : 'ยอดสดจาก Vrich (ยังไม่มีเลขออเดอร์)';
+    return { ok: !more, kind: more ? 'warn' : 'ok', big: true, msg: 'ออก ×' + r.q + ' · ' + r.code, sub: (more ? 'สแกนเกินยอดขาย เหลือ ' + (c - r.q) + ' ชิ้น เก็บเข้าสต็อก · ' : 'สแกนแล้ว ' + c + '/' + r.q + ' · ') + nos };
   }
+  const no = saleNo(day);no[k] = 1;saleNoSet(day, no);
+  const L = liveMap(day),lv = L && L[k];
   /* ไม่ออกวันนี้: ดูว่าเคยออกวันอื่นไหม */
   let other = '';
   S.orders.some((o) => itemsOf(o).some((i) => {if (!isSkip(i) && norm(i.code) === k) {other = itemDay(o, i);return other !== day;}return false;}) && other !== day);
-  S.saleLast = { code: code, out: false, c: c, other: other && other !== day ? other : '' };softRender();
-  return { ok: false, big: true, msg: 'ไม่ออก · ' + code, sub: S.saleLast.other ? 'ไม่ได้ขายวันนี้ (เคยออกวันที่ ' + dayLabel(S.saleLast.other) + ')' : 'ไม่มีคนสั่งในวันนี้ เก็บเข้าสต็อก' };
+  S.saleLast = { code: code, out: false, c: c, other: other && other !== day ? other : '', shown: !!lv, name: lv ? lv.name : '' };softRender();
+  return { ok: false, big: true, msg: 'ไม่ออก · ' + code, sub: lv ? 'ขึ้นไลฟ์แล้ว ยังไม่มีคนสั่ง' + (S.saleLast.other ? ' (เคยออกวันที่ ' + dayLabel(S.saleLast.other) + ')' : '') : S.saleLast.other ? 'ไม่ได้ขายวันนี้ (เคยออกวันที่ ' + dayLabel(S.saleLast.other) + ')' : 'ไม่มีคนสั่งในวันนี้ เก็บเข้าสต็อก' };
 }
 function vSale() {
   const day = saleDay(),days = saleDays().slice(0, 12);
   const m = saleMap(day),chk = saleChk(day),tab = S.saleTab || 'left';
-  const outs = Object.keys(m).map((k) => m[k]);
+  const outs = Object.keys(m).map((k) => m[k]).filter((r) => r.q > 0);
+  const LI = liveInfo(day),no = saleNo(day);
+  const moved = Object.keys(no).filter((k) => m[k] && m[k].q > 0 && (chk[k] || 0) > 0);
   const found = outs.filter((r) => (chk[norm(r.code)] || 0) >= r.q),part = outs.filter((r) => {const c = chk[norm(r.code)] || 0;return c > 0 && c < r.q;});
   const left = outs.filter((r) => !chk[norm(r.code)] || chk[norm(r.code)] < r.q);
   const notOut = Object.keys(chk).filter((k) => !m[k]);
   const extra = outs.filter((r) => (chk[norm(r.code)] || 0) > r.q);
   const db = (d) => "<button class=\"seg\" data-act=\"saleDay\" data-d=\"" + esc(d) + "\" aria-pressed=\"" + (d === day) + "\">" + esc(dayLabel(d)) + "</button>";
   const tb = (k, l, n) => "<button class=\"seg\" data-act=\"saleTab\" data-k=\"" + k + "\" aria-pressed=\"" + (tab === k) + "\">" + l + " · " + n + "</button>";
-  const L = S.saleLast;
+  const L0 = S.saleLast;
+  /* ผลล่าสุด: ถ้าตอนสแกนยังไม่ออก แต่ตอนนี้ยอดสดบอกว่าออกแล้ว ให้เปลี่ยนเป็นออก */
+  const L = L0 && !L0.out && m[norm(L0.code)] && m[norm(L0.code)].q > 0 ? Object.assign({}, L0, { out: true, q: m[norm(L0.code)].q, nos: m[norm(L0.code)].nos, late: true }) : L0;
   const more = L && L.out && L.c > L.q;
+  const ageTxt = (ms) => ms < 60e3 ? Math.round(ms / 1000) + ' วิ' : ms < 3600e3 ? Math.round(ms / 60e3) + ' นาที' : Math.round(ms / 3600e3) + ' ชม.';
+  const liveCard = LIVE.noApi ? "<div class=\"alert warn\" style=\"display:block;font-size:13px\"><b>ยังดูยอดสดไม่ได้</b> ต้องเพิ่มไฟล์ LiveSale.gs ใน Apps Script แล้ว Deploy เวอร์ชันใหม่ก่อน</div>" :
+  LI ? "<div class=\"alert " + (LI.age < LIVE_FRESH ? 'ok' : 'warn') + "\" style=\"display:block;font-size:13px\"><b>" + (LI.age < LIVE_FRESH ? '● ยอดสดจาก Vrich' : 'ยอดสดหยุดอัปเดต') + "</b> · อัปเดตเมื่อ " + ageTxt(LI.age) + "ที่แล้ว · ขึ้นไลฟ์ " + LI.n + " รหัส" +
+  (LI.age < LIVE_FRESH ? '' : "<br>เปิดหน้า <b>ขาย</b> ใน Vrich บนคอมค้างไว้ (สคริปต์ส่งยอดต้องทำงาน)") + "</div>" :
+  day === todayStr() || !day ? "<div class=\"alert warn\" style=\"display:block;font-size:13px\">ยังไม่มียอดสดของวันนี้ · ต้องเปิดหน้า <b>ขาย</b> ใน Vrich บนคอมที่ติดตั้งสคริปต์ส่งยอดไว้" + (LIVE.err ? '<br><small class="muted">' + esc(LIVE.err) + '</small>' : '') + "</div>" : '';
+  const movedBox = moved.length ? "<div class=\"alert bad\" style=\"display:block;font-size:14px\"><b>ย้ายจากกองไม่ออก → ออก " + moved.length + " รหัส</b><br>สแกนตอนยังไม่มีคนสั่ง แต่ตอนนี้มีคนสั่งแล้ว: <b>" + moved.map((k) => esc(m[k].code)).join(', ') + "</b>" +
+  "<div style=\"margin-top:6px\"><button data-act=\"saleMovedOk\"><span>ย้ายแล้ว</span></button></div></div>" : '';
   const last = L ? "<div class=\"salebig " + (L.out ? more ? 'out more' : 'out' : 'no') + "\"><b>" + (L.out ? 'ออก' : 'ไม่ออก') + "</b><div><span class=\"code\">" + esc(L.code) + "</span><br>" +
-  (L.out ? 'ขาย ' + L.q + ' ชิ้น · สแกนแล้ว ' + L.c + '/' + L.q + (more ? '<br><b>เกินยอดขาย เหลือเก็บ ' + (L.c - L.q) + ' ชิ้น</b>' : '') + '<br>#' + esc(L.nos.join(', #')) : L.other ? 'เคยออกวันที่ ' + esc(dayLabel(L.other)) : 'เก็บเข้าสต็อก') + "</div></div>" : '';
-  const row = (r) => {const c = chk[norm(r.code)] || 0;return "<div class=\"srow\"><span class=\"code\">" + esc(r.code) + "</span><span class=\"min\" style=\"flex:1\">" + esc(r.name) + "<br><small class=\"muted\">#" + esc(r.nos.join(', #')) + "</small></span><b>" + c + "/" + r.q + "</b></div>";};
+  (L.late ? '<b>เพิ่งมีคนสั่ง ย้ายไปกองออก</b><br>' : '') + (L.name ? esc(L.name) + '<br>' : '') +
+  (L.out ? 'ขาย ' + L.q + ' ชิ้น · สแกนแล้ว ' + L.c + '/' + L.q + (more ? '<br><b>เกินยอดขาย เหลือเก็บ ' + (L.c - L.q) + ' ชิ้น</b>' : '') + (L.nos.length ? '<br>#' + esc(L.nos.join(', #')) : '') : L.shown ? 'ขึ้นไลฟ์แล้ว ยังไม่มีคนสั่ง' : L.other ? 'เคยออกวันที่ ' + esc(dayLabel(L.other)) : 'เก็บเข้าสต็อก') + "</div></div>" : '';
+  const row = (r) => {const c = chk[norm(r.code)] || 0;return "<div class=\"srow\"><span class=\"code\">" + esc(r.code) + "</span><span class=\"min\" style=\"flex:1\">" + esc(r.name) + "<br><small class=\"muted\">" + (r.nos.length ? '#' + esc(r.nos.join(', #')) : 'ยอดสด Vrich') + "</small></span><b>" + c + "/" + r.q + "</b></div>";};
   let list = '';
   if (tab === 'left') list = left.sort((a, b) => natCmp(a.code, b.code)).map(row).join('') || "<div class=\"empty\">สแกนเจอของที่ออกครบทุกชิ้นแล้ว ✓</div>";else
   if (tab === 'found') list = found.sort((a, b) => natCmp(a.code, b.code)).map(row).join('') || "<div class=\"empty\">ยังไม่ได้สแกน</div>";else
@@ -2799,10 +2876,10 @@ function vSale() {
   return "<div class=\"stack\">\n    <div class=\"btns\"><button class=\"btn\" data-act=\"go\" data-v=\"more\">← กลับ</button>" +
   "<button class=\"btn" + (S.confirmReset === 'sale' ? ' danger' : '') + "\" data-act=\"saleReset\">" + (S.confirmReset === 'sale' ? 'แตะอีกครั้งเพื่อล้าง' : 'เริ่มนับวันนี้ใหม่') + "</button></div>" +
   "<div class=\"card stack\"><h2 style=\"margin:0\">เช็คออก/ไม่ออก</h2>" +
-  "<div class=\"muted\" style=\"font-size:13px\">สแกนสินค้าที่โชว์ในไลฟ์ทีละชิ้น จอเขียว = ออก (มีคนสั่ง) · จอแดง = ไม่ออก เก็บเข้าสต็อก · ข้อมูลจากไฟล์ Vrich ที่นำเข้าล่าสุด</div>" +
+  "<div class=\"muted\" style=\"font-size:13px\">สแกนสินค้าที่โชว์ในไลฟ์ทีละชิ้น จอเขียว = ออก (มีคนสั่ง) · จอแดง = ไม่ออก เก็บเข้าสต็อก · ข้อมูลจากยอดสดในหน้าขาย Vrich และไฟล์ Vrich ที่นำเข้า</div>" + liveCard +
   "<div class=\"fgroup\"><label>วันที่ขาย</label>" + days.map(db).join('') + "</div>" +
   "<div class=\"chips\"><span class=\"chip\">ออก " + outs.length + " รหัส · " + outs.reduce((t, r) => t + r.q, 0) + " ชิ้น</span><span class=\"chip ok\">เจอครบ " + found.length + "</span>" + (part.length ? "<span class=\"chip warn\">เจอบางส่วน " + part.length + "</span>" : '') + "<span class=\"chip bad\">ไม่ออก " + notOut.length + "</span></div></div>" +
-  last +
+  movedBox + last +
   "<div class=\"fgroup\">" + tb('left', 'ออกแต่ยังไม่เจอ', left.length) + tb('found', 'ออก เจอแล้ว', found.length) + tb('no', 'ไม่ออก/เหลือ', notOut.length + extra.length) + "</div>" +
   "<div class=\"list\">" + list + "</div></div>";
 }
