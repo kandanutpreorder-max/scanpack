@@ -349,6 +349,10 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .bk.hit{border-color:var(--ai);box-shadow:inset 0 0 0 2px var(--ai)}
 .salebig{display:flex;gap:14px;align-items:center;padding:14px 16px;border-radius:16px;color:#fff;font-size:14px;line-height:1.4}
 .salebig>b{font-size:30px;white-space:nowrap} .salebig .code{font-size:20px;font-weight:800;color:inherit;background:none;padding:0}
+.miss{display:flex;gap:6px;align-items:center;overflow-x:auto;padding:8px 10px;border:1px solid var(--warn);background:var(--warn-soft);border-radius:var(--r);scrollbar-width:none}
+.miss::-webkit-scrollbar{display:none} .miss>b{white-space:nowrap;font-size:13px;color:var(--warn)} .miss.ok{border-color:var(--ok);background:var(--ok-soft,#e8f6ee)} .miss.ok>b{color:var(--ok)}
+.miss button{flex:none;font:inherit;font-weight:800;font-size:15px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink,inherit)} .miss button small{font-weight:700;color:var(--warn)}
+.it.flash{animation:itflash 1.2s} @keyframes itflash{0%,40%{box-shadow:0 0 0 3px var(--ai)}100%{box-shadow:none}}
 .salebig.out{background:var(--ok)} .salebig.more{background:var(--warn)} .salebig.no{background:var(--bad)}
 .bk .min .lb{font-weight:700;font-size:11px;color:var(--warn)} .bk .min .lb.y{color:var(--ok)}
 .bk.done.nolbl{background:var(--warn-soft)} .bk.done.nolbl .bkn{background:var(--warn);color:#fff}
@@ -1536,11 +1540,22 @@ function vPick() {
   return "<div class=\"stack\">\n    " +
   orderHead(o, 'pick') + "\n    <div class=\"prog\"><b>" +
   done + "/" + total + "</b><span class=\"muted\">\u0E0A\u0E34\u0E49\u0E19 \u0E08\u0E31\u0E14\u0E41\u0E25\u0E49\u0E27</span>" + (o.pickedBy ? "<span class=\"chip\" style=\"margin-left:auto\">\u0E42\u0E14\u0E22 " + esc(o.pickedBy) + "</span>" : '') + "</div>\n    <div class=\"bar " + (
-  done >= total && total ? 'done' : '') + "\" style=\"margin-top:-4px\"><i style=\"width:" + (total ? done / total * 100 : 0) + "%\"></i></div>\n    " + (
+  done >= total && total ? 'done' : '') + "\" style=\"margin-top:-4px\"><i style=\"width:" + (total ? done / total * 100 : 0) + "%\"></i></div>\n    " +
+  missStrip(items) + (
   o.pickStatus === PICK.done ? "<div class=\"alert ok\">\u0E08\u0E31\u0E14\u0E04\u0E23\u0E1A\u0E41\u0E25\u0E49\u0E27 \u2713<button data-act=\"toPack\" data-no=\"" + esc(norm(o.orderNo)) + "\"><span>\u0E44\u0E1B\u0E41\u0E1E\u0E47\u0E04</span></button></div>" : '') + "\n    <div class=\"items\">" +
   items.map((i) => itemRow(i, pickedOf(i), 'pick')).join('') + "</div>\n    <div class=\"btns\"><button class=\"btn danger\" data-act=\"resetPick\" data-no=\"" +
   esc(norm(o.orderNo)) + "\">" + (S.confirmReset === 'pick' + norm(o.orderNo) ? 'แตะอีกครั้งเพื่อล้างการจัดทั้งหมด' : 'ล้างการจัด') + "</button></div>\n  </div>";
 
+}
+/* แถบ "ยังขาด": รหัสที่ยังหยิบไม่ครบ เรียง 1→1000 แตะเพื่อเลื่อนไปที่สินค้า (เฉพาะออเดอร์ 5 รายการขึ้นไป) */
+function missStrip(items) {
+  const m = {},order = [];
+  items.forEach((i) => {if (isSkip(i)) return;const k = norm(i.code);if (!m[k]) {m[k] = { code: i.code, q: 0, n: 0 };order.push(k);}m[k].q += qtyOf(i);m[k].n += pickedOf(i);});
+  if (order.length < 5) return '';
+  const left = order.filter((k) => m[k].n < m[k].q);
+  if (!left.length) return '';   // ครบแล้ว มีกล่อง "จัดครบแล้ว ✓" อยู่แล้ว
+  return "<div class=\"miss\"><b>ยังขาด " + left.length + "</b>" + left.map((k) => {const r = m[k],rest = r.q - r.n;
+    return "<button data-act=\"jumpIt\" data-c=\"" + esc(k) + "\">" + esc(r.code) + (rest > 1 ? " <small>×" + rest + "</small>" : '') + "</button>";}).join('') + "</div>";
 }
 function itemRow(i, n, mode) {
   const q = qtyOf(i);
@@ -2112,6 +2127,10 @@ const ACT = {
   slAll: () => {S.sl.off.clear();render();},
   slNone: () => {slList().forEach((o) => S.sl.off.add(norm(o.orderNo)));render();},
   slPrint: () => printSlips(),
+  jumpIt: (d) => {
+    const el = [...document.querySelectorAll('#main .items .it')].find((e) => e.dataset.code === d.c);if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');
+  },
   bLbl: (el) => {
     const b = curBatch(),k = el.k;if (!b) return;
     if (S.confirmReset !== 'lbl' + k) {S.confirmReset = 'lbl' + k;return render();}
@@ -3398,6 +3417,7 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ยังขาด {0}": "လိုသေး {0}",
   "เช็คออก{0}ไม่ออก": "ရောင်း{0}မရောင်း စစ်ဆေး",
   "สแกนสินค้าหลังไลฟ์ บอกทันทีว่าขายออกไหม": "လိုက်ဗ်ပြီးနောက် ပစ္စည်းစကင်ဖတ်ပါ ရောင်းထွက်မထွက် ချက်ချင်းပြမည်",
   "ยังไม่มีข้อมูลการขาย": "ရောင်းချမှုဒေတာ မရှိသေး",
