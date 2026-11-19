@@ -354,6 +354,8 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .miss button{flex:none;font:inherit;font-weight:800;font-size:15px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink,inherit)} .miss button small{font-weight:700;color:var(--warn)}
 .it.flash{animation:itflash 1.2s} @keyframes itflash{0%,40%{box-shadow:0 0 0 3px var(--ai)}100%{box-shadow:none}}
 .dupnote{font-size:12px;font-weight:700;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:4px 8px;margin-top:4px}
+.chip.reg{background:#fff4d6;color:#8a5a00;border-color:#f0c96a}
+.custbox{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;background:var(--surface)} .custbox.on{border-color:#f0c96a;background:#fffaf0}
 .salebig.out{background:var(--ok)} .salebig.more{background:var(--warn)} .salebig.no{background:var(--bad)}
 .bk .min .lb{font-weight:700;font-size:11px;color:var(--warn)} .bk .min .lb.y{color:var(--ok)}
 .bk.done.nolbl{background:var(--warn-soft)} .bk.done.nolbl .bkn{background:var(--warn);color:#fff}
@@ -508,11 +510,11 @@ const PAY = { paid: 'โอนแล้ว', none: 'ยังไม่โอน'
 const S = {
   view: 'orders', staff: '', staffList: [], carriers: [], sheetUrl: '',
   orders: [], itemsBy: {}, byNo: {}, byTrack: {}, codeIdx: {},
-  f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', due: 'all', carrier: 'all', picker: '', packer: '', date: '', q: '', tr: { kind: 'pack', date: '', from: '', to: '' } },
+  f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', due: 'all', carrier: 'all', vout: 'all', cust: 'all', picker: '', packer: '', date: '', q: '', tr: { kind: 'pack', date: '', from: '', to: '' } },
   cfg: { packDays: 1, cutoff: '15:00' },
   pickNo: null, pickChoices: null,
   pk: null, packChoices: null,
-  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', fd: { date: null, mode: 'left', q: '', batch: '' }, sl: { paid: true, noPickup: true, unpacked: true, hidePrinted: false, per: 8, off: new Set(), date: '' }, labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
+  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', fd: { date: null, mode: 'left', q: '', batch: '' }, sl: { paid: true, reg: true, noPickup: true, unpacked: true, hidePrinted: false, per: 8, off: new Set(), date: '' }, labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
   stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, qmin: 0, qmax: 0, date: '', ship: 'all', busy: false },
   sk: null, stockQ: '', stockMulti: true, poQty: {}, poOff: new Set(), poVendor: '',
   set: { sound: true, autoCam: true, fastScan: true, tapScan: true, requirePhoto: false, requireLabel: true, lastCarrier: '', pickupTitle: '', vrichUrl: null }
@@ -537,6 +539,32 @@ function isPickup(o) {
   if (o.pickup === 'ใช่') return true;
   if (o.pickup === 'ไม่') return false;
   return PICKUP_RE.test(String(o.vrichCarrier || '')) || PICKUP_RE.test(String(o.carrier || ''));
+}
+/* ---------- ลูกค้าประจำ (โอนตลอด) + หมายเหตุลูกค้า: ผูกกับชื่อ Facebook (ไม่มีใช้เบอร์โทร) ---------- */
+function custKey(o) {return norm(o && (o.fbName || o.phone || o.customer) || '');}
+function custOf(o) {return S.customers && S.customers[custKey(o)] || null;}
+function isRegular(o) {const c = custOf(o);return !!c && String(c.regular).trim() === 'ใช่';}
+function custNoteOf(o) {const c = custOf(o);return c ? String(c.note || '').trim() : '';}
+function custChip(o) {
+  const n = custNoteOf(o);
+  return (isRegular(o) ? '<span class="chip reg">⭐ ลูกค้าประจำ</span>' : '') + (n ? '<span class="chip" title="' + esc(n) + '">📝 ' + esc(n.length > 18 ? n.slice(0, 18) + '…' : n) + '</span>' : '');
+}
+function custLocal(c) {
+  const k = norm(c.key);if (!k) return;
+  const r = S.customers[k] || (S.customers[k] = { key: k });
+  ['fbName', 'customer', 'phone'].forEach((f) => {if (c[f]) r[f] = c[f];});
+  if (c.regular !== undefined) r.regular = c.regular ? 'ใช่' : 'ไม่';
+  if (c.note !== undefined) r.note = c.note;
+}
+function custSave(o, patch) {
+  const c = Object.assign({ key: custKey(o), fbName: o.fbName || '', customer: o.customer || '', phone: o.phone || '' }, patch);
+  if (!c.key) return toast('ออเดอร์นี้ไม่มีชื่อ Facebook หรือเบอร์โทร', 'bad');
+  custLocal(c);enqueue({ type: 'cust', c: c, staff: S.staff });
+}
+/* ประวัติในระบบ: จำนวนออเดอร์ของลูกค้าคนนี้ และที่โอนครบ */
+function custHistory(o) {
+  const k = custKey(o),os = S.orders.filter((x) => !x.empty && custKey(x) === k);
+  return { n: os.length, paid: os.filter((x) => x.payStatus === PAY.paid).length };
 }
 const puChip = (o) => isPickup(o) ? '<span class="chip pu">รับหน้าร้าน</span>' : '';
 const PU_TITLE = 'รายการสินค้า รับเอง ส่งจากโกดังบ้านเจ้นิ๊ก คลองสามวา';
@@ -634,6 +662,8 @@ function setData(d) {
   if (d.cfg) S.cfg = d.cfg;
   S.stock = {};(d.stock || []).forEach((r) => {S.stock[norm(r.code)] = r;});
   S.batches = (d.batches || []).slice();
+  S.customers = {};(d.customers || []).forEach((c) => {S.customers[norm(c.key)] = c;});
+  Q.list.filter((x) => x.type === 'cust').forEach((x) => custLocal(x.c));   // ที่ยังรอส่ง ใช้ค่าในเครื่องก่อน
   S.orders = (d.orders || []).slice();
   S.itemsBy = {};
   (d.items || []).forEach((i) => {const k = norm(i.orderNo);(S.itemsBy[k] = S.itemsBy[k] || []).push(i);});
@@ -741,6 +771,7 @@ async function qRun() {
       if (op.type === 'stock') {const r = await api('saveStock', op.rec);if (!Q.list.slice(1).some((x) => x.type === 'stock' && x.key === op.key)) {const loc = S.stock[op.key] || {};S.stock[op.key] = Object.assign({}, r, { thumb: r.thumb || loc.thumb || '' });}} else
       if (op.type === 'packprog') b = await api('savePackProgress', op.orderNo, op.payload);else
       if (op.type === 'pickup') b = await api('setPickup', op.orderNo, op.val, op.staff);else
+      if (op.type === 'cust') {const r = await api('saveCustomer', op.c, op.staff);if (r && !Q.list.slice(1).some((x) => x.type === 'cust' && x.c.key === op.c.key)) S.customers[norm(r.key)] = r;} else
       if (op.type === 'ordered') {const rows = await api('markOrdered', op.codes, op.staff);(rows || []).forEach((r) => {const k = norm(r.code);S.stock[k] = Object.assign({}, S.stock[k] || {}, { ordered: r.ordered });});} else
       if (op.type === 'batch') {const r = await api('saveBatch', op.id, op.patch, op.staff);if (r && op.patch.labels && r.labels === undefined) {r.labels = JSON.stringify(op.patch.labels);if (!S.oldGsWarned) {S.oldGsWarned = 1;toast('อัปเดต Code.gs เวอร์ชันใหม่ เพื่อให้เครื่องอื่นเห็นใบปะหน้าที่สแกน', 'bad');}}if (r && !Q.list.slice(1).some((x) => x.type === 'batch' && x.id === op.id)) {const i = S.batches.findIndex((x) => x.id === r.id);if (i >= 0) S.batches[i] = r;}}
       Q.list.shift();Q.fails = 0;qSave();
@@ -750,6 +781,7 @@ async function qRun() {
       op.sent = false;Q.fails++;qSave();
       const m = errMsg(e);
       if (/ไม่พบออเดอร์/.test(m)) {Q.list.shift();qSave();toast(m, 'bad');continue;}
+      if (op.type === 'cust' && /ไม่รู้จักคำสั่ง/.test(m)) {Q.list.shift();qSave();toast('บันทึกลูกค้าประจำไม่ได้: ต้องอัปเดต Code.gs และ Deploy เวอร์ชันใหม่ก่อน', 'bad');continue;}
       $('sync').className = 'sync err';$('sync').textContent = 'บันทึกไม่ได้ ลองใหม่…';
       Q.busy = false;qKick(Math.min(20000, 2500 * Q.fails));return;
     }
@@ -1449,6 +1481,14 @@ function pickChip(o) {
   const c = o.pickStatus === PICK.done ? 'ok' : o.pickStatus === PICK.part ? 'ai' : '';
   return "<span class=\"chip " + c + "\">" + esc(o.pickStatus || PICK.none) + (o.pickStatus !== PICK.none ? ' ' + (o.pickedQty || 0) + '/' + (o.itemQty || 0) : '') + "</span>";
 }
+/* เช็คเอาท์ใน Vrich (สคริปต์บนหน้าเช็คเอาท์ของ Vrich บันทึกกลับมา) */
+const VOUT_DAYS = 2;   // ตรงกับ getCheckoutQueue ใน Code.gs: ส่งเช็คเอาท์เฉพาะที่แพ็คภายใน 2 วันล่าสุด
+function voutWait(o) {
+  if (o.empty || o.packStatus !== PACK.done || o.vrichOutAt || isPickup(o) || !String(o.vrichTracking || o.tracking || '').trim()) return false;
+  const t = Date.parse(String(o.packedAt || '').replace(' ', 'T'));
+  return !isNaN(t) && Date.now() - t < VOUT_DAYS * 864e5;
+}
+function voutChip(o) {return o.vrichOutAt ? '<span class="chip ok">Vrich ✓</span>' : voutWait(o) && o.vrichOutNote ? '<span class="chip bad">Vrich: ' + esc(String(o.vrichOutNote).slice(0, 30)) + '</span>' : '';}
 function packChip(o) {if (o.empty) return '';return o.packStatus === PACK.done ? '<span class="chip ink">แพ็คแล้ว</span>' : o.packStatus === PACK.part ? '<span class="chip warn">แพ็คบางส่วน · รอของ</span>' : '';}
 
 /* ---------- หน้าออเดอร์ ---------- */
@@ -1464,6 +1504,11 @@ function filtered() {
     if (f.date && String(o.date || '').slice(0, 10) !== f.date) return false;
     if (f.ship !== 'all' && (f.ship === 'pickup') !== isPickup(o)) return false;
     if (f.carrier !== 'all' && carrierOf(o) !== f.carrier) return false;
+    if (f.vout === 'wait' && !voutWait(o)) return false;
+    if (f.cust === 'reg' && !isRegular(o)) return false;
+    if (f.cust === 'regUnpaid' && !(isRegular(o) && o.payStatus !== PAY.paid)) return false;
+    if (f.cust === 'pickup' && !isPickup(o)) return false;
+    if (f.vout === 'done' && !o.vrichOutAt) return false;
     if (f.due === 'today' && dueState(o) !== 'today') return false;
     if (f.due === 'over' && dueState(o) !== 'over') return false;
     if (!trMatch(o)) return false;
@@ -1507,7 +1552,10 @@ function vOrders() {
   seg('pick', 'all', 'ทั้งหมด') + seg('pick', PICK.none, PICK.none) + seg('pick', PICK.part, PICK.part) + seg('pick', PICK.done, PICK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E41\u0E1E\u0E47\u0E04</label>" +
   seg('pack', 'all', 'ทั้งหมด') + seg('pack', PACK.none, PACK.none) + seg('pack', PACK.part, PACK.part) + seg('pack', PACK.done, PACK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E42\u0E2D\u0E19</label>" +
   seg('pay', 'all', 'ทั้งหมด') + seg('pay', PAY.paid, PAY.paid) + seg('pay', PAY.none, PAY.none) + seg('pay', PAY.part, PAY.part) + "</div>\n    <div class=\"fgroup\"><label>ส่ง</label>" +
-  seg('ship', 'all', 'ทั้งหมด') + seg('ship', 'ship', 'จัดส่ง') + seg('ship', 'pickup', 'รับหน้าร้าน') + "<button class=\"seg\" data-act=\"puOpen\" style=\"border-style:dashed\">+ ตั้งรับหน้าร้าน</button></div>\n    <div class=\"fgroup\"><label>กำหนด</label>" + seg('due', 'all', 'ทั้งหมด') + seg('due', 'today', 'ต้องส่งวันนี้') + seg('due', 'over', 'เกินกำหนด') + "</div>\n    <div class=\"fgroup\"><label>ขนส่ง</label>" + seg('carrier', 'all', 'ทั้งหมด') + carrierSegs(seg) + "</div>\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
+  seg('ship', 'all', 'ทั้งหมด') + seg('ship', 'ship', 'จัดส่ง') + seg('ship', 'pickup', 'รับหน้าร้าน') + "<button class=\"seg\" data-act=\"puOpen\" style=\"border-style:dashed\">+ ตั้งรับหน้าร้าน</button></div>\n    <div class=\"fgroup\"><label>กำหนด</label>" + seg('due', 'all', 'ทั้งหมด') + seg('due', 'today', 'ต้องส่งวันนี้') + seg('due', 'over', 'เกินกำหนด') + "</div>\n    <div class=\"fgroup\"><label>ขนส่ง</label>" + seg('carrier', 'all', 'ทั้งหมด') + carrierSegs(seg) + "</div>" +
+  "<div class=\"fgroup\"><label>ลูกค้า</label>" + seg('cust', 'all', 'ทั้งหมด') + seg('cust', 'reg', '⭐ ลูกค้าประจำ · ' + S.orders.filter((o) => !o.empty && isRegular(o)).length) +
+  seg('cust', 'regUnpaid', '⭐ ประจำ ยังไม่โอน · ' + S.orders.filter((o) => !o.empty && isRegular(o) && o.payStatus !== PAY.paid).length) + seg('cust', 'pickup', 'รับหน้าร้าน · ' + S.orders.filter((o) => !o.empty && isPickup(o)).length) + "</div>" +
+  (S.orders.some((o) => o.vrichOutAt || o.vrichOutNote) ? "<div class=\"fgroup\"><label>Vrich</label>" + seg('vout', 'all', 'ทั้งหมด') + seg('vout', 'wait', 'รอเช็คเอาท์ · ' + S.orders.filter(voutWait).length) + seg('vout', 'done', 'เช็คเอาท์แล้ว') + "</div>" : '') + "\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
 
   opt(people, f.picker, 'จัดโดย') + "</select>\n      <select id=\"fPacker\" aria-label=\"\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22\">" +
   opt(people, f.packer, 'แพ็คโดย') + "</select>\n    </div>\n    " + trBox + "\n    <div class=\"sec\" id=\"olCount\"></div>\n    <div class=\"stack\" id=\"olist\"></div>\n  </div>";
@@ -1529,7 +1577,7 @@ function renderOrderList() {
     return "<button class=\"ord\" data-act=\"detail\" data-no=\"" + esc(norm(o.orderNo)) + "\">\n      <div class=\"ord-top\"><span class=\"ord-no\">#" +
     esc(o.orderNo) + "</span><span class=\"ord-name\">" + esc(o.customer || o.fbName || '-') + "</span><span class=\"ord-amt\">" + baht(o.total) + "</span></div>\n      <div class=\"ord-meta\">" +
     (carrierOf(o) === 'ไม่ระบุขนส่ง' ? 'ยังไม่ระบุขนส่ง' : esc(carrierOf(o))) + (o.tracking || o.vrichTracking ? ' · <span class="code">' + esc(o.tracking || o.vrichTracking) + '</span>' : '') + " \xB7 " + (o.itemQty || 0) + " \u0E0A\u0E34\u0E49\u0E19</div>\n      <div class=\"chips\">" +
-    dueChip(o) + puChip(o) + pickChip(o) + packChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + (Number(o.hold) ? '<span class="chip ai">มีของฝาก</span>' : '') + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
+    dueChip(o) + puChip(o) + custChip(o) + pickChip(o) + packChip(o) + voutChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + (Number(o.hold) ? '<span class="chip ai">มีของฝาก</span>' : '') + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
     pct >= 100 ? 'done' : '') + "\"><i style=\"width:" + pct + "%\"></i></div>\n    </button>";
 
   }).join('') : "<div class=\"empty\">\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E15\u0E32\u0E21\u0E15\u0E31\u0E27\u0E01\u0E23\u0E2D\u0E07\u0E19\u0E35\u0E49</div>";
@@ -1659,7 +1707,7 @@ function openDetail(no) {
   $('sheetRoot').innerHTML = "<div class=\"sheetBg\" data-act=\"closeSheet\"><div class=\"sheet\" data-stop=\"1\">\n    <div class=\"grab\"></div>\n    <div class=\"stack\">\n      <div class=\"head-top\"><span class=\"ord-no\" style=\"font-size:20px\">#" +
 
 
-  esc(o.orderNo) + "</span>" + puChip(o) + payChip(o) + pickChip(o) + packChip(o) + "</div>\n      <dl class=\"kv\">\n        <dt>\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32</dt><dd>" +
+  esc(o.orderNo) + "</span>" + puChip(o) + custChip(o) + payChip(o) + pickChip(o) + packChip(o) + "</div>\n      " + custBox(o) + "\n      <dl class=\"kv\">\n        <dt>\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32</dt><dd>" +
 
   esc(o.customer) + " (" + esc(o.fbName) + ")</dd>\n        <dt>\u0E42\u0E17\u0E23</dt><dd>" +
   esc(o.phone) + "</dd>\n        <dt>\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48</dt><dd>" +
@@ -1669,7 +1717,7 @@ function openDetail(no) {
   o.note ? "<dt>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38</dt><dd>" + esc(o.note) + "</dd>" : '') + "\n        <dt>\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22</dt><dd>" +
   esc(o.pickedBy || '-') + " " + esc(o.pickedAt || '') + "</dd>\n        <dt>\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22</dt><dd>" +
   esc(o.packedBy || '-') + " " + esc(o.packedAt || '') + "</dd>\n        " + (
-  o.packStatus === PACK.done ? "<dt>\u0E2A\u0E48\u0E07\u0E14\u0E49\u0E27\u0E22</dt><dd>" + esc(o.carrier || '-') + " <span class=\"code\">" + esc(o.tracking || '') + "</span></dd>" : '') + "\n        " + (
+  o.packStatus === PACK.done ? "<dt>\u0E2A\u0E48\u0E07\u0E14\u0E49\u0E27\u0E22</dt><dd>" + esc(o.carrier || '-') + " <span class=\"code\">" + esc(o.tracking || '') + "</span></dd>" : '') + (o.vrichOutAt || o.vrichOutNote ? "<dt>เช็คเอาท์ Vrich</dt><dd>" + (o.vrichOutAt ? esc(o.vrichOutAt) + ' ✓' : '<span style="color:var(--bad)">' + esc(o.vrichOutNote) + '</span>') + "</dd>" : '') + "\n        " + (
   photos.length ? "<dt>\u0E23\u0E39\u0E1B</dt><dd>" + photos.map((u, i) => "<a href=\"" + esc(u) + "\" target=\"_blank\">\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48 " + (i + 1) + "</a>").join(' · ') + "</dd>" : '') + "\n        " + (
   o.packNote ? "<dt>\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E41\u0E1E\u0E47\u0E04</dt><dd>" + esc(o.packNote) + "</dd>" : '') + (
   o.packStatus === PACK.part ? "<dt>รอของ</dt><dd>" + esc(missingText(o)) + "</dd>" : '') + "\n      </dl>\n      <div class=\"items\">" +
@@ -1679,6 +1727,12 @@ function openDetail(no) {
   (isPickup(o) ? "<button class=\"btn\" data-act=\"printPickupOne\" data-no=\"" + esc(norm(o.orderNo)) + "\">พิมพ์ใบรับหน้าร้าน</button>" : '') + "</div>\n      <div class=\"row2\"><button class=\"btn pri\" data-act=\"sheetPick\" data-no=\"" +
   esc(norm(o.orderNo)) + "\">\u0E08\u0E31\u0E14\u0E02\u0E2D\u0E07</button><button class=\"btn pri\" data-act=\"sheetPack\" data-no=\"" + esc(norm(o.orderNo)) + "\">\u0E41\u0E1E\u0E47\u0E04</button></div>\n    </div></div></div>";
 
+}
+function custBox(o) {
+  const reg = isRegular(o),h = custHistory(o),k = norm(o.orderNo);
+  return "<div class=\"custbox" + (reg ? ' on' : '') + "\"><div class=\"head-top\"><b>" + (reg ? '⭐ ลูกค้าประจำ (โอนตลอด)' : 'ลูกค้า') + "</b><span class=\"muted\" style=\"font-size:12px\">ในระบบ " + h.n + " ออเดอร์ · โอนครบ " + h.paid + "</span></div>" +
+  "<div style=\"display:flex;gap:6px;margin-top:6px;align-items:flex-end\"><label class=\"field\" style=\"flex:1;min-width:0\"><span>หมายเหตุลูกค้า</span><input id=\"custNote\" placeholder=\"เช่น โอนตลอด รวมส่งได้\" value=\"" + esc(custNoteOf(o)) + "\"></label><button class=\"btn\" data-act=\"custNote\" data-no=\"" + esc(k) + "\">บันทึก</button></div>" +
+  "<button class=\"btn" + (reg ? '' : ' pri') + "\" style=\"margin-top:6px;width:100%\" data-act=\"custReg\" data-no=\"" + esc(k) + "\">" + (reg ? 'ยกเลิกลูกค้าประจำ' : '⭐ ตั้งเป็นลูกค้าประจำ (โอนตลอด)') + "</button></div>";
 }
 function closeSheet() {$('sheetRoot').innerHTML = '';S.sk = null;LS.del('skDraft');}
 /* ร่างการเช็กสต็อก: ถ้าแอปถูกปิดกลางคัน (เช่น Android ปิดเบราว์เซอร์) เปิดใหม่แล้วกลับมาที่เดิม รูปที่ส่งแล้วไม่หาย */
@@ -1794,7 +1848,7 @@ const SL_PER = [2, 4, 6, 8, 10];
 function slPrinted() {return LS.get('slPrinted', {});}
 function slList() {
   const c = S.sl,pr = slPrinted();
-  return S.orders.filter((o) => !o.empty && (!c.paid || o.payStatus === PAY.paid) && (!c.noPickup || !isPickup(o)) &&
+  return S.orders.filter((o) => !o.empty && (!c.paid || o.payStatus === PAY.paid || c.reg && isRegular(o)) && (!c.noPickup || !isPickup(o)) &&
   (!c.unpacked || o.packStatus !== PACK.done) && (!c.date || String(o.date || '').slice(0, 10) === c.date) &&
   (!c.hidePrinted || !pr[norm(o.orderNo)])).
   sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0) || String(a.orderNo).localeCompare(String(b.orderNo)));
@@ -1809,7 +1863,7 @@ function vSlips() {
   return "<div class=\"stack\">" + back() + "<div class=\"card stack\"><b>พิมพ์ใบออเดอร์ (รอใบปะหน้า)</b>" +
   "<div class=\"muted\" style=\"font-size:13px\">ใบติดถุงระหว่างรอใบปะหน้าจริง มีเลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด และ QR สแกนในแอปได้ทั้งคู่</div>" +
   "<div class=\"fgroup\"><label>วันที่</label>" + dayBtn('', 'ทุกวัน') + days.map((d) => dayBtn(d, esc(dayLabel(d)))).join('') + "</div>" +
-  tg('paid', 'เฉพาะออเดอร์ที่โอนแล้ว') + tg('noPickup', 'ไม่รวมรับหน้าร้าน') + tg('unpacked', 'เฉพาะที่ยังไม่แพ็ค') + tg('hidePrinted', 'ซ่อนที่พิมพ์แล้ว') +
+  tg('paid', 'เฉพาะออเดอร์ที่โอนแล้ว') + tg('reg', 'รวมลูกค้าประจำที่ยังไม่โอน ⭐') + tg('noPickup', 'ไม่รวมรับหน้าร้าน') + tg('unpacked', 'เฉพาะที่ยังไม่แพ็ค') + tg('hidePrinted', 'ซ่อนที่พิมพ์แล้ว') +
   "<div class=\"fgroup\"><label>ต่อแผ่น A4</label>" + SL_PER.map((k) => "<button class=\"seg\" data-act=\"slPer\" data-n=\"" + k + "\" aria-pressed=\"" + (c.per === k) + "\">" + k + " ใบ</button>").join('') + "</div>" +
   "<div class=\"btns\"><button class=\"btn\" data-act=\"slAll\">เลือกทั้งหมด</button><button class=\"btn\" data-act=\"slNone\">ล้าง</button>" +
   "<button class=\"btn pri\" data-act=\"slPrint\" " + (n ? '' : 'disabled') + ">พิมพ์ " + n + " ใบ · " + Math.ceil(n / c.per) + " แผ่น</button></div></div>" +
@@ -2158,6 +2212,8 @@ const ACT = {
   slAll: () => {S.sl.off.clear();render();},
   slNone: () => {slList().forEach((o) => S.sl.off.add(norm(o.orderNo)));render();},
   slPrint: () => printSlips(),
+  custReg: (d) => {const o = S.byNo[d.no];if (!o) return;custSave(o, { regular: !isRegular(o) });openDetail(d.no);render();},
+  custNote: (d) => {const o = S.byNo[d.no],el = $('custNote');if (!o || !el) return;custSave(o, { note: el.value.trim() });toast('บันทึกหมายเหตุลูกค้าแล้ว');openDetail(d.no);render();},
   jumpIt: (d) => {
     const el = [...document.querySelectorAll('#main .items .it')].find((e) => e.dataset.code === d.c);if (!el) return;
     el.scrollIntoView({ block: 'center', behavior: 'smooth' });el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');
@@ -2888,6 +2944,13 @@ function vSale() {
   const left = outs.filter((r) => !chk[norm(r.code)] || chk[norm(r.code)] < r.q);
   const notOut = Object.keys(chk).filter((k) => !m[k]);
   const extra = outs.filter((r) => (chk[norm(r.code)] || 0) > r.q);
+  /* ของที่ขึ้นไลฟ์แต่ไม่ออก (หรือออกไม่หมด) ที่ยังไม่ได้สแกนเก็บ — ต้องมียอดสดจาก Vrich (รู้จำนวนตั้ง) */
+  const LM = liveMap(day);
+  const unscan = LM ? Object.keys(LM).map((k) => {
+    const x = LM[k],sold = Math.max(x.sold, m[k] ? m[k].q : 0),store = Math.max(0, x.qty - sold);
+    const got = Math.max(0, (chk[k] || 0) - sold);
+    return { code: x.code, name: x.name, store: store, got: got, rest: store - got, none: sold <= 0 };
+  }).filter((r) => r.rest > 0) : null;
   const db = (d) => "<button class=\"seg\" data-act=\"saleDay\" data-d=\"" + esc(d) + "\" aria-pressed=\"" + (d === day) + "\">" + esc(dayLabel(d)) + "</button>";
   const tb = (k, l, n) => "<button class=\"seg\" data-act=\"saleTab\" data-k=\"" + k + "\" aria-pressed=\"" + (tab === k) + "\">" + l + " · " + n + "</button>";
   const L0 = S.saleLast;
@@ -2908,6 +2971,8 @@ function vSale() {
   let list = '';
   if (tab === 'left') list = left.sort((a, b) => natCmp(a.code, b.code)).map(row).join('') || "<div class=\"empty\">สแกนเจอของที่ออกครบทุกชิ้นแล้ว ✓</div>";else
   if (tab === 'found') list = found.sort((a, b) => natCmp(a.code, b.code)).map(row).join('') || "<div class=\"empty\">ยังไม่ได้สแกน</div>";else
+  if (tab === 'unscan') list = !unscan ? "<div class=\"empty\">ต้องมียอดสดจาก Vrich ของวันนี้ก่อน</div>" : unscan.sort((a, b) => natCmp(a.code, b.code)).map((r) => "<div class=\"srow\"><span class=\"code\">" + esc(r.code) + "</span><span class=\"min\" style=\"flex:1\">" + (r.name ? esc(r.name) + '<br>' : '') +
+  "<small class=\"muted\">" + (r.none ? 'ไม่มีคนสั่ง' : 'ขายไม่หมด เหลือ ' + r.store + ' ชิ้น') + "</small></span><b>" + r.got + "/" + r.store + "</b></div>").join('') || "<div class=\"empty\">สแกนของไม่ออกเก็บครบแล้ว ✓</div>";else
   list = notOut.sort(natCmp).map((k) => "<div class=\"srow\"><span class=\"code\">" + esc(k) + "</span><span class=\"min\" style=\"flex:1\">เก็บเข้าสต็อก</span><b>" + chk[k] + "</b></div>").join('') +
   extra.map((r) => "<div class=\"srow\"><span class=\"code\">" + esc(r.code) + "</span><span class=\"min\" style=\"flex:1\">ออก " + r.q + " สแกนได้ " + chk[norm(r.code)] + " · เหลือเก็บ " + (chk[norm(r.code)] - r.q) + "</span><b>+" + (chk[norm(r.code)] - r.q) + "</b></div>").join('') ||
   "<div class=\"empty\">ยังไม่มีของที่ไม่ออก</div>";
@@ -2918,7 +2983,7 @@ function vSale() {
   "<div class=\"fgroup\"><label>วันที่ขาย</label>" + days.map(db).join('') + "</div>" +
   "<div class=\"chips\"><span class=\"chip\">ออก " + outs.length + " รหัส · " + outs.reduce((t, r) => t + r.q, 0) + " ชิ้น</span><span class=\"chip ok\">เจอครบ " + found.length + "</span>" + (part.length ? "<span class=\"chip warn\">เจอบางส่วน " + part.length + "</span>" : '') + "<span class=\"chip bad\">ไม่ออก " + notOut.length + "</span></div></div>" +
   movedBox + last +
-  "<div class=\"fgroup\">" + tb('left', 'ออกแต่ยังไม่เจอ', left.length) + tb('found', 'ออก เจอแล้ว', found.length) + tb('no', 'ไม่ออก/เหลือ', notOut.length + extra.length) + "</div>" +
+  "<div class=\"fgroup\">" + tb('left', 'ออกแต่ยังไม่เจอ', left.length) + tb('found', 'ออก เจอแล้ว', found.length) + tb('no', 'ไม่ออก/เหลือ', notOut.length + extra.length) + (unscan ? tb('unscan', 'ไม่ออก ยังไม่สแกน', unscan.length) : '') + "</div>" +
   "<div class=\"list\">" + list + "</div></div>";
 }
 
@@ -3532,6 +3597,27 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "{0} ลูกค้าประจำ": "{0} ပုံမှန်ဖောက်သည်",
+  "{0} ลูกค้าประจำ {1}โอนตลอด{2}": "{0} ပုံမှန်ဖောက်သည် {1}အမြဲလွှဲ{2}",
+  "ในระบบ {0} ออเดอร์": "စနစ်ထဲ အော်ဒါ {0}",
+  "โอนครบ {0}": "အပြည့်လွှဲ {0}",
+  "หมายเหตุลูกค้า": "ဖောက်သည်မှတ်ချက်",
+  "เช่น โอนตลอด รวมส่งได้": "ဥပမာ အမြဲလွှဲ၊ ပေါင်းပို့လို့ရ",
+  "ยกเลิกลูกค้าประจำ": "ပုံမှန်ဖောက်သည် ပယ်ဖျက်",
+  "{0} ตั้งเป็นลูกค้าประจำ {1}โอนตลอด{2}": "{0} ပုံမှန်ဖောက်သည် သတ်မှတ် {1}အမြဲလွှဲ{2}",
+  "บันทึกหมายเหตุลูกค้าแล้ว": "ဖောက်သည်မှတ်ချက် သိမ်းပြီး",
+  "{0} ประจำ ยังไม่โอน": "{0} ပုံမှန် မလွှဲရသေး",
+  "รวมลูกค้าประจำที่ยังไม่โอน {0}": "မလွှဲရသေးသော ပုံမှန်ဖောက်သည်ပါ ထည့် {0}",
+  "ออเดอร์นี้ไม่มีชื่อ {0} หรือเบอร์โทร": "ဤအော်ဒါတွင် {0} အမည် သို့မဟုတ် ဖုန်းနံပါတ် မရှိ",
+  "บันทึกลูกค้าประจำไม่ได้{0} ต้องอัปเดต {1} และ {2} เวอร์ชันใหม่ก่อน": "ပုံမှန်ဖောက်သည် မသိမ်းနိုင်{0} {1} ကို အပ်ဒိတ်ပြီး {2} ဗားရှင်းအသစ် အရင်လုပ်ပါ",
+  "รอเช็คเอาท์": "ထုတ်ရန် စောင့်",
+  "เช็คเอาท์แล้ว": "ထုတ်ပြီး (Vrich)",
+  "เช็คเอาท์ {0}": "Vrich {0} ထုတ်ပြီး",
+  "ไม่ออก ยังไม่สแกน": "မရောင်း မစကင်ရသေး",
+  "ไม่มีคนสั่ง": "မှာသူမရှိ",
+  "ขายไม่หมด เหลือ {0} ชิ้น": "မကုန် {0} ခု ကျန်",
+  "สแกนของไม่ออกเก็บครบแล้ว {0}": "မရောင်းသောပစ္စည်း အားလုံး စကင်ဖတ်သိမ်းပြီး {0}",
+  "ต้องมียอดสดจาก {0} ของวันนี้ก่อน": "ဒီနေ့ {0} တိုက်ရိုက်ရောင်းအား အရင်လိုသည်",
   "{0} รหัสซ้ำ": "{0} ကုဒ်ထပ်",
   "รหัสซ้ำ": "ကုဒ်ထပ်",
   "ดูชื่อสินค้าก่อนเลือก": "မရွေးခင် ပစ္စည်းအမည်ကို ကြည့်ပါ",
