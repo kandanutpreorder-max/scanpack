@@ -354,6 +354,8 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .miss button{flex:none;font:inherit;font-weight:800;font-size:15px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink,inherit)} .miss button small{font-weight:700;color:var(--warn)}
 .it.flash{animation:itflash 1.2s} @keyframes itflash{0%,40%{box-shadow:0 0 0 3px var(--ai)}100%{box-shadow:none}}
 .dupnote{font-size:12px;font-weight:700;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:4px 8px;margin-top:4px}
+.pullbar{display:flex;gap:8px;align-items:center;font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)} .pullbar span{flex:1;min-width:0} .pullbar.bad{border-color:var(--bad);background:var(--bad-soft,#fdecea)}
+.alert.vchg{display:block}
 .chip.dep{background:#e8f0ff;color:#1e3a8a;border-color:#9db4f0}
 .alert.dep{display:block;line-height:1.6;background:#eef3ff;border:1px solid #9db4f0;color:#1e3a8a} .alert.dep .x{margin-left:6px;vertical-align:middle}
 .alert.dep .toggle{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;border-radius:10px;padding:6px 10px}
@@ -543,6 +545,54 @@ function isPickup(o) {
   if (o.pickup === 'ไม่') return false;
   return PICKUP_RE.test(String(o.vrichCarrier || '')) || PICKUP_RE.test(String(o.carrier || ''));
 }
+/* ---------- ดึงออเดอร์จาก Vrich (ผ่านสคริปต์บนคอมที่เปิด Vrich) ---------- */
+function hhmmOf(t) {const D = new Date(t);return (D.getHours() < 10 ? '0' : '') + D.getHours() + ':' + (D.getMinutes() < 10 ? '0' : '') + D.getMinutes();}
+function pullStale() {
+  const p = S.pull,ev = Number(S.cfg && S.cfg.pullEvery);
+  return !!p && ev > 0 && Date.now() - p.at > (ev * 2 + 5) * 60000;
+}
+function pullLine() {
+  const p = S.pull;
+  if (S.pullWait) return 'ส่งคำขอแล้ว รอคอมที่เปิด Vrich ดึง…';
+  if (!p) return 'ยังไม่มีคอมที่ดึงให้ (ต้องติดตั้งสคริปต์บนคอมที่เปิด Vrich)';
+  return 'ล่าสุด ' + hhmmOf(p.at) + ' ' + (p.ok ? '✓ ' + (p.same ? 'ไม่มีอะไรเปลี่ยน' : p.msg) : '⚠ ' + p.msg) + (pullStale() ? ' · คอมที่เปิด Vrich อาจปิดอยู่' : '');
+}
+function pullBar() {
+  if (!S.pull && !S.pullWait) return '';
+  const bad = S.pull && (!S.pull.ok || pullStale());
+  return '<div class="pullbar' + (bad ? ' bad' : '') + '"><span>Vrich: ' + esc(pullLine()) + '</span><button class="btn" data-act="pullNow"' + (S.pullWait ? ' disabled' : '') + '>ดึงตอนนี้</button></div>';
+}
+async function pullNow() {
+  if (S.pullWait) return;
+  let req;
+  try {req = (await api('requestPull', S.staff)).req;} catch (e) {return toast(/ไม่รู้จักคำสั่ง/.test(errMsg(e)) ? 'ต้องอัปเดต Code.gs และ Deploy เวอร์ชันใหม่ก่อน' : 'ส่งคำขอไม่ได้: ' + errMsg(e), 'bad');}
+  S.pullWait = Date.now();render();toast('ส่งคำขอแล้ว รอคอมที่เปิด Vrich ดึงออเดอร์…');
+  const t0 = Date.now();
+  while (Date.now() - t0 < 120000) {
+    await new Promise((r) => setTimeout(r, 5000));
+    let q;try {q = await api('getPullReq');} catch (e) {continue;}
+    if (q && q.status && q.status.req >= req) {
+      S.pull = q.status;S.pullWait = 0;
+      toast(q.status.ok ? 'ดึงจาก Vrich แล้ว: ' + (q.status.same ? 'ไม่มีอะไรเปลี่ยน' : q.status.msg) : 'ดึงจาก Vrich ไม่สำเร็จ: ' + q.status.msg, q.status.ok ? 'ok' : 'bad');
+      await refresh(true);render();return;
+    }
+  }
+  S.pullWait = 0;render();
+  toast('ไม่มีคอมตอบ: เปิด Chrome + Vrich บนคอมที่ติดตั้งสคริปต์ไว้', 'bad');
+}
+function pullCfgCard() {
+  const c = S.cfg || {},ev = c.pullEvery === undefined ? 5 : Number(c.pullEvery),dy = Number(c.pullDays) || 3;
+  const opt = (v, l) => '<option value="' + v + '"' + (Number(v) === ev ? ' selected' : '') + '>' + l + '</option>';
+  return '<div class="card stack"><b>ดึงออเดอร์จาก Vrich อัตโนมัติ</b>' +
+  '<div class="row2"><label class="field"><span>ดึงทุก</span><select id="cfgPullEvery">' + opt(0, 'ปิด (กดดึงเอง)') + opt(5, '5 นาที') + opt(10, '10 นาที') + opt(15, '15 นาที') + opt(30, '30 นาที') + opt(60, '1 ชั่วโมง') + '</select></label>' +
+  '<label class="field"><span>ย้อนหลัง (วัน)</span><input id="cfgPullDays" type="number" min="1" max="14" inputmode="numeric" value="' + dy + '"></label></div>' +
+  '<div class="muted" style="font-size:12px">ต้องมีคอม 1 เครื่องเปิด Chrome + Vrich ค้างไว้ (สคริปต์ Tampermonkey) · ' + esc(pullLine()) + '</div>' +
+  '<button class="btn pri" data-act="pullCfgSave">บันทึกการดึงจาก Vrich</button></div>';
+}
+function vchgBlock(o) {
+  if (!o.vrichChange) return '';
+  return '<div class="alert warn vchg">⚠ Vrich แก้ออเดอร์นี้หลังเริ่มจัด: <b>' + esc(o.vrichChange) + '</b><br>ตรวจของในตะกร้า/กล่องให้ตรง แล้วกด <button class="x" data-act="vchgAck" data-no="' + esc(norm(o.orderNo)) + '">รับทราบ</button></div>';
+}
 /* ---------- ลูกค้าประจำ (โอนตลอด) + หมายเหตุลูกค้า: ผูกกับชื่อ Facebook (ไม่มีใช้เบอร์โทร) ---------- */
 function custKey(o) {return norm(o && (o.fbName || o.phone || o.customer) || '');}
 function custOf(o) {return S.customers && S.customers[custKey(o)] || null;}
@@ -696,6 +746,7 @@ function setData(d) {
   if (d.cfg) S.cfg = d.cfg;
   S.stock = {};(d.stock || []).forEach((r) => {S.stock[norm(r.code)] = r;});
   S.batches = (d.batches || []).slice();
+  if (d.pull !== undefined) S.pull = d.pull;
   S.customers = {};(d.customers || []).forEach((c) => {S.customers[norm(c.key)] = c;});
   Q.list.filter((x) => x.type === 'cust').forEach((x) => custLocal(x.c));   // ที่ยังรอส่ง ใช้ค่าในเครื่องก่อน
   S.orders = (d.orders || []).slice();
@@ -806,6 +857,7 @@ async function qRun() {
       if (op.type === 'stock') {const r = await api('saveStock', op.rec);if (!Q.list.slice(1).some((x) => x.type === 'stock' && x.key === op.key)) {const loc = S.stock[op.key] || {};S.stock[op.key] = Object.assign({}, r, { thumb: r.thumb || loc.thumb || '' });}} else
       if (op.type === 'packprog') b = await api('savePackProgress', op.orderNo, op.payload);else
       if (op.type === 'pickup') b = await api('setPickup', op.orderNo, op.val, op.staff);else
+      if (op.type === 'ack') b = await api('ackVrichChange', op.orderNo, op.staff);else
       if (op.type === 'cust') {const r = await api('saveCustomer', op.c, op.staff);if (r && !Q.list.slice(1).some((x) => x.type === 'cust' && x.c.key === op.c.key)) S.customers[norm(r.key)] = r;} else
       if (op.type === 'ordered') {const rows = await api('markOrdered', op.codes, op.staff);(rows || []).forEach((r) => {const k = norm(r.code);S.stock[k] = Object.assign({}, S.stock[k] || {}, { ordered: r.ordered });});} else
       if (op.type === 'batch') {const r = await api('saveBatch', op.id, op.patch, op.staff);if (r && op.patch.labels && r.labels === undefined) {r.labels = JSON.stringify(op.patch.labels);if (!S.oldGsWarned) {S.oldGsWarned = 1;toast('อัปเดต Code.gs เวอร์ชันใหม่ เพื่อให้เครื่องอื่นเห็นใบปะหน้าที่สแกน', 'bad');}}if (r && !Q.list.slice(1).some((x) => x.type === 'batch' && x.id === op.id)) {const i = S.batches.findIndex((x) => x.id === r.id);if (i >= 0) S.batches[i] = r;}}
@@ -1600,7 +1652,7 @@ function vOrders() {
   "<div class=\"stack\" style=\"margin-top:8px\"><div class=\"fgroup\"><label>ดู</label><button class=\"seg\" data-act=\"trKind\" data-v=\"pack\" aria-pressed=\"" + (tr.kind === 'pack') + "\">เวลาแพ็ค</button><button class=\"seg\" data-act=\"trKind\" data-v=\"pick\" aria-pressed=\"" + (tr.kind === 'pick') + "\">เวลาจัดเสร็จ</button></div>" +
   "<div class=\"row3\"><label class=\"field\"><span>วันที่</span><input type=\"date\" id=\"trDate\" value=\"" + esc(tr.date) + "\"></label><label class=\"field\"><span>ตั้งแต่</span><input type=\"time\" id=\"trFrom\" value=\"" + esc(tr.from) + "\"></label><label class=\"field\"><span>ถึง</span><input type=\"time\" id=\"trTo\" value=\"" + esc(tr.to) + "\"></label></div>" +
   "<div class=\"btns\"><button class=\"btn\" data-act=\"trToday\">วันนี้</button><button class=\"btn\" data-act=\"trClear\">ล้าง</button></div></div></details>";
-  return "<div class=\"stack\">\n    " + dueBanner() + "\n    " + dayRow + "\n    <div class=\"tiles\">" +
+  return "<div class=\"stack\">\n    " + dueBanner() + pullBar() + "\n    " + dayRow + "\n    <div class=\"tiles\">" +
   tiles.map(([l, n, set]) => "<button class=\"tile\" data-act=\"tile\" data-set='" + JSON.stringify(set) + "'><b>" + n + "</b><span>" + l + "</span></button>").join('') + "</div>\n    <div class=\"search\"><input id=\"q\" type=\"search\" placeholder=\"\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E40\u0E25\u0E02\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E0A\u0E37\u0E48\u0E2D \u0E40\u0E1A\u0E2D\u0E23\u0E4C \u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38 \u0E23\u0E2B\u0E31\u0E2A\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\" value=\"" +
   esc(f.q) + "\"></div>\n    <div class=\"fgroup\"><label>\u0E08\u0E31\u0E14</label>" +
   seg('pick', 'all', 'ทั้งหมด') + seg('pick', PICK.none, PICK.none) + seg('pick', PICK.part, PICK.part) + seg('pick', PICK.done, PICK.done) + "</div>\n    <div class=\"fgroup\"><label>\u0E41\u0E1E\u0E47\u0E04</label>" +
@@ -1634,7 +1686,7 @@ function renderOrderList() {
     return "<button class=\"ord\" data-act=\"detail\" data-no=\"" + esc(norm(o.orderNo)) + "\">\n      <div class=\"ord-top\"><span class=\"ord-no\">#" +
     esc(o.orderNo) + "</span><span class=\"ord-name\">" + esc(o.customer || o.fbName || '-') + "</span><span class=\"ord-amt\">" + baht(o.total) + "</span></div>\n      <div class=\"ord-meta\">" +
     (carrierOf(o) === 'ไม่ระบุขนส่ง' ? 'ยังไม่ระบุขนส่ง' : esc(carrierOf(o))) + (o.tracking || o.vrichTracking ? ' · <span class="code">' + esc(o.tracking || o.vrichTracking) + '</span>' : '') + " \xB7 " + (o.itemQty || 0) + " \u0E0A\u0E34\u0E49\u0E19</div>\n      <div class=\"chips\">" +
-    dueChip(o) + puChip(o) + custChip(o) + pickChip(o) + packChip(o) + voutChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + depChip(o) + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
+    dueChip(o) + (o.vrichChange ? '<span class="chip bad">⚠ Vrich แก้ออเดอร์</span>' : '') + puChip(o) + custChip(o) + pickChip(o) + packChip(o) + voutChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + depChip(o) + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
     pct >= 100 ? 'done' : '') + "\"><i style=\"width:" + pct + "%\"></i></div>\n    </button>";
 
   }).join('') : "<div class=\"empty\">\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E15\u0E32\u0E21\u0E15\u0E31\u0E27\u0E01\u0E23\u0E2D\u0E07\u0E19\u0E35\u0E49</div>";
@@ -1647,7 +1699,7 @@ function orderHead(o, mode) {
   esc(o.customer || '-') + "</b> <span class=\"muted\">\xB7 " + esc(o.fbName || '') + "</span></div>\n    <div class=\"addr\">" +
   esc(o.phone || '') + " \xB7 " + esc(o.province || '') + " \xB7 " + esc(carrierOf(o)) + " " + (o.tracking || o.vrichTracking ? '<span class="code">' + esc(o.tracking || o.vrichTracking) + '</span>' : '') + "</div>\n    " + (
   o.note ? "<div class=\"note\">\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38: " + esc(o.note) + "</div>" : '') + "\n    " + (
-  holdBlock(o, mode)) + "\n    " + (
+  holdBlock(o, mode) + vchgBlock(o)) + "\n    " + (
   o.payStatus !== PAY.paid ? "<div class=\"alert " + (o.payStatus === PAY.none ? 'bad' : 'warn') + "\">" + esc(o.payStatus) + " \xB7 \u0E42\u0E2D\u0E19 " + baht(o.paid) + " \u0E08\u0E32\u0E01 " + baht(o.total) + "</div>" : '') + "\n  </div>";
 
 }
@@ -2051,7 +2103,7 @@ function vSettings() {
   "<div class=\"card stack\"><b>กำหนดเวลาแพ็ค (ทุกเครื่องใช้ค่าเดียวกัน)</b><div class=\"row2\"><label class=\"field\"><span>แพ็คภายใน (วันหลังวันไลฟ์)</span><input id=\"cfgDays\" type=\"number\" min=\"0\" max=\"30\" inputmode=\"numeric\" value=\"" + (Number(S.cfg.packDays) || 0) + "\"></label>" +
   "<label class=\"field\"><span>ตัดรอบส่งทุกวัน (เวลา)</span><input id=\"cfgCut\" type=\"time\" value=\"" + esc(S.cfg.cutoff || '15:00') + "\"></label></div>" +
   "<div class=\"muted\" style=\"font-size:12px\">0 = ต้องแพ็ควันเดียวกับวันไลฟ์ · 1 = ภายในวันถัดไป · ออเดอร์ที่โอนแล้วแต่เลยกำหนดจะขึ้นป้ายแดง 'เกินกำหนด'</div>" +
-  "<button class=\"btn pri\" data-act=\"cfgSave\">บันทึกกำหนดเวลา</button></div>\n    " +
+  "<button class=\"btn pri\" data-act=\"cfgSave\">บันทึกกำหนดเวลา</button></div>\n    " + pullCfgCard() +
   t('requireLabel', 'เตือนถ้ายังไม่สแกนยืนยันใบปะหน้า', 'ก่อนแพ็คเสร็จ ให้สแกนใบปะหน้าหรือใบออเดอร์ของถุงนั้น ถ้าไม่ได้สแกนต้องกดยืนยันอีกครั้ง (ไม่รวมรับหน้าร้าน)') + "\n    " +
   t('autoScroll', 'เลื่อนหน้าจอไปที่สินค้าที่สแกน', 'ปิดไว้ = หน้าจออยู่กับที่ ดูผลสแกนที่แถบบนกล้อง') + "\n    <label class=\"field card\"><span>หัวใบรับหน้าร้าน</span><input id=\"setPuTitle\" value=\"" + esc(S.set.pickupTitle || PU_TITLE) + "\"></label>\n    <label class=\"field card\"><span>ลิงก์ออเดอร์ Vrich (QR บนใบรับหน้าร้าน)</span><input id=\"setVrichUrl\" inputmode=\"url\" value=\"" + esc(S.set.vrichUrl == null ? VRICH_URL : S.set.vrichUrl) + "\"><span class=\"muted\" style=\"font-size:12px\">{no} = เลขออเดอร์ · ลบให้ว่างถ้าอยากให้ QR เป็นเลขออเดอร์อย่างเดียว</span></label>\n    <div class=\"card muted\" style=\"font-size:13px\">\u0E43\u0E0A\u0E49\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E1A\u0E32\u0E23\u0E4C\u0E42\u0E04\u0E49\u0E14\u0E1A\u0E25\u0E39\u0E17\u0E39\u0E18\u0E01\u0E31\u0E1A\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49 \u0E22\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E23\u0E31\u0E1A\u0E17\u0E31\u0E19\u0E17\u0E35\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C (\u0E15\u0E31\u0E49\u0E07\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E1B\u0E49\u0E19\u0E20\u0E32\u0E29\u0E32\u0E2D\u0E31\u0E07\u0E01\u0E24\u0E29 \u0E41\u0E25\u0E30\u0E2A\u0E48\u0E07 Enter \u0E17\u0E49\u0E32\u0E22\u0E23\u0E2B\u0E31\u0E2A)</div>\n  </div>";
 
@@ -2275,6 +2327,12 @@ const ACT = {
   slAll: () => {S.sl.off.clear();render();},
   slNone: () => {slList().forEach((o) => S.sl.off.add(norm(o.orderNo)));render();},
   slPrint: () => printSlips(),
+  pullNow: () => pullNow(),
+  vchgAck: (d) => {const o = S.byNo[d.no];if (!o) return;o.vrichChange = '';enqueue({ type: 'ack', orderNo: String(o.orderNo), staff: S.staff });render();},
+  pullCfgSave: async () => {
+    const c = { pullEvery: Number($('cfgPullEvery').value) || 0, pullDays: Number($('cfgPullDays').value) || 3 };
+    try {S.cfg = await api('saveConfig', c, S.staff);toast('บันทึกการดึงจาก Vrich แล้ว', 'ok');render();} catch (e) {toast('บันทึกไม่สำเร็จ: ' + errMsg(e), 'bad');}
+  },
   goDeposit: () => {S.f.dep = 'deposit';go('orders');},
   custSpot: (d) => {
     const o = S.byNo[d.no],el = $('custSpot');if (!o || !el) return;
@@ -2366,7 +2424,8 @@ function lblQtyCtl(p) {
 }
 function moreExtra(ic) {
   const short = shortList().length,open = S.batches.filter((b) => b.status !== BATCH.closed).length;
-  return "<button data-act=\"goDeposit\">" + ic('<path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/>') + "<div><b>ของฝากลูกค้า</b><span>ออเดอร์ที่ลูกค้าฝากไว้ และตำแหน่งที่วาง</span></div></button>\n    " +
+  return "<button data-act=\"pullNow\">" + ic('<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/>') + "<div><b>ดึงออเดอร์จาก Vrich ตอนนี้</b><span>" + esc(pullLine()) + "</span></div></button>\n    " +
+  "<button data-act=\"goDeposit\">" + ic('<path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/>') + "<div><b>ของฝากลูกค้า</b><span>ออเดอร์ที่ลูกค้าฝากไว้ และตำแหน่งที่วาง</span></div></button>\n    " +
   "<button data-act=\"go\" data-v=\"sale\">" + ic('<path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><path d="M8 12l3 3 5-6"/>') + "<div><b>เช็คออก/ไม่ออก</b><span>สแกนสินค้าหลังไลฟ์ บอกทันทีว่าขายออกไหม</span></div></button>\n    <button data-act=\"go\" data-v=\"stock\">" + ic('<path d="M3 8l9-4 9 4v8l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v8"/>') + "<div><b>\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01</b><span>\u0E19\u0E31\u0E1A\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49 \u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B \u0E40\u0E0A\u0E47\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E2D\u0E44\u0E2B\u0E21</span></div></button>\n    <button data-act=\"more\" data-m=\"short\">" +
   ic('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>') + "<div><b>\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E02\u0E32\u0E14 + \u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07" + (short ? " <span class=\"chip bad\">" + short + "</span>" : '') + "</b><span>\u0E2A\u0E23\u0E38\u0E1B\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E1E\u0E2D \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E23\u0E39\u0E1B \u0E41\u0E25\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07</span></div></button>\n    <button data-act=\"go\" data-v=\"batch\">" +
   ic('<rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>') + "<div><b>\u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C (Batch)" + (open ? " <span class=\"chip ai\">" + open + "</span>" : '') + "</b><span>\u0E23\u0E27\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E2B\u0E22\u0E34\u0E1A\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E41\u0E22\u0E01\u0E25\u0E07\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</span></div></button>";
@@ -3670,6 +3729,34 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "{0} ล่าสุด {1} {2} ใหม่ {3} {4} อัปเดต {5} ออเดอร์": "{0} နောက်ဆုံး {1} {2} အသစ် {3} {4} အော်ဒါ {5} ခု အပ်ဒိတ်",
+  "ล่าสุด {0} {1} ใหม่ {2}": "နောက်ဆုံး {0} {1} အသစ် {2}",
+  "อัปเดต {0} ออเดอร์": "အော်ဒါ {0} ခု အပ်ဒိတ်",
+  "ล่าสุด {0} {1} ไม่มีอะไรเปลี่ยน": "နောက်ဆုံး {0} {1} ပြောင်းလဲမှုမရှိ",
+  "ไม่มีอะไรเปลี่ยน": "ပြောင်းလဲမှုမရှိ",
+  "ดึงตอนนี้": "ယခုဆွဲယူ",
+  "ดึงออเดอร์จาก {0} ตอนนี้": "{0} မှ အော်ဒါ ယခုဆွဲယူ",
+  "ส่งคำขอแล้ว รอคอมที่เปิด {0} ดึง{1}": "တောင်းဆိုပြီး {0} ဖွင့်ထားသော ကွန်ပျူတာ ဆွဲယူရန် စောင့်နေသည်{1}",
+  "ยังไม่มีคอมที่ดึงให้ {0}ต้องติดตั้งสคริปต์บนคอมที่เปิด {1}": "ဆွဲယူပေးမည့် ကွန်ပျူတာ မရှိသေး {0}{1} ဖွင့်ထားသော ကွန်ပျူတာတွင် script ထည့်ရန်",
+  "คอมที่เปิด {0} อาจปิดอยู่": "{0} ဖွင့်ထားသော ကွန်ပျူတာ ပိတ်နေနိုင်သည်",
+  "ดึงออเดอร์จาก {0} อัตโนมัติ": "{0} မှ အော်ဒါ အလိုအလျောက်ဆွဲယူ",
+  "ดึงทุก": "ဆွဲယူမည့်ကြာချိန်",
+  "ปิด {0}กดดึงเอง{1}": "ပိတ် {0}ကိုယ်တိုင်နှိပ်ဆွဲ{1}",
+  "{0} นาที": "{0} မိနစ်",
+  "{0} ชั่วโมง": "{0} နာရီ",
+  "ย้อนหลัง {0}วัน{1}": "နောက်ကြောင်း {0}ရက်{1}",
+  "ต้องมีคอม {0} เครื่องเปิด {1} {2} {3} ค้างไว้ {4}สคริปต์ {5}": "ကွန်ပျူတာ {0} လုံးတွင် {1} {2} {3} ဖွင့်ထားရမည် {4}script {5}",
+  "บันทึกการดึงจาก {0}": "{0} ဆွဲယူမှု သိမ်း",
+  "บันทึกการดึงจาก {0} แล้ว": "{0} ဆွဲယူမှု သိမ်းပြီး",
+  "{0} {1} แก้ออเดอร์": "{0} {1} အော်ဒါပြင်ထား",
+  "{0} {1} แก้ออเดอร์นี้หลังเริ่มจัด": "{0} စီပြီးနောက် {1} က ဤအော်ဒါကို ပြင်ထားသည်",
+  "ตรวจของในตะกร้า{0}กล่องให้ตรง แล้วกด": "ခြင်း{0}ဘူးထဲက ပစ္စည်းကို စစ်ပြီး နှိပ်ပါ",
+  "รับทราบ": "သိပြီ",
+  "ดึงจาก {0} แล้ว": "{0} မှ ဆွဲယူပြီး",
+  "ดึงจาก {0} ไม่สำเร็จ": "{0} မှ ဆွဲယူ မအောင်မြင်",
+  "ไม่มีคอมตอบ{0} เปิด {1} {2} {3} บนคอมที่ติดตั้งสคริปต์ไว้": "ကွန်ပျူတာ မတုံ့ပြန်{0} script ထည့်ထားသော ကွန်ပျူတာတွင် {1} {2} {3} ဖွင့်ပါ",
+  "ส่งคำขอแล้ว รอคอมที่เปิด {0} ดึงออเดอร์{1}": "တောင်းဆိုပြီး {0} ဖွင့်ထားသော ကွန်ပျူတာ အော်ဒါဆွဲရန် စောင့်နေသည်{1}",
+  "ลบ {0} {1}จัดไปแล้ว {2}": "ဖျက် {0} {1}စီပြီး {2}",
   "กดบันทึกอีกครั้งถ้าจะใช้ช่องนี้ร่วมกัน": "ဒီနေရာကို မျှသုံးမယ်ဆိုရင် သိမ်းမည်ကို ထပ်နှိပ်ပါ",
   "{0} ฝากของ": "{0} အပ်ထား",
   "{0} มีของฝาก {1} รวมส่ง": "{0} အပ်ထားတာရှိ {1} ပေါင်းပို့",
