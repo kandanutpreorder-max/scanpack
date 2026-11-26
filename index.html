@@ -354,6 +354,9 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .miss button{flex:none;font:inherit;font-weight:800;font-size:15px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink,inherit)} .miss button small{font-weight:700;color:var(--warn)}
 .it.flash{animation:itflash 1.2s} @keyframes itflash{0%,40%{box-shadow:0 0 0 3px var(--ai)}100%{box-shadow:none}}
 .dupnote{font-size:12px;font-weight:700;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:4px 8px;margin-top:4px}
+.chip.dep{background:#e8f0ff;color:#1e3a8a;border-color:#9db4f0}
+.alert.dep{display:block;line-height:1.6;background:#eef3ff;border:1px solid #9db4f0;color:#1e3a8a} .alert.dep .x{margin-left:6px;vertical-align:middle}
+.alert.dep .toggle{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;border-radius:10px;padding:6px 10px}
 .chip.reg{background:#fff4d6;color:#8a5a00;border-color:#f0c96a}
 .custbox{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;background:var(--surface)} .custbox.on{border-color:#f0c96a;background:#fffaf0}
 .salebig.out{background:var(--ok)} .salebig.more{background:var(--warn)} .salebig.no{background:var(--bad)}
@@ -510,11 +513,11 @@ const PAY = { paid: 'โอนแล้ว', none: 'ยังไม่โอน'
 const S = {
   view: 'orders', staff: '', staffList: [], carriers: [], sheetUrl: '',
   orders: [], itemsBy: {}, byNo: {}, byTrack: {}, codeIdx: {},
-  f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', due: 'all', carrier: 'all', vout: 'all', cust: 'all', picker: '', packer: '', date: '', q: '', tr: { kind: 'pack', date: '', from: '', to: '' } },
+  f: { pick: 'all', pack: 'all', pay: 'all', ship: 'all', due: 'all', carrier: 'all', vout: 'all', cust: 'all', dep: 'all', picker: '', packer: '', date: '', q: '', tr: { kind: 'pack', date: '', from: '', to: '' } },
   cfg: { packDays: 1, cutoff: '15:00' },
   pickNo: null, pickChoices: null,
   pk: null, packChoices: null,
-  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', fd: { date: null, mode: 'left', q: '', batch: '' }, sl: { paid: true, reg: true, noPickup: true, unpacked: true, hidePrinted: false, per: 8, off: new Set(), date: '' }, labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
+  more: null, imp: null, products: null, labelSel: new Set(), labelQ: '', fd: { date: null, mode: 'left', q: '', batch: '' }, sl: { paid: true, reg: true, noDeposit: true, noPickup: true, unpacked: true, hidePrinted: false, per: 8, off: new Set(), date: '' }, labelOnlyOpen: true, labelSize: 's5030', labelSort: 'qty', lblQty: {},
   stock: {}, batches: [], batchId: null, batchStep: 'pick', lastPut: null, nb: { size: 10, paidOnly: true, qmin: 0, qmax: 0, date: '', ship: 'all', busy: false },
   sk: null, stockQ: '', stockMulti: true, poQty: {}, poOff: new Set(), poVendor: '',
   set: { sound: true, autoCam: true, fastScan: true, tapScan: true, requirePhoto: false, requireLabel: true, lastCarrier: '', pickupTitle: '', vrichUrl: null }
@@ -555,11 +558,42 @@ function custLocal(c) {
   ['fbName', 'customer', 'phone'].forEach((f) => {if (c[f]) r[f] = c[f];});
   if (c.regular !== undefined) r.regular = c.regular ? 'ใช่' : 'ไม่';
   if (c.note !== undefined) r.note = c.note;
+  if (c.holdSpot !== undefined) r.holdSpot = c.holdSpot;
 }
 function custSave(o, patch) {
   const c = Object.assign({ key: custKey(o), fbName: o.fbName || '', customer: o.customer || '', phone: o.phone || '' }, patch);
   if (!c.key) return toast('ออเดอร์นี้ไม่มีชื่อ Facebook หรือเบอร์โทร', 'bad');
   custLocal(c);enqueue({ type: 'cust', c: c, staff: S.staff });
+}
+/* ---------- ของฝากลูกค้า ----------
+ * isDeposit: ออเดอร์ที่ลูกค้าฝากไว้ก่อน (Vrich "ฝากของ") → จัดแล้วเก็บที่ตำแหน่งของลูกค้า ไม่ต้องแพ็ค
+ * hasHeld:   ออเดอร์ที่ "มีของฝาก" → ตอนแพ็คต้องเอาของฝากมารวมกล่อง */
+function isDeposit(o) {return Number(o && o.deposit) > 0;}
+function depositsOf(o) {const k = custKey(o);return k ? S.orders.filter((x) => x !== o && !x.empty && isDeposit(x) && x.packStatus !== PACK.done && custKey(x) === k) : [];}
+function hasHeld(o) {return !isDeposit(o) && (Number(o && o.hold) > 0 || depositsOf(o).length > 0);}
+/* ช่องนี้มีลูกค้าคนอื่นวางของฝากอยู่ไหม (ยังมีออเดอร์ฝากที่ยังไม่ส่ง) */
+function spotUsedBy(spot, exceptKey) {
+  const k = norm(spot);if (!k) return '';
+  const c = Object.values(S.customers || {}).find((x) => norm(x.key) !== exceptKey && norm(x.holdSpot) === k &&
+  S.orders.some((o) => isDeposit(o) && o.packStatus !== PACK.done && custKey(o) === norm(x.key)));
+  return c ? c.fbName || c.customer || c.key : '';
+}
+function holdSpotOf(o) {const c = custOf(o);return c ? String(c.holdSpot || '').trim() : '';}
+function depChip(o) {
+  const sp = holdSpotOf(o);
+  return isDeposit(o) ? '<span class="chip dep">📦 ฝากของ' + (sp ? ' · ' + esc(sp) : '') + '</span>' :
+  hasHeld(o) && o.packStatus !== PACK.done ? '<span class="chip dep">📦 มีของฝาก → รวมส่ง' + (sp ? ' · ' + esc(sp) : '') + '</span>' : '';
+}
+function holdBlock(o, mode) {
+  const sp = holdSpotOf(o),spTxt = sp ? '<b>' + esc(sp) + '</b>' : '<b>ยังไม่ได้ตั้งที่วาง</b>';
+  const set = '<button class="x" data-act="holdSpotEdit" data-no="' + esc(norm(o.orderNo)) + '">' + (sp ? 'แก้ที่วาง' : 'ตั้งที่วาง') + '</button>';
+  if (isDeposit(o)) return '<div class="alert dep">📦 ลูกค้าฝากของ · ' + (mode === 'pack' ? 'ไม่ต้องแพ็ค · ' : '') + 'จัดเสร็จแล้ววางที่ ' + spTxt + ' ' + set + '</div>';
+  if (!hasHeld(o) || o.packStatus === PACK.done) return '';
+  const ds = depositsOf(o),pcs = ds.reduce((t, x) => t + (Number(x.itemQty) || 0), 0);
+  return '<div class="alert dep">📦 มีของฝาก วางอยู่ที่ ' + spTxt + ' ' + set +
+  (ds.length ? '<br>ออเดอร์ฝาก #' + ds.map((x) => esc(x.orderNo)).join(', #') + ' · ' + pcs + ' ชิ้น' +
+  (mode === 'pack' && S.pk ? '<label class="toggle" style="margin-top:6px"><span>แพ็คของฝากรวมกล่องนี้ (ปิดออเดอร์ฝากพร้อมกัน)</span><input type="checkbox" id="pkCombine" ' + (S.pk.combine !== false ? 'checked' : '') + '></label>' : '') :
+  '<br>เอาของฝากมารวมกล่องตอนแพ็ค') + '</div>';
 }
 /* ประวัติในระบบ: จำนวนออเดอร์ของลูกค้าคนนี้ และที่โอนครบ */
 function custHistory(o) {
@@ -680,7 +714,7 @@ function todayStr() {return ymd(new Date());}
 function addDays(day, n) {const D = new Date(day + 'T12:00:00');D.setDate(D.getDate() + n);return ymd(D);}
 function cutoffMs() {const m = String(S.cfg.cutoff || '15:00').match(/(\d{1,2}):(\d{2})/);const D = new Date();D.setHours(m ? Number(m[1]) : 15, m ? Number(m[2]) : 0, 0, 0);return D.getTime();}
 /* ต้องแพ็คส่ง = โอนแล้ว ยังไม่แพ็คเสร็จ ไม่ใช่รับหน้าร้าน */
-function needPack(o) {return !o.empty && o.packStatus !== PACK.done && !isPickup(o) && o.payStatus === PAY.paid && !!String(o.date || '').slice(0, 10);}
+function needPack(o) {return !o.empty && o.packStatus !== PACK.done && !isPickup(o) && !isDeposit(o) && o.payStatus === PAY.paid && !!String(o.date || '').slice(0, 10);}
 function dueDay(o) {return addDays(String(o.date).slice(0, 10), Number(S.cfg.packDays) || 0);}
 /* 'over' เกินกำหนด · 'today' ครบกำหนดวันนี้ · 'later' ยังไม่ถึง · '' ไม่ต้องนับ */
 function dueState(o) {
@@ -742,6 +776,7 @@ function applyBundle(b) {
 const Q = { list: LS.get('queue', []), busy: false, timer: null, fails: 0 };
 function qSave() {LS.set('queue', Q.list);syncBadge();}
 function enqueue(op) {
+  Q.seq = (Q.seq || 0) + 1;   // ทุกการแก้ในเครื่อง: ข้อมูลที่ดึงมาก่อนหน้านี้ถือว่าเก่า ห้ามเอามาทับ
   const last = Q.list[Q.list.length - 1];
   if (op.type === 'pick' && last && last.type === 'pick' && !last.sent && last.orderNo === op.orderNo && last.staff === op.staff) {
     Object.keys(op.deltas).forEach((c) => {last.deltas[c] = (last.deltas[c] || 0) + op.deltas[c];});
@@ -1279,8 +1314,9 @@ function pkMerge() {
 async function fetchLatest(no) {
   try {
     const o = S.byNo[norm(no)];if (!o || Q.list.some((x) => x.orderNo === String(o.orderNo))) return;
+    const seq = Q.seq || 0;
     const b = await api('getOrder', String(o.orderNo));
-    if (!b || !b.order || Q.list.some((x) => x.orderNo === String(o.orderNo))) return;
+    if (!b || !b.order || Q.list.some((x) => x.orderNo === String(o.orderNo)) || (Q.seq || 0) !== seq) return;
     applyBundle(b);pkMerge();softRender();
   } catch (e) {}
 }
@@ -1391,10 +1427,26 @@ function finishPack() {
   Object.assign(o, { packStatus: PACK.done, packedBy: S.staff, packedAt: nowStr(), carrier: payload.carrier, tracking: payload.tracking, photos: payload.photos.join('\n'), packNote: payload.note });
   rebuild();
   enqueue({ type: 'pack', orderNo: String(o.orderNo), payload: payload });
+  /* ของฝากรวมกล่อง: ปิดออเดอร์ฝากของลูกค้าคนนี้พร้อมกัน (ขนส่ง/เลขพัสดุ/รูป เดียวกัน) */
+  let comb = [];
+  if (S.pk.combine !== false && !isDeposit(o)) {
+    comb = depositsOf(o);
+    comb.forEach((x) => {
+      const pl = { packed: itemsOf(x).map((i) => ({ code: i.code, packedQty: qtyOf(i) })), carrier: payload.carrier, tracking: payload.tracking, staff: S.staff,
+        note: 'ของฝาก รวมส่งกับ #' + o.orderNo, photos: payload.photos, forced: false };
+      itemsOf(x).forEach((i) => {i.packedQty = qtyOf(i);if (!isSkip(i)) i.pickedQty = Math.max(Number(i.pickedQty) || 0, qtyOf(i));});
+      Object.assign(x, { packStatus: PACK.done, packedBy: S.staff, packedAt: nowStr(), carrier: pl.carrier, tracking: pl.tracking, photos: pl.photos.join('\n'), packNote: pl.note });
+      enqueue({ type: 'pack', orderNo: String(x.orderNo), payload: pl });
+    });
+    if (comb.length) rebuild();
+  }
+  /* ส่งของฝากครบแล้ว → คืนช่องวาง ให้ใช้กับลูกค้าคนอื่นต่อได้ */
+  const spot = holdSpotOf(o);
+  if (spot && (comb.length || Number(o.hold) > 0) && !isDeposit(o) && !depositsOf(o).length) {custSave(o, { holdSpot: '' });setTimeout(() => toast('ส่งของฝากครบ คืนช่อง ' + spot + ' แล้ว'), 1200);}
   S.set.lastCarrier = S.pk.carrier;LS.set('set', S.set);
   LS.del(packDraftKey(S.pk.no));
   S.pk = null;
-  feedback({ ok: true, msg: 'แพ็ค #' + o.orderNo + ' เสร็จ ✓', sub: 'สแกนออเดอร์ถัดไปได้เลย' });
+  feedback({ ok: true, msg: 'แพ็ค #' + o.orderNo + ' เสร็จ ✓', sub: comb.length ? 'รวมของฝาก #' + comb.map((x) => x.orderNo).join(', #') + ' ปิดพร้อมกันแล้ว' : 'สแกนออเดอร์ถัดไปได้เลย' });
   render();
 }
 async function addPhotos(files) {
@@ -1508,6 +1560,8 @@ function filtered() {
     if (f.cust === 'reg' && !isRegular(o)) return false;
     if (f.cust === 'regUnpaid' && !(isRegular(o) && o.payStatus !== PAY.paid)) return false;
     if (f.cust === 'pickup' && !isPickup(o)) return false;
+    if (f.dep === 'deposit' && !isDeposit(o)) return false;
+    if (f.dep === 'held' && !(hasHeld(o) && o.packStatus !== PACK.done && !isDeposit(o))) return false;
     if (f.vout === 'done' && !o.vrichOutAt) return false;
     if (f.due === 'today' && dueState(o) !== 'today') return false;
     if (f.due === 'over' && dueState(o) !== 'over') return false;
@@ -1555,6 +1609,9 @@ function vOrders() {
   seg('ship', 'all', 'ทั้งหมด') + seg('ship', 'ship', 'จัดส่ง') + seg('ship', 'pickup', 'รับหน้าร้าน') + "<button class=\"seg\" data-act=\"puOpen\" style=\"border-style:dashed\">+ ตั้งรับหน้าร้าน</button></div>\n    <div class=\"fgroup\"><label>กำหนด</label>" + seg('due', 'all', 'ทั้งหมด') + seg('due', 'today', 'ต้องส่งวันนี้') + seg('due', 'over', 'เกินกำหนด') + "</div>\n    <div class=\"fgroup\"><label>ขนส่ง</label>" + seg('carrier', 'all', 'ทั้งหมด') + carrierSegs(seg) + "</div>" +
   "<div class=\"fgroup\"><label>ลูกค้า</label>" + seg('cust', 'all', 'ทั้งหมด') + seg('cust', 'reg', '⭐ ลูกค้าประจำ · ' + S.orders.filter((o) => !o.empty && isRegular(o)).length) +
   seg('cust', 'regUnpaid', '⭐ ประจำ ยังไม่โอน · ' + S.orders.filter((o) => !o.empty && isRegular(o) && o.payStatus !== PAY.paid).length) + seg('cust', 'pickup', 'รับหน้าร้าน · ' + S.orders.filter((o) => !o.empty && isPickup(o)).length) + "</div>" +
+  (S.orders.some((o) => isDeposit(o) || Number(o.hold)) ? "<div class=\"fgroup\"><label>ฝาก</label>" + seg('dep', 'all', 'ทั้งหมด') +
+  seg('dep', 'deposit', '📦 ฝากของ · ' + S.orders.filter((o) => !o.empty && isDeposit(o) && o.packStatus !== PACK.done).length) +
+  seg('dep', 'held', 'มีของฝาก → รวมส่ง · ' + S.orders.filter((o) => !o.empty && !isDeposit(o) && o.packStatus !== PACK.done && hasHeld(o)).length) + "</div>" : '') +
   (S.orders.some((o) => o.vrichOutAt || o.vrichOutNote) ? "<div class=\"fgroup\"><label>Vrich</label>" + seg('vout', 'all', 'ทั้งหมด') + seg('vout', 'wait', 'รอเช็คเอาท์ · ' + S.orders.filter(voutWait).length) + seg('vout', 'done', 'เช็คเอาท์แล้ว') + "</div>" : '') + "\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
 
   opt(people, f.picker, 'จัดโดย') + "</select>\n      <select id=\"fPacker\" aria-label=\"\u0E41\u0E1E\u0E47\u0E04\u0E42\u0E14\u0E22\">" +
@@ -1577,7 +1634,7 @@ function renderOrderList() {
     return "<button class=\"ord\" data-act=\"detail\" data-no=\"" + esc(norm(o.orderNo)) + "\">\n      <div class=\"ord-top\"><span class=\"ord-no\">#" +
     esc(o.orderNo) + "</span><span class=\"ord-name\">" + esc(o.customer || o.fbName || '-') + "</span><span class=\"ord-amt\">" + baht(o.total) + "</span></div>\n      <div class=\"ord-meta\">" +
     (carrierOf(o) === 'ไม่ระบุขนส่ง' ? 'ยังไม่ระบุขนส่ง' : esc(carrierOf(o))) + (o.tracking || o.vrichTracking ? ' · <span class="code">' + esc(o.tracking || o.vrichTracking) + '</span>' : '') + " \xB7 " + (o.itemQty || 0) + " \u0E0A\u0E34\u0E49\u0E19</div>\n      <div class=\"chips\">" +
-    dueChip(o) + puChip(o) + custChip(o) + pickChip(o) + packChip(o) + voutChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + (Number(o.hold) ? '<span class="chip ai">มีของฝาก</span>' : '') + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
+    dueChip(o) + puChip(o) + custChip(o) + pickChip(o) + packChip(o) + voutChip(o) + payChip(o) + (o.note ? '<span class="chip warn">มีหมายเหตุ</span>' : '') + depChip(o) + (o.pickedBy ? '<span class="chip">จัด: ' + esc(o.pickedBy) + '</span>' : '') + (o.packedBy ? '<span class="chip">แพ็ค: ' + esc(o.packedBy) + '</span>' : '') + "</div>\n      <div class=\"bar " + (
     pct >= 100 ? 'done' : '') + "\"><i style=\"width:" + pct + "%\"></i></div>\n    </button>";
 
   }).join('') : "<div class=\"empty\">\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E15\u0E32\u0E21\u0E15\u0E31\u0E27\u0E01\u0E23\u0E2D\u0E07\u0E19\u0E35\u0E49</div>";
@@ -1590,7 +1647,7 @@ function orderHead(o, mode) {
   esc(o.customer || '-') + "</b> <span class=\"muted\">\xB7 " + esc(o.fbName || '') + "</span></div>\n    <div class=\"addr\">" +
   esc(o.phone || '') + " \xB7 " + esc(o.province || '') + " \xB7 " + esc(carrierOf(o)) + " " + (o.tracking || o.vrichTracking ? '<span class="code">' + esc(o.tracking || o.vrichTracking) + '</span>' : '') + "</div>\n    " + (
   o.note ? "<div class=\"note\">\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38: " + esc(o.note) + "</div>" : '') + "\n    " + (
-  Number(o.hold) ? "<div class=\"note\">\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E21\u0E35\u0E02\u0E2D\u0E07\u0E1D\u0E32\u0E01\u0E44\u0E27\u0E49</div>" : '') + "\n    " + (
+  holdBlock(o, mode)) + "\n    " + (
   o.payStatus !== PAY.paid ? "<div class=\"alert " + (o.payStatus === PAY.none ? 'bad' : 'warn') + "\">" + esc(o.payStatus) + " \xB7 \u0E42\u0E2D\u0E19 " + baht(o.paid) + " \u0E08\u0E32\u0E01 " + baht(o.total) + "</div>" : '') + "\n  </div>";
 
 }
@@ -1732,6 +1789,7 @@ function custBox(o) {
   const reg = isRegular(o),h = custHistory(o),k = norm(o.orderNo);
   return "<div class=\"custbox" + (reg ? ' on' : '') + "\"><div class=\"head-top\"><b>" + (reg ? '⭐ ลูกค้าประจำ (โอนตลอด)' : 'ลูกค้า') + "</b><span class=\"muted\" style=\"font-size:12px\">ในระบบ " + h.n + " ออเดอร์ · โอนครบ " + h.paid + "</span></div>" +
   "<div style=\"display:flex;gap:6px;margin-top:6px;align-items:flex-end\"><label class=\"field\" style=\"flex:1;min-width:0\"><span>หมายเหตุลูกค้า</span><input id=\"custNote\" placeholder=\"เช่น โอนตลอด รวมส่งได้\" value=\"" + esc(custNoteOf(o)) + "\"></label><button class=\"btn\" data-act=\"custNote\" data-no=\"" + esc(k) + "\">บันทึก</button></div>" +
+  "<div style=\"display:flex;gap:6px;margin-top:6px;align-items:flex-end\"><label class=\"field\" style=\"flex:1;min-width:0\"><span>📦 ตำแหน่งวางของฝาก</span><input id=\"custSpot\" placeholder=\"เช่น ชั้น A3 / กล่อง 12\" value=\"" + esc(holdSpotOf(o)) + "\"></label><button class=\"btn\" data-act=\"custSpot\" data-no=\"" + esc(k) + "\">บันทึก</button></div>" +
   "<button class=\"btn" + (reg ? '' : ' pri') + "\" style=\"margin-top:6px;width:100%\" data-act=\"custReg\" data-no=\"" + esc(k) + "\">" + (reg ? 'ยกเลิกลูกค้าประจำ' : '⭐ ตั้งเป็นลูกค้าประจำ (โอนตลอด)') + "</button></div>";
 }
 function closeSheet() {$('sheetRoot').innerHTML = '';S.sk = null;LS.del('skDraft');}
@@ -1848,7 +1906,7 @@ const SL_PER = [2, 4, 6, 8, 10];
 function slPrinted() {return LS.get('slPrinted', {});}
 function slList() {
   const c = S.sl,pr = slPrinted();
-  return S.orders.filter((o) => !o.empty && (!c.paid || o.payStatus === PAY.paid || c.reg && isRegular(o)) && (!c.noPickup || !isPickup(o)) &&
+  return S.orders.filter((o) => !o.empty && (!c.noDeposit || !isDeposit(o)) && (!c.paid || o.payStatus === PAY.paid || c.reg && isRegular(o)) && (!c.noPickup || !isPickup(o)) &&
   (!c.unpacked || o.packStatus !== PACK.done) && (!c.date || String(o.date || '').slice(0, 10) === c.date) &&
   (!c.hidePrinted || !pr[norm(o.orderNo)])).
   sort((a, b) => (Number(a.orderNo) || 0) - (Number(b.orderNo) || 0) || String(a.orderNo).localeCompare(String(b.orderNo)));
@@ -1863,7 +1921,7 @@ function vSlips() {
   return "<div class=\"stack\">" + back() + "<div class=\"card stack\"><b>พิมพ์ใบออเดอร์ (รอใบปะหน้า)</b>" +
   "<div class=\"muted\" style=\"font-size:13px\">ใบติดถุงระหว่างรอใบปะหน้าจริง มีเลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด และ QR สแกนในแอปได้ทั้งคู่</div>" +
   "<div class=\"fgroup\"><label>วันที่</label>" + dayBtn('', 'ทุกวัน') + days.map((d) => dayBtn(d, esc(dayLabel(d)))).join('') + "</div>" +
-  tg('paid', 'เฉพาะออเดอร์ที่โอนแล้ว') + tg('reg', 'รวมลูกค้าประจำที่ยังไม่โอน ⭐') + tg('noPickup', 'ไม่รวมรับหน้าร้าน') + tg('unpacked', 'เฉพาะที่ยังไม่แพ็ค') + tg('hidePrinted', 'ซ่อนที่พิมพ์แล้ว') +
+  tg('paid', 'เฉพาะออเดอร์ที่โอนแล้ว') + tg('reg', 'รวมลูกค้าประจำที่ยังไม่โอน ⭐') + tg('noPickup', 'ไม่รวมรับหน้าร้าน') + tg('noDeposit', 'ไม่รวมออเดอร์ฝากของ 📦') + tg('unpacked', 'เฉพาะที่ยังไม่แพ็ค') + tg('hidePrinted', 'ซ่อนที่พิมพ์แล้ว') +
   "<div class=\"fgroup\"><label>ต่อแผ่น A4</label>" + SL_PER.map((k) => "<button class=\"seg\" data-act=\"slPer\" data-n=\"" + k + "\" aria-pressed=\"" + (c.per === k) + "\">" + k + " ใบ</button>").join('') + "</div>" +
   "<div class=\"btns\"><button class=\"btn\" data-act=\"slAll\">เลือกทั้งหมด</button><button class=\"btn\" data-act=\"slNone\">ล้าง</button>" +
   "<button class=\"btn pri\" data-act=\"slPrint\" " + (n ? '' : 'disabled') + ">พิมพ์ " + n + " ใบ · " + Math.ceil(n / c.per) + " แผ่น</button></div></div>" +
@@ -2108,6 +2166,9 @@ async function parseVrich(file) {
         note: str(r['หมายเหตุ']), hold: n(r['มีของฝาก']), vrichCarrier: str(r['ขนส่ง']), vrichTracking: str(r['เลขพัสดุ']),
         amount: n(r['จำนวนเงิน']), discount: n(r['ส่วนลด']), shipping: n(r['ค่าส่ง']), total: n(r['รวม']), paid: n(r['โอนแล้ว'])
       };
+      // ของฝาก: "ฝากของ" = ออเดอร์นี้ลูกค้าฝากไว้ก่อน (ยังไม่ส่ง) · "มีของฝาก" = มีของที่ฝากไว้ ต้องเอามารวมส่ง
+      orders[no].deposit = Math.max(orders[no].deposit || 0, n(r['ฝากของ']));
+      orders[no].hold = Math.max(orders[no].hold || 0, n(r['มีของฝาก']));
       const code = str(r['รหัสสินค้า']);if (!code) return;
       const key = no + '|' + norm(code);
       // เวลา CF ของแต่ละชิ้น (คอลัมน์ "วันที่-เวลา") ใช้หาว่าสินค้าอยู่ช่วงไหนของวิดีโอไลฟ์
@@ -2138,8 +2199,10 @@ async function doImport() {
 async function refresh(quiet) {
   if (Q.list.length) {qKick();if (!quiet) toast('ยังมีข้อมูลรอส่ง ' + Q.list.length + ' รายการ ส่งให้ครบก่อนแล้วค่อยดึงใหม่');return;}
   try {
+    const seq = Q.seq || 0;
     const d = await api('getActive');
-    if (Q.list.length) return;
+    // ระหว่างรอข้อมูล มีการสแกน/แก้ในเครื่อง (ถึงจะส่งเสร็จแล้วก็ตาม) → ข้อมูลชุดนี้อ่านมาก่อนการแก้ ทิ้งไป รอบหน้าค่อยดึงใหม่
+    if (Q.list.length || Q.busy || (Q.seq || 0) !== seq) return;
     setData(d);pkMerge();softRender();
     if (!quiet) toast('อัปเดตข้อมูลแล้ว', 'ok');
   } catch (e) {if (!quiet) toast('ดึงข้อมูลไม่ได้: ' + errMsg(e), 'bad');}
@@ -2212,6 +2275,14 @@ const ACT = {
   slAll: () => {S.sl.off.clear();render();},
   slNone: () => {slList().forEach((o) => S.sl.off.add(norm(o.orderNo)));render();},
   slPrint: () => printSlips(),
+  goDeposit: () => {S.f.dep = 'deposit';go('orders');},
+  custSpot: (d) => {
+    const o = S.byNo[d.no],el = $('custSpot');if (!o || !el) return;
+    const v = el.value.trim(),who = spotUsedBy(v, custKey(o));
+    if (who && S.confirmReset !== 'spot' + norm(v)) {S.confirmReset = 'spot' + norm(v);return feedback({ kind: 'warn', msg: 'ช่อง ' + v + ' มีของฝากของ ' + who + ' อยู่', sub: 'กดบันทึกอีกครั้งถ้าจะใช้ช่องนี้ร่วมกัน' });}
+    S.confirmReset = null;custSave(o, { holdSpot: v });toast('บันทึกตำแหน่งของฝากแล้ว');openDetail(d.no);render();
+  },
+  holdSpotEdit: (d) => {openDetail(d.no);setTimeout(() => {const el = $('custSpot');if (el) {el.focus();el.select();}}, 50);},
   custReg: (d) => {const o = S.byNo[d.no];if (!o) return;custSave(o, { regular: !isRegular(o) });openDetail(d.no);render();},
   custNote: (d) => {const o = S.byNo[d.no],el = $('custNote');if (!o || !el) return;custSave(o, { note: el.value.trim() });toast('บันทึกหมายเหตุลูกค้าแล้ว');openDetail(d.no);render();},
   jumpIt: (d) => {
@@ -2295,7 +2366,8 @@ function lblQtyCtl(p) {
 }
 function moreExtra(ic) {
   const short = shortList().length,open = S.batches.filter((b) => b.status !== BATCH.closed).length;
-  return "<button data-act=\"go\" data-v=\"sale\">" + ic('<path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><path d="M8 12l3 3 5-6"/>') + "<div><b>เช็คออก/ไม่ออก</b><span>สแกนสินค้าหลังไลฟ์ บอกทันทีว่าขายออกไหม</span></div></button>\n    <button data-act=\"go\" data-v=\"stock\">" + ic('<path d="M3 8l9-4 9 4v8l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v8"/>') + "<div><b>\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01</b><span>\u0E19\u0E31\u0E1A\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49 \u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B \u0E40\u0E0A\u0E47\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E2D\u0E44\u0E2B\u0E21</span></div></button>\n    <button data-act=\"more\" data-m=\"short\">" +
+  return "<button data-act=\"goDeposit\">" + ic('<path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/>') + "<div><b>ของฝากลูกค้า</b><span>ออเดอร์ที่ลูกค้าฝากไว้ และตำแหน่งที่วาง</span></div></button>\n    " +
+  "<button data-act=\"go\" data-v=\"sale\">" + ic('<path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><path d="M8 12l3 3 5-6"/>') + "<div><b>เช็คออก/ไม่ออก</b><span>สแกนสินค้าหลังไลฟ์ บอกทันทีว่าขายออกไหม</span></div></button>\n    <button data-act=\"go\" data-v=\"stock\">" + ic('<path d="M3 8l9-4 9 4v8l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v8"/>') + "<div><b>\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01</b><span>\u0E19\u0E31\u0E1A\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49 \u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B \u0E40\u0E0A\u0E47\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E2D\u0E44\u0E2B\u0E21</span></div></button>\n    <button data-act=\"more\" data-m=\"short\">" +
   ic('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>') + "<div><b>\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E02\u0E32\u0E14 + \u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07" + (short ? " <span class=\"chip bad\">" + short + "</span>" : '') + "</b><span>\u0E2A\u0E23\u0E38\u0E1B\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E1E\u0E2D \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E23\u0E39\u0E1B \u0E41\u0E25\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07</span></div></button>\n    <button data-act=\"go\" data-v=\"batch\">" +
   ic('<rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>') + "<div><b>\u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C (Batch)" + (open ? " <span class=\"chip ai\">" + open + "</span>" : '') + "</b><span>\u0E23\u0E27\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E2B\u0E22\u0E34\u0E1A\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E41\u0E22\u0E01\u0E25\u0E07\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</span></div></button>";
 }
@@ -3059,6 +3131,7 @@ Object.assign(ACT, {
 document.addEventListener('input', (e) => {
   const t = e.target;
   if (t.id === 'stockQ') {S.stockQ = t.value;clearTimeout(S._sq);S._sq = setTimeout(() => {render();const i = $('stockQ');if (i) {i.focus();i.setSelectionRange(i.value.length, i.value.length);}}, 250);} else
+  if (t.id === 'pkCombine' && S.pk) {S.pk.combine = t.checked;} else
   if (t.id === 'skHave' && S.sk) {S.sk.have = Math.max(0, parseInt(t.value, 10) || 0);} else
   if (t.id === 'skNote' && S.sk) {S.sk.note = t.value;skDraftSave();} else
   if (t.id === 'poVendor') {S.poVendor = t.value;LS.set('poVendor', t.value);} else
@@ -3597,6 +3670,33 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "กดบันทึกอีกครั้งถ้าจะใช้ช่องนี้ร่วมกัน": "ဒီနေရာကို မျှသုံးမယ်ဆိုရင် သိမ်းမည်ကို ထပ်နှိပ်ပါ",
+  "{0} ฝากของ": "{0} အပ်ထား",
+  "{0} มีของฝาก {1} รวมส่ง": "{0} အပ်ထားတာရှိ {1} ပေါင်းပို့",
+  "{0} มีของฝาก": "{0} အပ်ထားတာရှိ",
+  "มีของฝาก {0} รวมส่ง": "အပ်ထားတာရှိ {0} ပေါင်းပို့",
+  "รวมส่ง": "ပေါင်းပို့",
+  "ตั้งที่วาง": "ထားမည့်နေရာ သတ်မှတ်",
+  "แก้ที่วาง": "ထားမည့်နေရာ ပြင်",
+  "{0} ลูกค้าฝากของ": "{0} ဖောက်သည် အပ်ထားသည်",
+  "ไม่ต้องแพ็ค": "မထုပ်ရ",
+  "จัดเสร็จแล้ววางที่": "စီပြီးရင် ဒီမှာထားပါ",
+  "ยังไม่ได้ตั้งที่วาง": "နေရာ မသတ်မှတ်ရသေး",
+  "{0} มีของฝาก วางอยู่ที่": "{0} အပ်ထားတာရှိ ထားသည့်နေရာ",
+  "ออเดอร์ฝาก {0}": "အပ်ထားသော အော်ဒါ {0}",
+  "แพ็คของฝากรวมกล่องนี้ {0}ปิดออเดอร์ฝากพร้อมกัน{1}": "အပ်ထားတာကို ဒီဘူးထဲ ပေါင်းထုပ် {0}အပ်ထားအော်ဒါ တပြိုင်နက်ပိတ်{1}",
+  "แพ็คของฝากรวมกล่องนี้": "အပ်ထားတာကို ဒီဘူးထဲ ပေါင်းထုပ်",
+  "ปิดออเดอร์ฝากพร้อมกัน": "အပ်ထားအော်ဒါ တပြိုင်နက်ပိတ်",
+  "เอาของฝากมารวมกล่องตอนแพ็ค": "ထုပ်ချိန် အပ်ထားတာ ယူပေါင်းထည့်ပါ",
+  "ไม่รวมออเดอร์ฝากของ {0}": "အပ်ထားအော်ဒါ မပါ {0}",
+  "ฝาก": "အပ်ထား",
+  "{0} ตำแหน่งวางของฝาก": "{0} အပ်ထားပစ္စည်း ထားသည့်နေရာ",
+  "เช่น ชั้น {0} {1} กล่อง {2}": "ဥပမာ စင် {0} {1} ဘူး {2}",
+  "บันทึกตำแหน่งของฝากแล้ว": "အပ်ထားနေရာ သိမ်းပြီး",
+  "ของฝากลูกค้า": "ဖောက်သည် အပ်ထားပစ္စည်း",
+  "ออเดอร์ที่ลูกค้าฝากไว้ และตำแหน่งที่วาง": "ဖောက်သည်အပ်ထားသော အော်ဒါ နှင့် ထားသည့်နေရာ",
+  "รวมของฝาก {0} ปิดพร้อมกันแล้ว": "အပ်ထား {0} ကို ပေါင်းပြီး တပြိုင်နက်ပိတ်ပြီး",
+  "ของฝาก รวมส่งกับ {0}": "အပ်ထား {0} နှင့် ပေါင်းပို့",
   "{0} ลูกค้าประจำ": "{0} ပုံမှန်ဖောက်သည်",
   "{0} ลูกค้าประจำ {1}โอนตลอด{2}": "{0} ပုံမှန်ဖောက်သည် {1}အမြဲလွှဲ{2}",
   "ในระบบ {0} ออเดอร์": "စနစ်ထဲ အော်ဒါ {0}",
