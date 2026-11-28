@@ -416,6 +416,27 @@ html.lang-my .tile span{font-size:10px;line-height:1.3}
   .docA4.slips{font-size:10pt}
   .docA4 .slpage{display:grid;width:194mm;height:279mm;gap:0;page-break-after:always;break-after:page}
   .docA4 .slpage:last-child{page-break-after:auto;break-after:auto}
+  .docA4 .dcpage{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,1fr);width:200mm;height:286mm;page-break-after:always;break-after:page}
+  .docA4 .dcpage:last-child{page-break-after:auto;break-after:auto}
+  .dc{box-sizing:border-box;border:.25mm dashed #999;padding:3mm 3.5mm 2.5mm;display:flex;flex-direction:column;gap:1.4mm;overflow:hidden;font-size:8.5pt}
+  .dc-hd{display:flex;gap:2.5mm;align-items:center;border-bottom:.45mm solid #000;padding-bottom:1.4mm}
+  .dc-hd img{width:11mm;height:11mm;flex:none}
+  .dc-who{flex:1;min-width:0}
+  .dc-t{font-size:7.5pt;font-weight:700}.dc-t small{font-weight:400;font-size:6.5pt}
+  .dc-nm{font-size:11pt;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dc-due{display:inline-block;background:#000;color:#fff;font-weight:800;font-size:8pt;padding:.2mm 1.6mm;border-radius:.8mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .dc-sp{text-align:center;border:.6mm solid #000;border-radius:1.2mm;padding:.3mm 2mm;line-height:1;flex:none}
+  .dc-sp small{display:block;font-size:6pt}.dc-sp b{font-size:16pt}
+  .dc table{width:100%;border-collapse:collapse}
+  .docA4 .dc th,.docA4 .dc td{border:0;background:none;text-align:left}
+  .docA4 .dc th{font-size:7pt;border-bottom:.35mm solid #000;padding:.3mm 1mm;white-space:nowrap}
+  .dc th small{font-weight:400;font-size:6pt}
+  .docA4 .dc td{border-bottom:.25mm solid #888;height:7.6mm;padding:0 1mm}
+  .docA4 .dc td.n{color:#777;width:3mm;font-size:7pt;text-align:left}
+  .dc tr.p td{font-weight:700;font-size:9.5pt}
+  .dc-ft{margin-top:auto;font-size:7.5pt;border-top:.3mm dashed #000;padding-top:1mm}
+  .dc-box{display:inline-block;width:2.8mm;height:2.8mm;border:.3mm solid #000;vertical-align:-.4mm;margin-right:.8mm}
+  .dc-ln{display:inline-block;border-bottom:.25mm solid #000;width:14mm}.dc-ln.s{width:11mm}
   .docA4 .sl{border:0.3mm dashed #888;padding:3mm 4mm;display:flex;flex-direction:column;gap:1.2mm;overflow:hidden;min-height:0;min-width:0}
   .docA4 .sl-top{display:flex;justify-content:space-between;align-items:baseline;gap:3mm}
   .docA4 .sl-no{font-family:var(--f-code);font-weight:800;font-size:17pt;line-height:1}
@@ -644,15 +665,55 @@ function depTag(o) {
 }
 function depChip(o) {
   const sp = holdSpotOf(o);
-  return isDeposit(o) ? '<span class="chip dep">📦 ฝากของ' + (sp ? ' · ' + esc(sp) : '') + '</span>' + depTag(o) :
+  return isDeposit(o) ? '<span class="chip dep">📦 ฝากของ' + (sp ? ' · ' + esc(sp) : '') + '</span>' + depTag(o) + (o.packStatus !== PACK.done && !o.depCardAt ? '<span class="chip warn">ยังไม่ปริ้นใบฝาก</span>' : '') :
   hasHeld(o) && o.packStatus !== PACK.done ? '<span class="chip dep">📦 มีของฝาก → รวมส่ง' + (sp ? ' · ' + esc(sp) : '') + '</span>' : '';
+}
+/* ---------- ใบฝากของ (A4 8 ใบ/แผ่น) : ลูกค้า 1 คน = 1 ใบ แถวแรกปริ้นมา แถวถัดไปคนงานเขียนเอง ---------- */
+function depGroups() {
+  const m = {};
+  S.orders.forEach((o) => {
+    if (o.empty || !isDeposit(o) || o.packStatus === PACK.done) return;
+    const k = custKey(o) || 'no:' + norm(o.orderNo);(m[k] = m[k] || []).push(o);
+  });
+  return Object.keys(m).map((k) => m[k].sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.orderNo).localeCompare(String(b.orderNo))));
+}
+const depCardDone = (g) => g.every((o) => !!o.depCardAt);
+function depCardBtn(o) {
+  const g = depGroups().find((x) => x.indexOf(o) >= 0);if (!g) return '';
+  return '<button class="x" data-act="depCardOne" data-no="' + esc(norm(o.orderNo)) + '">' + (depCardDone(g) ? 'ปริ้นใบฝากซ้ำ' : 'ปริ้นใบฝาก') + '</button>';
+}
+async function printDepCards(groups) {
+  if (!groups.length) return toast('ไม่มีใบฝากที่ต้องปริ้น');
+  try {if (!window.qrcode) await loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js');} catch (e) {return toast('โหลดตัวสร้าง QR ไม่สำเร็จ ตรวจอินเทอร์เน็ต', 'bad');}
+  const dm = (d) => dayLabel(String(d || '').slice(0, 10));
+  const card = (g) => {
+    const o = g[0],sp = holdSpotOf(o),since = String(o.date || '').slice(0, 10),due = /^\d{4}-\d{2}-\d{2}$/.test(since) ? addDays(since, depDays()) : '';
+    const q = qrcode(0, 'M');q.addData(vrichLink(o.orderNo) || String(o.orderNo));q.make();
+    const rows = g.slice(0, 4).map((x) => [dm(x.date), '#' + x.orderNo, x.itemQty || '', x.pickedBy || '']);
+    while (rows.length < 4) rows.push(['', '', '', '']);
+    return '<div class="dc"><div class="dc-hd"><img src="' + q.createDataURL(4, 0) + '" alt=""><div class="dc-who"><div class="dc-t">📦 ใบฝากของ <small>ပစ္စည်းအပ်စာရွက်</small></div>' +
+    '<div class="dc-nm">' + esc(o.fbName || o.customer || '-') + '</div>' + (due ? '<span class="dc-due">ครบกำหนด ' + dayLabel(due) + '</span>' : '') + '</div>' +
+    '<div class="dc-sp"><small>ช่องวาง</small><b>' + esc(sp || '—') + '</b></div></div>' +
+    '<table><tr><th></th><th>วันที่ <small>ရက်စွဲ</small></th><th>เลขออเดอร์ <small>အော်ဒါ</small></th><th>ชิ้น <small>ခု</small></th><th>คนใส่ <small>ထည့်သူ</small></th></tr>' +
+    rows.map((r, i) => '<tr' + (r[1] ? ' class="p"' : '') + '><td class="n">' + (i + 1) + '</td>' + r.map((v) => '<td>' + esc(v) + '</td>').join('') + '</tr>').join('') + '</table>' +
+    '<div class="dc-ft"><span class="dc-box"></span>ส่งแล้ว รวมกับ # <span class="dc-ln"></span> วันที่ <span class="dc-ln s"></span> คนแพ็ค <span class="dc-ln s"></span></div></div>';
+  };
+  let html = '';
+  for (let i = 0; i < groups.length; i += 8) html += '<div class="dcpage">' + groups.slice(i, i + 8).map(card).join('') + '</div>';
+  const pa = $('printArea');pa.className = 'docA4 depcards';pa.innerHTML = html;
+  let st = $('pageStyle');if (!st) {st = document.createElement('style');st.id = 'pageStyle';document.head.appendChild(st);}
+  st.textContent = '@page{size:A4;margin:5mm}';
+  const nos = [].concat.apply([], groups.map((g) => g.map((o) => String(o.orderNo)))),at = nowStr();
+  groups.forEach((g) => g.forEach((o) => {o.depCardAt = at;}));
+  api('markDepCard', nos, S.staff).catch(() => toast('บันทึกว่าปริ้นแล้วไม่สำเร็จ (ปริ้นได้ปกติ)', 'warn'));
+  setTimeout(() => {window.print();render();}, 300);
 }
 function holdBlock(o, mode) {
   const sp = holdSpotOf(o),spTxt = sp ? '<b>' + esc(sp) + '</b>' : '<b>ยังไม่ได้ตั้งที่วาง</b>';
   const set = '<button class="x" data-act="holdSpotEdit" data-no="' + esc(norm(o.orderNo)) + '">' + (sp ? 'แก้ที่วาง' : 'ตั้งที่วาง') + '</button>';
   if (isDeposit(o)) {
     const d = depState(o);
-    return '<div class="alert dep">📦 ลูกค้าฝากของ · ' + (mode === 'pack' ? 'ไม่ต้องแพ็ค · ' : '') + 'จัดเสร็จแล้ววางที่ ' + spTxt + ' ' + set +
+    return '<div class="alert dep">📦 ลูกค้าฝากของ · ' + (mode === 'pack' ? 'ไม่ต้องแพ็ค · ' : '') + 'จัดเสร็จแล้ววางที่ ' + spTxt + ' ' + set + ' ' + depCardBtn(o) +
     (d ? '<br>' + (d.over ? '<b class="bad">⚠ เกินกำหนดฝาก ' + -d.left + ' วัน</b> · ครบกำหนด ' + dayLabel(d.due) + ' · ทักลูกค้าให้สั่งเพิ่มหรือส่งของฝาก' :
     'ฝากได้ถึง ' + dayLabel(d.due) + ' · ' + (d.today ? 'ครบกำหนดวันนี้' : 'อีก ' + d.left + ' วัน')) + ' · ฝากได้ ' + depDays() + ' วันหลังวันไลฟ์' : '') + '</div>';
   }
@@ -1685,6 +1746,7 @@ function vOrders() {
   (S.orders.some((o) => isDeposit(o) || Number(o.hold)) ? "<div class=\"fgroup\"><label>ฝาก</label>" + seg('dep', 'all', 'ทั้งหมด') +
   seg('dep', 'deposit', '📦 ฝากของ · ' + S.orders.filter((o) => !o.empty && isDeposit(o) && o.packStatus !== PACK.done).length) +
   seg('dep', 'over', 'เกินกำหนดฝาก · ' + S.orders.filter((o) => !o.empty && depOver(o)).length) +
+  (depGroups().some((g) => !depCardDone(g)) ? "<button class=\"seg\" data-act=\"depCardAll\" style=\"border-style:dashed\">🖨 ปริ้นใบฝากที่ยังไม่ปริ้น · " + depGroups().filter((g) => !depCardDone(g)).length + " คน</button>" : '') +
   seg('dep', 'held', 'มีของฝาก → รวมส่ง · ' + S.orders.filter((o) => !o.empty && !isDeposit(o) && o.packStatus !== PACK.done && hasHeld(o)).length) + "</div>" : '') +
   (S.orders.some((o) => o.vrichOutAt || o.vrichOutNote) ? "<div class=\"fgroup\"><label>Vrich</label>" + seg('vout', 'all', 'ทั้งหมด') + seg('vout', 'wait', 'รอเช็คเอาท์ · ' + S.orders.filter(voutWait).length) + seg('vout', 'done', 'เช็คเอาท์แล้ว') + "</div>" : '') + "\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
 
@@ -2338,6 +2400,8 @@ const ACT = {
   saleReset: () => {if (S.confirmReset !== 'sale') {S.confirmReset = 'sale';return render();}S.confirmReset = null;saleSet(saleDay(), {});saleNoSet(saleDay(), {});S.saleLast = null;render();},
   dueF: (d) => {S.f.due = d.v;render();},
   depOverF: () => {S.f.dep = 'over';render();},
+  depCardOne: (d) => {const o = S.byNo[d.no];const g = o && depGroups().find((x) => x.indexOf(o) >= 0);if (g) printDepCards([g]);},
+  depCardAll: () => printDepCards(depGroups().filter((g) => !depCardDone(g))),
   trKind: (d) => {S.f.tr.kind = d.v;render();},
   trToday: () => {S.f.tr.date = todayStr();render();},
   trClear: () => {S.f.tr = { kind: S.f.tr.kind, date: '', from: '', to: '' };render();},
@@ -2450,6 +2514,7 @@ function moreExtra(ic) {
   const short = shortList().length,open = S.batches.filter((b) => b.status !== BATCH.closed).length;
   return "<button data-act=\"pullNow\">" + ic('<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/>') + "<div><b>ดึงออเดอร์จาก Vrich ตอนนี้</b><span>" + esc(pullLine()) + "</span></div></button>\n    " +
   "<button data-act=\"goDeposit\">" + ic('<path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/>') + "<div><b>ของฝากลูกค้า</b><span>ออเดอร์ที่ลูกค้าฝากไว้ และตำแหน่งที่วาง</span></div></button>\n    " +
+  "<button data-act=\"depCardAll\">" + ic('<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>') + "<div><b>ปริ้นใบฝากของ</b><span>A4 8 ใบ/แผ่น · ลูกค้าที่ยังไม่ได้ปริ้น " + depGroups().filter((g) => !depCardDone(g)).length + " คน</span></div></button>\n    " +
   "<button data-act=\"go\" data-v=\"sale\">" + ic('<path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><path d="M8 12l3 3 5-6"/>') + "<div><b>เช็คออก/ไม่ออก</b><span>สแกนสินค้าหลังไลฟ์ บอกทันทีว่าขายออกไหม</span></div></button>\n    <button data-act=\"go\" data-v=\"stock\">" + ic('<path d="M3 8l9-4 9 4v8l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v8"/>') + "<div><b>\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01</b><span>\u0E19\u0E31\u0E1A\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49 \u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B \u0E40\u0E0A\u0E47\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E2D\u0E44\u0E2B\u0E21</span></div></button>\n    <button data-act=\"more\" data-m=\"short\">" +
   ic('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>') + "<div><b>\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E02\u0E32\u0E14 + \u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07" + (short ? " <span class=\"chip bad\">" + short + "</span>" : '') + "</b><span>\u0E2A\u0E23\u0E38\u0E1B\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E1E\u0E2D \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E23\u0E39\u0E1B \u0E41\u0E25\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07</span></div></button>\n    <button data-act=\"go\" data-v=\"batch\">" +
   ic('<rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>') + "<div><b>\u0E2B\u0E22\u0E34\u0E1A\u0E23\u0E27\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C (Batch)" + (open ? " <span class=\"chip ai\">" + open + "</span>" : '') + "</b><span>\u0E23\u0E27\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C \u0E2B\u0E22\u0E34\u0E1A\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E41\u0E22\u0E01\u0E25\u0E07\u0E15\u0E30\u0E01\u0E23\u0E49\u0E32</span></div></button>";
@@ -3753,6 +3818,18 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ปริ้นใบฝาก": "အပ်စာရွက် ပရင့်",
+  "{0} คน": "{0} ယောက်",
+  "ปริ้นใบฝากซ้ำ": "အပ်စာရွက် ထပ်ပရင့်",
+  "ยังไม่ปริ้นใบฝาก": "အပ်စာရွက် မပရင့်ရသေး",
+  "{0} ปริ้นใบฝากที่ยังไม่ปริ้น": "{0} မပရင့်ရသေးသော အပ်စာရွက် ပရင့်",
+  "ปริ้นใบฝากของ": "ပစ္စည်းအပ်စာရွက် ပရင့်",
+  "{0} {1} ใบ{2}แผ่น": "{0} တစ်ရွက်လျှင် {1} ခု",
+  "ลูกค้าที่ยังไม่ได้ปริ้น {0} คน": "မပရင့်ရသေးသော ဖောက်သည် {0} ယောက်",
+  "ไม่มีใบฝากที่ต้องปริ้น": "ပရင့်ရန် အပ်စာရွက် မရှိ",
+  "โหลดตัวสร้าง {0} ไม่สำเร็จ ตรวจอินเทอร์เน็ต": "{0} မဖွင့်နိုင် အင်တာနက် စစ်ပါ",
+  "บันทึกว่าปริ้นแล้วไม่สำเร็จ": "ပရင့်ပြီးကြောင်း မသိမ်းနိုင်",
+  "ปริ้นได้ปกติ": "ပရင့်ခြင်း ပုံမှန်",
   "เกินกำหนดฝาก {0} วัน": "အပ်ချိန် {0} ရက် ကျော်နေ",
   "⚠ เกินกำหนดฝาก {0} วัน": "⚠ အပ်ချိန် {0} ရက် ကျော်နေ",
   "เกินกำหนดฝาก": "အပ်ချိန် ကျော်နေ",
