@@ -358,6 +358,7 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .alert.vchg{display:block}
 .chip.dep{background:#e8f0ff;color:#1e3a8a;border-color:#9db4f0}
   .dep-row{display:flex;flex-direction:column;gap:8px}
+  .dep-f{display:flex;flex-direction:column;gap:4px}.dep-f>.muted{font-size:12px}
   .dep-row.on{outline:2px solid var(--ai)}
   .dep-chk{width:30px;height:30px;flex:none;border:2px solid var(--muted);border-radius:8px;background:var(--surface);font-weight:800;font-size:18px;color:#fff;padding:0}
   .dep-chk[aria-pressed="true"]{background:var(--ai);border-color:var(--ai)}
@@ -2182,7 +2183,20 @@ function vDeposit() {
   const over = (g) => g.some(depOver),cnt = { all: gs.length, no: 0, yes: 0, over: 0 };
   gs.forEach((g) => {depCardDone(g) ? cnt.yes++ : cnt.no++;if (over(g)) cnt.over++;});
   const tab = S.depTab || 'all';
-  const show = gs.filter((g) => tab === 'no' ? !depCardDone(g) : tab === 'yes' ? depCardDone(g) : tab === 'over' ? over(g) : true);
+  /* กรองตามวันที่ฝาก (วันไลฟ์ของออเดอร์ใดก็ได้ในกลุ่ม) และสถานะจัดของ */
+  const dOf = (x) => String(x.date || '').slice(0, 10);
+  const days = Array.from(new Set([].concat.apply([], gs.map((g) => g.map(dOf))).filter(Boolean))).sort().reverse();
+  if (S.depDay && days.indexOf(S.depDay) < 0) S.depDay = '';
+  const pk = (g) => g.every((x) => x.pickStatus === PICK.done) ? 'done' : g.every((x) => !x.pickStatus || x.pickStatus === PICK.none) ? 'none' : 'part';
+  const fDay = (g) => !S.depDay || g.some((x) => dOf(x) === S.depDay),fPk = (g) => !S.depPk || pk(g) === S.depPk;
+  const base = gs.filter((g) => fDay(g) && fPk(g));
+  cnt.all = base.length;cnt.no = base.filter((g) => !depCardDone(g)).length;cnt.yes = base.length - cnt.no;cnt.over = base.filter(over).length;
+  const show = base.filter((g) => tab === 'no' ? !depCardDone(g) : tab === 'yes' ? depCardDone(g) : tab === 'over' ? over(g) : true);
+  const dayB = (d, l) => "<button class=\"seg\" data-act=\"depDay\" data-d=\"" + esc(d) + "\" aria-pressed=\"" + ((S.depDay || '') === d) + "\">" + l + "</button>";
+  const pkN = (k) => gs.filter((g) => fDay(g) && (!k || pk(g) === k)).length;
+  const pkB = (k, l) => "<button class=\"seg\" data-act=\"depPk\" data-k=\"" + k + "\" aria-pressed=\"" + ((S.depPk || '') === k) + "\">" + l + " · " + pkN(k) + "</button>";
+  const filters = "<div class=\"dep-f\"><span class=\"muted\">วันที่ฝาก</span><div class=\"segs\" style=\"flex-wrap:wrap\">" + dayB('', 'ทุกวัน') + days.slice(0, 14).map((d) => dayB(d, esc(dayLabel(d)))).join('') + "</div></div>" +
+  "<div class=\"dep-f\"><span class=\"muted\">จัดของ</span><div class=\"segs\" style=\"flex-wrap:wrap\">" + pkB('', 'ทั้งหมด') + pkB('none', 'ยังไม่จัด') + pkB('part', 'จัดบางส่วน') + pkB('done', 'จัดครบแล้ว') + "</div></div>";
   const sel = S.depSel = S.depSel || {};
   Object.keys(sel).forEach((k) => {if (!gs.some((g) => depSelKey(g) === k)) delete sel[k];});
   S._depShow = show.map(depSelKey);
@@ -2198,7 +2212,7 @@ function vDeposit() {
     "<b class=\"dep-nm\">" + esc(o.fbName || o.customer || '-') + "</b><div class=\"muted\" style=\"font-size:13px\">" + g.length + " ออเดอร์ · " + pcs + " ชิ้น · ฝากตั้งแต่ " + esc(dayLabel(String(o.date || '').slice(0, 10))) + "</div></div>" +
     (done ? "<span class=\"chip ok\">✓ ปริ้นใบแล้ว</span>" : "<span class=\"chip bad\">ยังไม่ปริ้นใบ</span>") + "</div>" +
     "<div class=\"chips\">" + (d ? depTag(o) : '') + (done ? "<span class=\"chip\">ปริ้นเมื่อ " + esc(hm(at)) + "</span>" : '') + (sp ? '' : "<span class=\"chip warn\">ยังไม่ตั้งช่องวาง</span>") + "</div>" +
-    "<div class=\"chips\">" + g.map((x) => "<button class=\"chip" + (x.depCardAt ? '' : done ? ' warn' : '') + "\" data-act=\"detail\" data-no=\"" + esc(norm(x.orderNo)) + "\">#" + esc(x.orderNo) + " · " + esc(dayLabel(String(x.date || '').slice(0, 10))) + "</button>").join('') + "</div>" +
+    "<div class=\"chips\">" + g.map((x) => "<button class=\"chip" + (x.depCardAt ? '' : done ? ' warn' : '') + "\" data-act=\"detail\" data-no=\"" + esc(norm(x.orderNo)) + "\">#" + esc(x.orderNo) + " · " + esc(dayLabel(String(x.date || '').slice(0, 10))) + " · " + (x.pickStatus === PICK.done ? '✓ จัดแล้ว' : x.pickStatus === PICK.part ? 'จัด ' + (x.pickedQty || 0) + '/' + (x.itemQty || 0) : 'ยังไม่จัด') + "</button>").join('') + "</div>" +
     (tw.length ? "<div class=\"alert warn\" style=\"display:block;font-size:13px\">ออเดอร์ใหม่ยังไม่ได้เขียนลงใบ: #" + tw.map((x) => esc(x.orderNo)).join(', #') + "</div>" : '') +
     "<div class=\"row\" style=\"gap:8px;flex-wrap:wrap\">" + (done ? "<button class=\"btn\" data-act=\"depCardOne\" data-no=\"" + esc(norm(o.orderNo)) + "\">ปริ้นใบซ้ำ</button><button class=\"btn\" data-act=\"depUnmark\" data-no=\"" + esc(norm(o.orderNo)) + "\">↩ ยังไม่ได้ปริ้น</button>" :
     "<button class=\"btn pri\" data-act=\"depCardOne\" data-no=\"" + esc(norm(o.orderNo)) + "\">🖨 ปริ้นใบฝาก</button>") +
@@ -2207,7 +2221,7 @@ function vDeposit() {
   return "<div class=\"stack\">" + back() + "<div class=\"card stack\"><h2>📦 ของฝากลูกค้า</h2>" +
   "<div class=\"muted\" style=\"font-size:13px\">ฝากอยู่ " + cnt.all + " คน · ปริ้นใบแล้ว " + cnt.yes + " · ยังไม่ปริ้น " + cnt.no + (cnt.over ? " · เกินกำหนด " + cnt.over : '') + " · ฝากได้ " + depDays() + " วัน</div>" +
   (cnt.no ? "<button class=\"btn pri\" data-act=\"depCardAll\">🖨 ปริ้นใบฝากที่ยังไม่ปริ้น · " + cnt.no + " คน</button>" : '') +
-  "<div class=\"segs\" style=\"flex-wrap:wrap\">" + tb('all', 'ทั้งหมด') + tb('no', 'ยังไม่ปริ้น') + tb('yes', 'ปริ้นแล้ว') + tb('over', 'เกินกำหนด') + "</div>" +
+  filters + "<div class=\"dep-f\"><span class=\"muted\">ใบฝาก</span><div class=\"segs\" style=\"flex-wrap:wrap\">" + tb('all', 'ทั้งหมด') + tb('no', 'ยังไม่ปริ้น') + tb('yes', 'ปริ้นแล้ว') + tb('over', 'เกินกำหนด') + "</div></div>" +
   (show.length ? "<button class=\"btn\" data-act=\"depSelAll\">" + (allOn ? 'ไม่เลือกทั้งหมด' : '☑ เลือกทั้งหมดในหน้านี้') + "</button>" : '') + "</div>" +
   (nSel ? "<div class=\"dep-bar\"><b>เลือก " + nSel + " คน</b><button class=\"btn pri\" data-act=\"depSelPrint\">🖨 ปริ้นที่เลือก</button><button class=\"btn\" data-act=\"depSelClear\">ล้าง</button></div>" : '') +
   (show.length ? show.map(row).join('') : "<div class=\"card muted\" style=\"text-align:center\">ไม่มีรายการ</div>") + "</div>";
@@ -2477,6 +2491,8 @@ const ACT = {
   depSelClear: () => {S.depSel = {};render();},
   depSelPrint: () => {const sel = S.depSel || {};printDepCards(depGroups().filter((g) => sel[depSelKey(g)]));},
   depTab: (d) => {S.depTab = d.k;render();},
+  depDay: (d) => {S.depDay = d.d || '';render();},
+  depPk: (d) => {S.depPk = d.k || '';render();},
   depCardAll: () => printDepCards(depGroups().filter((g) => !depCardDone(g))),
   trKind: (d) => {S.f.tr.kind = d.v;render();},
   trToday: () => {S.f.tr.date = todayStr();render();},
@@ -3894,6 +3910,13 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "วันที่ฝาก": "အပ်သည့်ရက်",
+  "ทุกวัน": "ရက်တိုင်း",
+  "จัดของ": "ပစ္စည်းစီ",
+  "จัดครบแล้ว": "အကုန်စီပြီး",
+  "ใบฝาก": "အပ်စာရွက်",
+  "✓ จัดแล้ว": "✓ စီပြီး",
+  "จัด {0}": "စီ {0}",
   "ใบฝากออกมาครบไหม?": "အပ်စာရွက် အကုန်ထွက်လာပြီလား?",
   "สั่งปริ้น {0} ใบ": "{0} ရွက် ပရင့်ခိုင်း",
   "✓ ออกมาครบแล้ว": "✓ အကုန်ထွက်ပြီ",
