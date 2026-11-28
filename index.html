@@ -193,7 +193,7 @@ select{border:1px solid var(--line);background:var(--surface);border-radius:10px
 .addr{font-size:13px;color:var(--muted)}
 .note{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:500}
 .alert{border-radius:10px;padding:10px 12px;font-weight:600;font-size:14px;display:flex;gap:8px;align-items:center}
-.alert.bad{background:var(--bad-soft);color:var(--bad)} .alert.ok{background:var(--ok-soft);color:var(--ok)} .alert.warn{background:var(--warn-soft);color:var(--warn)}
+b.bad{color:var(--bad)} .alert.bad{background:var(--bad-soft);color:var(--bad)} .alert.ok{background:var(--ok-soft);color:var(--ok)} .alert.warn{background:var(--warn-soft);color:var(--warn)}
 .alert button{margin-left:auto;border:0;border-radius:8px;padding:6px 12px;background:currentColor}
 .alert button span{color:var(--surface)}
 .prog{display:flex;align-items:baseline;gap:8px}
@@ -629,19 +629,37 @@ function spotUsedBy(spot, exceptKey) {
   return c ? c.fbName || c.customer || c.key : '';
 }
 function holdSpotOf(o) {const c = custOf(o);return c ? String(c.holdSpot || '').trim() : '';}
+/* กำหนดฝากของ: นับจากวันไลฟ์ของออเดอร์ฝาก ฝากได้ depositDays วัน (ค่าเริ่มต้น 4) */
+function depDays() {const v = S.cfg && S.cfg.depositDays;return v === undefined || v === '' ? 4 : Number(v) || 0;}
+function depState(o) {
+  if (!isDeposit(o) || o.packStatus === PACK.done) return null;
+  const since = String(o.date || '').slice(0, 10);if (!/^\d{4}-\d{2}-\d{2}$/.test(since)) return null;
+  const t = todayStr(),due = addDays(since, depDays()),dd = (a, b) => Math.round((new Date(a + 'T12:00:00') - new Date(b + 'T12:00:00')) / 864e5);
+  return { n: dd(t, since), due: due, left: dd(due, t), over: t > due, today: t === due };
+}
+const depOver = (o) => {const d = depState(o);return !!(d && d.over);};
+function depTag(o) {
+  const d = depState(o);if (!d) return '';
+  return d.over ? '<span class="chip bad">เกินกำหนดฝาก ' + -d.left + ' วัน</span>' : d.today ? '<span class="chip warn">ครบกำหนดฝากวันนี้</span>' : '<span class="chip">ฝากได้อีก ' + d.left + ' วัน</span>';
+}
 function depChip(o) {
   const sp = holdSpotOf(o);
-  return isDeposit(o) ? '<span class="chip dep">📦 ฝากของ' + (sp ? ' · ' + esc(sp) : '') + '</span>' :
+  return isDeposit(o) ? '<span class="chip dep">📦 ฝากของ' + (sp ? ' · ' + esc(sp) : '') + '</span>' + depTag(o) :
   hasHeld(o) && o.packStatus !== PACK.done ? '<span class="chip dep">📦 มีของฝาก → รวมส่ง' + (sp ? ' · ' + esc(sp) : '') + '</span>' : '';
 }
 function holdBlock(o, mode) {
   const sp = holdSpotOf(o),spTxt = sp ? '<b>' + esc(sp) + '</b>' : '<b>ยังไม่ได้ตั้งที่วาง</b>';
   const set = '<button class="x" data-act="holdSpotEdit" data-no="' + esc(norm(o.orderNo)) + '">' + (sp ? 'แก้ที่วาง' : 'ตั้งที่วาง') + '</button>';
-  if (isDeposit(o)) return '<div class="alert dep">📦 ลูกค้าฝากของ · ' + (mode === 'pack' ? 'ไม่ต้องแพ็ค · ' : '') + 'จัดเสร็จแล้ววางที่ ' + spTxt + ' ' + set + '</div>';
+  if (isDeposit(o)) {
+    const d = depState(o);
+    return '<div class="alert dep">📦 ลูกค้าฝากของ · ' + (mode === 'pack' ? 'ไม่ต้องแพ็ค · ' : '') + 'จัดเสร็จแล้ววางที่ ' + spTxt + ' ' + set +
+    (d ? '<br>' + (d.over ? '<b class="bad">⚠ เกินกำหนดฝาก ' + -d.left + ' วัน</b> · ครบกำหนด ' + dayLabel(d.due) + ' · ทักลูกค้าให้สั่งเพิ่มหรือส่งของฝาก' :
+    'ฝากได้ถึง ' + dayLabel(d.due) + ' · ' + (d.today ? 'ครบกำหนดวันนี้' : 'อีก ' + d.left + ' วัน')) + ' · ฝากได้ ' + depDays() + ' วันหลังวันไลฟ์' : '') + '</div>';
+  }
   if (!hasHeld(o) || o.packStatus === PACK.done) return '';
   const ds = depositsOf(o),pcs = ds.reduce((t, x) => t + (Number(x.itemQty) || 0), 0);
   return '<div class="alert dep">📦 มีของฝาก วางอยู่ที่ ' + spTxt + ' ' + set +
-  (ds.length ? '<br>ออเดอร์ฝาก #' + ds.map((x) => esc(x.orderNo)).join(', #') + ' · ' + pcs + ' ชิ้น' +
+  (ds.length ? '<br>ออเดอร์ฝาก #' + ds.map((x) => esc(x.orderNo)).join(', #') + ' · ' + pcs + ' ชิ้น' + (ds.some(depOver) ? ' · <b class="bad">⚠ เกินกำหนดฝาก</b>' : '') +
   (mode === 'pack' && S.pk ? '<label class="toggle" style="margin-top:6px"><span>แพ็คของฝากรวมกล่องนี้ (ปิดออเดอร์ฝากพร้อมกัน)</span><input type="checkbox" id="pkCombine" ' + (S.pk.combine !== false ? 'checked' : '') + '></label>' : '') :
   '<br>เอาของฝากมารวมกล่องตอนแพ็ค') + '</div>';
 }
@@ -784,9 +802,11 @@ function dueBanner() {
   const left = cutoffMs() - Date.now();
   const hm = left > 0 ? 'อีก ' + (Math.floor(left / 3600e3) ? Math.floor(left / 3600e3) + ' ชม. ' : '') + Math.floor(left % 3600e3 / 60e3) + ' นาที' : 'เลยเวลาตัดรอบแล้ว';
   const packedToday = all.filter((o) => o.packStatus === PACK.done && String(o.packedAt || '').slice(0, 10) === todayStr()).length;
+  const depN = all.filter((o) => !o.empty && depOver(o)).length;
   return "<div class=\"card duebar" + (left <= 0 && today ? ' late' : '') + "\"><div class=\"head-top\"><b>รอบส่งวันนี้ · ตัดรอบ " + esc(S.cfg.cutoff || '15:00') + "</b><span class=\"chip" + (left > 0 ? '' : ' bad') + "\">" + hm + "</span></div>" +
   "<div class=\"chips\"><button class=\"chip warn\" data-act=\"dueF\" data-v=\"today\">ต้องแพ็ควันนี้ " + today + "</button>" +
-  "<button class=\"chip bad\" data-act=\"dueF\" data-v=\"over\">เกินกำหนด " + over + "</button><span class=\"chip ok\">แพ็ควันนี้แล้ว " + packedToday + "</span></div>" +
+  "<button class=\"chip bad\" data-act=\"dueF\" data-v=\"over\">เกินกำหนด " + over + "</button><span class=\"chip ok\">แพ็ควันนี้แล้ว " + packedToday + "</span>" +
+  (depN ? "<button class=\"chip bad\" data-act=\"depOverF\">📦 ของฝากเกินกำหนด " + depN + "</button>" : '') + "</div>" +
   "<div class=\"muted\" style=\"font-size:12px\">นับเฉพาะออเดอร์ที่โอนแล้ว ไม่รวมรับหน้าร้าน · กำหนดแพ็คภายใน " + (Number(S.cfg.packDays) || 0) + " วันหลังวันไลฟ์ (แก้ได้ที่ ตั้งค่า)</div></div>";
 }
 /* ขนส่งของออเดอร์: ที่เลือกตอนแพ็ค ถ้ายังไม่แพ็คใช้ของ Vrich · รับหน้าร้าน = รับหน้าร้าน */
@@ -1613,6 +1633,7 @@ function filtered() {
     if (f.cust === 'regUnpaid' && !(isRegular(o) && o.payStatus !== PAY.paid)) return false;
     if (f.cust === 'pickup' && !isPickup(o)) return false;
     if (f.dep === 'deposit' && !isDeposit(o)) return false;
+    if (f.dep === 'over' && !depOver(o)) return false;
     if (f.dep === 'held' && !(hasHeld(o) && o.packStatus !== PACK.done && !isDeposit(o))) return false;
     if (f.vout === 'done' && !o.vrichOutAt) return false;
     if (f.due === 'today' && dueState(o) !== 'today') return false;
@@ -1663,6 +1684,7 @@ function vOrders() {
   seg('cust', 'regUnpaid', '⭐ ประจำ ยังไม่โอน · ' + S.orders.filter((o) => !o.empty && isRegular(o) && o.payStatus !== PAY.paid).length) + seg('cust', 'pickup', 'รับหน้าร้าน · ' + S.orders.filter((o) => !o.empty && isPickup(o)).length) + "</div>" +
   (S.orders.some((o) => isDeposit(o) || Number(o.hold)) ? "<div class=\"fgroup\"><label>ฝาก</label>" + seg('dep', 'all', 'ทั้งหมด') +
   seg('dep', 'deposit', '📦 ฝากของ · ' + S.orders.filter((o) => !o.empty && isDeposit(o) && o.packStatus !== PACK.done).length) +
+  seg('dep', 'over', 'เกินกำหนดฝาก · ' + S.orders.filter((o) => !o.empty && depOver(o)).length) +
   seg('dep', 'held', 'มีของฝาก → รวมส่ง · ' + S.orders.filter((o) => !o.empty && !isDeposit(o) && o.packStatus !== PACK.done && hasHeld(o)).length) + "</div>" : '') +
   (S.orders.some((o) => o.vrichOutAt || o.vrichOutNote) ? "<div class=\"fgroup\"><label>Vrich</label>" + seg('vout', 'all', 'ทั้งหมด') + seg('vout', 'wait', 'รอเช็คเอาท์ · ' + S.orders.filter(voutWait).length) + seg('vout', 'done', 'เช็คเอาท์แล้ว') + "</div>" : '') + "\n    <div class=\"selrow\" style=\"grid-template-columns:1fr 1fr\">\n      <select id=\"fPicker\" aria-label=\"\u0E08\u0E31\u0E14\u0E42\u0E14\u0E22\">" +
 
@@ -2102,6 +2124,7 @@ function vSettings() {
   t('requirePhoto', 'บังคับถ่ายรูปก่อนแพ็คเสร็จ', 'กดแพ็คเสร็จไม่ได้ถ้ายังไม่มีรูป') + "\n    " +
   "<div class=\"card stack\"><b>กำหนดเวลาแพ็ค (ทุกเครื่องใช้ค่าเดียวกัน)</b><div class=\"row2\"><label class=\"field\"><span>แพ็คภายใน (วันหลังวันไลฟ์)</span><input id=\"cfgDays\" type=\"number\" min=\"0\" max=\"30\" inputmode=\"numeric\" value=\"" + (Number(S.cfg.packDays) || 0) + "\"></label>" +
   "<label class=\"field\"><span>ตัดรอบส่งทุกวัน (เวลา)</span><input id=\"cfgCut\" type=\"time\" value=\"" + esc(S.cfg.cutoff || '15:00') + "\"></label></div>" +
+  "<label class=\"field\"><span>ฝากของได้ (วันหลังวันไลฟ์)</span><input id=\"cfgDepDays\" type=\"number\" min=\"0\" max=\"60\" inputmode=\"numeric\" value=\"" + depDays() + "\"></label>" +
   "<div class=\"muted\" style=\"font-size:12px\">0 = ต้องแพ็ควันเดียวกับวันไลฟ์ · 1 = ภายในวันถัดไป · ออเดอร์ที่โอนแล้วแต่เลยกำหนดจะขึ้นป้ายแดง 'เกินกำหนด'</div>" +
   "<button class=\"btn pri\" data-act=\"cfgSave\">บันทึกกำหนดเวลา</button></div>\n    " + pullCfgCard() +
   t('requireLabel', 'เตือนถ้ายังไม่สแกนยืนยันใบปะหน้า', 'ก่อนแพ็คเสร็จ ให้สแกนใบปะหน้าหรือใบออเดอร์ของถุงนั้น ถ้าไม่ได้สแกนต้องกดยืนยันอีกครั้ง (ไม่รวมรับหน้าร้าน)') + "\n    " +
@@ -2314,11 +2337,12 @@ const ACT = {
   saleMovedOk: () => {const day = saleDay(),m = saleMap(day),no = saleNo(day);Object.keys(no).forEach((k) => {if (m[k] && m[k].q > 0) delete no[k];});saleNoSet(day, no);render();},
   saleReset: () => {if (S.confirmReset !== 'sale') {S.confirmReset = 'sale';return render();}S.confirmReset = null;saleSet(saleDay(), {});saleNoSet(saleDay(), {});S.saleLast = null;render();},
   dueF: (d) => {S.f.due = d.v;render();},
+  depOverF: () => {S.f.dep = 'over';render();},
   trKind: (d) => {S.f.tr.kind = d.v;render();},
   trToday: () => {S.f.tr.date = todayStr();render();},
   trClear: () => {S.f.tr = { kind: S.f.tr.kind, date: '', from: '', to: '' };render();},
   cfgSave: async () => {
-    const c = { packDays: Number($('cfgDays').value) || 0, cutoff: $('cfgCut').value || '15:00' };
+    const c = { packDays: Number($('cfgDays').value) || 0, cutoff: $('cfgCut').value || '15:00', depositDays: $('cfgDepDays') ? Number($('cfgDepDays').value) || 0 : depDays() };
     try {S.cfg = await api('saveConfig', c, S.staff);toast('บันทึกกำหนดเวลาแพ็คแล้ว', 'ok');render();} catch (e) {toast('บันทึกไม่สำเร็จ: ' + errMsg(e), 'bad');}
   },
   lblDay: (d) => {S.labelDate = d.d;S.lblQty = {};S.labelSel = new Set();S._dayMap = null;render();},
@@ -3729,6 +3753,23 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "เกินกำหนดฝาก {0} วัน": "အပ်ချိန် {0} ရက် ကျော်နေ",
+  "⚠ เกินกำหนดฝาก {0} วัน": "⚠ အပ်ချိန် {0} ရက် ကျော်နေ",
+  "เกินกำหนดฝาก": "အပ်ချိန် ကျော်နေ",
+  "⚠ เกินกำหนดฝาก": "⚠ အပ်ချိန် ကျော်နေ",
+  "ครบกำหนดฝากวันนี้": "ယနေ့ အပ်ချိန် ပြည့်",
+  "ฝากได้อีก {0} วัน": "နောက် {0} ရက် အပ်ထားနိုင်",
+  "ครบกำหนด {0}": "သတ်မှတ်ရက် {0}",
+  "ทักลูกค้าให้สั่งเพิ่มหรือส่งของฝาก": "ဖောက်သည်ကို ထပ်မှာရန် သို့ အပ်ထားတာ ပို့ရန် ဆက်သွယ်ပါ",
+  "ฝากได้ถึง {0}": "{0} အထိ အပ်ထားနိုင်",
+  "ครบกำหนดวันนี้": "ယနေ့ ရက်ပြည့်",
+  "อีก {0} วัน": "နောက် {0} ရက်",
+  "ฝากได้ {0} วันหลังวันไลฟ์": "လိုက်ဗ်ရက်နောက် {0} ရက် အပ်ထားနိုင်",
+  "เกินกำหนดฝาก {0}": "အပ်ချိန် ကျော်နေ {0}",
+  "{0} ของฝากเกินกำหนด {1}": "{0} အပ်ချိန်ကျော် {1}",
+  "ฝากของได้ (วันหลังวันไลฟ์)": "အပ်ထားနိုင်ရက် (လိုက်ဗ်ရက်နောက်)",
+  "ฝากของได้": "အပ်ထားနိုင်ရက်",
+  "วันหลังวันไลฟ์": "လိုက်ဗ်ရက်နောက်",
   "{0} ล่าสุด {1} {2} ใหม่ {3} {4} อัปเดต {5} ออเดอร์": "{0} နောက်ဆုံး {1} {2} အသစ် {3} {4} အော်ဒါ {5} ခု အပ်ဒိတ်",
   "ล่าสุด {0} {1} ใหม่ {2}": "နောက်ဆုံး {0} {1} အသစ် {2}",
   "อัปเดต {0} ออเดอร์": "အော်ဒါ {0} ခု အပ်ဒိတ်",
