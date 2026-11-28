@@ -358,6 +358,12 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .alert.vchg{display:block}
 .chip.dep{background:#e8f0ff;color:#1e3a8a;border-color:#9db4f0}
   .dep-row{display:flex;flex-direction:column;gap:8px}
+  .dep-row.on{outline:2px solid var(--ai)}
+  .dep-chk{width:30px;height:30px;flex:none;border:2px solid var(--muted);border-radius:8px;background:var(--surface);font-weight:800;font-size:18px;color:#fff;padding:0}
+  .dep-chk[aria-pressed="true"]{background:var(--ai);border-color:var(--ai)}
+  .dep-bar{position:sticky;bottom:8px;z-index:5;display:flex;gap:8px;align-items:center;background:var(--ink);color:var(--bg);padding:10px 12px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+  .dep-bar b{flex:1}
+  .dep-bar .btn:not(.pri){background:transparent;color:var(--bg);border-color:rgba(255,255,255,.45)}
   .dep-top{display:flex;gap:10px;align-items:center}
   .dep-sp{min-width:48px;height:48px;padding:0 6px;border:2px solid var(--ink);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px}
   .dep-sp.none{border-style:dashed;color:var(--muted)}
@@ -715,11 +721,23 @@ async function printDepCards(groups) {
   const pa = $('printArea');pa.className = 'docA4 depcards';pa.innerHTML = html;
   let st = $('pageStyle');if (!st) {st = document.createElement('style');st.id = 'pageStyle';document.head.appendChild(st);}
   st.textContent = '@page{size:A4;margin:5mm}';
-  const nos = [].concat.apply([], groups.map((g) => g.map((o) => String(o.orderNo)))),at = nowStr();
-  groups.forEach((g) => g.forEach((o) => {o.depCardAt = at;}));
-  api('markDepCard', nos, S.staff).catch(() => toast('บันทึกว่าปริ้นแล้วไม่สำเร็จ (ปริ้นได้ปกติ)', 'warn'));
-  setTimeout(() => {window.print();render();}, 300);
+  /* ยังไม่บันทึกว่าปริ้นแล้ว จนกว่าคนปริ้นจะกดยืนยันว่ากระดาษออกมาจริง (กันกดปริ้นแล้วยกเลิก ชื่อหายจากรายการ) */
+  S.depPend = { nos: [].concat.apply([], groups.map((g) => g.map((o) => String(o.orderNo)))), n: groups.length };
+  setTimeout(() => {window.print();setTimeout(depPendSheet, 400);}, 300);
 }
+function depPendSheet() {
+  const P = S.depPend;if (!P) return;
+  $('sheetRoot').innerHTML = "<div class=\"sheetBg\"><div class=\"sheet\" data-stop=\"1\"><div class=\"grab\"></div><div class=\"stack\">" +
+  "<h2>ใบฝากออกมาครบไหม?</h2><div class=\"muted\" style=\"font-size:14px\">สั่งปริ้น " + P.n + " ใบ · กด <b>ออกมาครบแล้ว</b> ระบบจะย้ายไปอยู่ในรายการ \"ปริ้นแล้ว\" · ถ้ายกเลิกหรือกระดาษไม่ออก กด <b>ยังไม่ได้ปริ้น</b> ชื่อจะยังอยู่ในรายการยังไม่ปริ้น</div>" +
+  "<button class=\"btn pri\" data-act=\"depPendOk\">✓ ออกมาครบแล้ว</button>" +
+  "<button class=\"btn\" data-act=\"depPendNo\">ยังไม่ได้ปริ้น</button></div></div></div>";
+}
+function depMark(nos, clear) {
+  const at = clear ? '' : nowStr();
+  nos.forEach((n) => {const o = S.byNo[norm(n)];if (o) o.depCardAt = at;});
+  api('markDepCard', nos, S.staff, !!clear).then(() => toast(clear ? 'ย้ายกลับไปยังไม่ปริ้นแล้ว' : 'บันทึกแล้ว')).catch(() => toast('บันทึกไม่สำเร็จ ลองใหม่', 'bad'));
+}
+const depSelKey = (g) => norm(g[0].orderNo);
 function holdBlock(o, mode) {
   const sp = holdSpotOf(o),spTxt = sp ? '<b>' + esc(sp) + '</b>' : '<b>ยังไม่ได้ตั้งที่วาง</b>';
   const set = '<button class="x" data-act="holdSpotEdit" data-no="' + esc(norm(o.orderNo)) + '">' + (sp ? 'แก้ที่วาง' : 'ตั้งที่วาง') + '</button>';
@@ -2165,26 +2183,33 @@ function vDeposit() {
   gs.forEach((g) => {depCardDone(g) ? cnt.yes++ : cnt.no++;if (over(g)) cnt.over++;});
   const tab = S.depTab || 'all';
   const show = gs.filter((g) => tab === 'no' ? !depCardDone(g) : tab === 'yes' ? depCardDone(g) : tab === 'over' ? over(g) : true);
+  const sel = S.depSel = S.depSel || {};
+  Object.keys(sel).forEach((k) => {if (!gs.some((g) => depSelKey(g) === k)) delete sel[k];});
+  S._depShow = show.map(depSelKey);
+  const nSel = Object.keys(sel).length,allOn = show.length && show.every((g) => sel[depSelKey(g)]);
   const tb = (k, l) => "<button class=\"seg\" data-act=\"depTab\" data-k=\"" + k + "\" aria-pressed=\"" + (tab === k) + "\">" + l + " · " + cnt[k] + "</button>";
   const hm = (v) => {const t = String(v || '');return t ? dayLabel(t.slice(0, 10)) + ' ' + t.slice(11, 16) : '';};
   const row = (g) => {
     const o = g[0],sp = holdSpotOf(o),done = depCardDone(g),tw = depToWrite(g),d = depState(o);
     const pcs = g.reduce((n, x) => n + (Number(x.itemQty) || 0), 0);
     const at = g.map((x) => String(x.depCardAt || '')).filter(Boolean).sort()[0];
-    return "<div class=\"card dep-row\"><div class=\"dep-top\"><div class=\"dep-sp" + (sp ? '' : ' none') + "\">" + esc(sp || '?') + "</div><div style=\"flex:1;min-width:0\">" +
+    const k = depSelKey(g),on = !!sel[k];
+    return "<div class=\"card dep-row" + (on ? ' on' : '') + "\"><div class=\"dep-top\"><button class=\"dep-chk\" data-act=\"depSel\" data-no=\"" + esc(k) + "\" aria-pressed=\"" + on + "\" aria-label=\"เลือก\">" + (on ? '✓' : '') + "</button><div class=\"dep-sp" + (sp ? '' : ' none') + "\">" + esc(sp || '?') + "</div><div style=\"flex:1;min-width:0\">" +
     "<b class=\"dep-nm\">" + esc(o.fbName || o.customer || '-') + "</b><div class=\"muted\" style=\"font-size:13px\">" + g.length + " ออเดอร์ · " + pcs + " ชิ้น · ฝากตั้งแต่ " + esc(dayLabel(String(o.date || '').slice(0, 10))) + "</div></div>" +
     (done ? "<span class=\"chip ok\">✓ ปริ้นใบแล้ว</span>" : "<span class=\"chip bad\">ยังไม่ปริ้นใบ</span>") + "</div>" +
     "<div class=\"chips\">" + (d ? depTag(o) : '') + (done ? "<span class=\"chip\">ปริ้นเมื่อ " + esc(hm(at)) + "</span>" : '') + (sp ? '' : "<span class=\"chip warn\">ยังไม่ตั้งช่องวาง</span>") + "</div>" +
     "<div class=\"chips\">" + g.map((x) => "<button class=\"chip" + (x.depCardAt ? '' : done ? ' warn' : '') + "\" data-act=\"detail\" data-no=\"" + esc(norm(x.orderNo)) + "\">#" + esc(x.orderNo) + " · " + esc(dayLabel(String(x.date || '').slice(0, 10))) + "</button>").join('') + "</div>" +
     (tw.length ? "<div class=\"alert warn\" style=\"display:block;font-size:13px\">ออเดอร์ใหม่ยังไม่ได้เขียนลงใบ: #" + tw.map((x) => esc(x.orderNo)).join(', #') + "</div>" : '') +
-    "<div class=\"row\" style=\"gap:8px;flex-wrap:wrap\">" + (done ? "<button class=\"btn\" data-act=\"depCardOne\" data-no=\"" + esc(norm(o.orderNo)) + "\">ปริ้นใบซ้ำ</button>" :
-    "<button class=\"btn primary\" data-act=\"depCardOne\" data-no=\"" + esc(norm(o.orderNo)) + "\">🖨 ปริ้นใบฝาก</button>") +
+    "<div class=\"row\" style=\"gap:8px;flex-wrap:wrap\">" + (done ? "<button class=\"btn\" data-act=\"depCardOne\" data-no=\"" + esc(norm(o.orderNo)) + "\">ปริ้นใบซ้ำ</button><button class=\"btn\" data-act=\"depUnmark\" data-no=\"" + esc(norm(o.orderNo)) + "\">↩ ยังไม่ได้ปริ้น</button>" :
+    "<button class=\"btn pri\" data-act=\"depCardOne\" data-no=\"" + esc(norm(o.orderNo)) + "\">🖨 ปริ้นใบฝาก</button>") +
     (tw.length ? "<button class=\"btn\" data-act=\"depWrote\" data-nos=\"" + esc(tw.map((x) => x.orderNo).join(',')) + "\">✓ เขียนลงใบแล้ว</button>" : '') + "</div></div>";
   };
   return "<div class=\"stack\">" + back() + "<div class=\"card stack\"><h2>📦 ของฝากลูกค้า</h2>" +
   "<div class=\"muted\" style=\"font-size:13px\">ฝากอยู่ " + cnt.all + " คน · ปริ้นใบแล้ว " + cnt.yes + " · ยังไม่ปริ้น " + cnt.no + (cnt.over ? " · เกินกำหนด " + cnt.over : '') + " · ฝากได้ " + depDays() + " วัน</div>" +
-  (cnt.no ? "<button class=\"btn primary\" data-act=\"depCardAll\">🖨 ปริ้นใบฝากที่ยังไม่ปริ้น · " + cnt.no + " คน</button>" : '') +
-  "<div class=\"segs\" style=\"flex-wrap:wrap\">" + tb('all', 'ทั้งหมด') + tb('no', 'ยังไม่ปริ้น') + tb('yes', 'ปริ้นแล้ว') + tb('over', 'เกินกำหนด') + "</div></div>" +
+  (cnt.no ? "<button class=\"btn pri\" data-act=\"depCardAll\">🖨 ปริ้นใบฝากที่ยังไม่ปริ้น · " + cnt.no + " คน</button>" : '') +
+  "<div class=\"segs\" style=\"flex-wrap:wrap\">" + tb('all', 'ทั้งหมด') + tb('no', 'ยังไม่ปริ้น') + tb('yes', 'ปริ้นแล้ว') + tb('over', 'เกินกำหนด') + "</div>" +
+  (show.length ? "<button class=\"btn\" data-act=\"depSelAll\">" + (allOn ? 'ไม่เลือกทั้งหมด' : '☑ เลือกทั้งหมดในหน้านี้') + "</button>" : '') + "</div>" +
+  (nSel ? "<div class=\"dep-bar\"><b>เลือก " + nSel + " คน</b><button class=\"btn pri\" data-act=\"depSelPrint\">🖨 ปริ้นที่เลือก</button><button class=\"btn\" data-act=\"depSelClear\">ล้าง</button></div>" : '') +
   (show.length ? show.map(row).join('') : "<div class=\"card muted\" style=\"text-align:center\">ไม่มีรายการ</div>") + "</div>";
 }
 function back() {return "<button class=\"btn\" data-act=\"more\" data-m=\"\">\u2190 \u0E01\u0E25\u0E31\u0E1A</button>";}
@@ -2443,11 +2468,14 @@ const ACT = {
   dueF: (d) => {S.f.due = d.v;render();},
   depOverF: () => {S.f.dep = 'over';render();},
   depCardOne: (d) => {const o = S.byNo[d.no];const g = o && depGroupOf(o);if (g) printDepCards([g]);},
-  depWrote: (d) => {
-    const nos = String(d.nos || '').split(',').filter(Boolean),at = nowStr();
-    nos.forEach((n) => {const o = S.byNo[norm(n)];if (o) o.depCardAt = at;});
-    api('markDepCard', nos, S.staff).then(() => toast('บันทึกแล้ว')).catch(() => toast('บันทึกไม่สำเร็จ ลองใหม่', 'bad'));render();
-  },
+  depWrote: (d) => {depMark(String(d.nos || '').split(',').filter(Boolean));render();},
+  depUnmark: (d) => {const o = S.byNo[d.no];const g = o && depGroupOf(o);if (g) {depMark(g.map((x) => String(x.orderNo)), true);render();}},
+  depPendOk: () => {const P = S.depPend;S.depPend = null;closeSheet();if (P) {depMark(P.nos);S.depSel = {};}render();},
+  depPendNo: () => {S.depPend = null;closeSheet();toast('ยังไม่บันทึก · เลือกแล้วกดปริ้นใหม่ได้');render();},
+  depSel: (d) => {S.depSel = S.depSel || {};if (S.depSel[d.no]) delete S.depSel[d.no];else S.depSel[d.no] = 1;render();},
+  depSelAll: () => {S.depSel = S.depSel || {};const ks = (S._depShow || []);const all = ks.length && ks.every((k) => S.depSel[k]);ks.forEach((k) => {if (all) delete S.depSel[k];else S.depSel[k] = 1;});render();},
+  depSelClear: () => {S.depSel = {};render();},
+  depSelPrint: () => {const sel = S.depSel || {};printDepCards(depGroups().filter((g) => sel[depSelKey(g)]));},
   depTab: (d) => {S.depTab = d.k;render();},
   depCardAll: () => printDepCards(depGroups().filter((g) => !depCardDone(g))),
   trKind: (d) => {S.f.tr.kind = d.v;render();},
@@ -3866,6 +3894,19 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "ใบฝากออกมาครบไหม?": "အပ်စာရွက် အကုန်ထွက်လာပြီလား?",
+  "สั่งปริ้น {0} ใบ": "{0} ရွက် ပရင့်ခိုင်း",
+  "✓ ออกมาครบแล้ว": "✓ အကုန်ထွက်ပြီ",
+  "ยังไม่ได้ปริ้น": "မပရင့်ရသေး",
+  "↩ ยังไม่ได้ปริ้น": "↩ မပရင့်ရသေး",
+  "ย้ายกลับไปยังไม่ปริ้นแล้ว": "မပရင့်ရသေး စာရင်းသို့ ပြန်ရွှေ့ပြီ",
+  "ยังไม่บันทึก": "မသိမ်းရသေး",
+  "เลือกแล้วกดปริ้นใหม่ได้": "ရွေးပြီး ပြန်ပရင့်နိုင်",
+  "เลือก {0} คน": "{0} ယောက် ရွေးထား",
+  "🖨 ปริ้นที่เลือก": "🖨 ရွေးထားတာ ပရင့်",
+  "ล้าง": "ရှင်း",
+  "☑ เลือกทั้งหมดในหน้านี้": "☑ ဒီစာမျက်နှာ အကုန်ရွေး",
+  "ไม่เลือกทั้งหมด": "အကုန် မရွေး",
   "เขียนลงใบฝาก": "အပ်စာရွက်ထဲ ရေးပါ",
   "✓ เขียนลงใบแล้ว": "✓ စာရွက်ထဲ ရေးပြီး",
   "บันทึกแล้ว": "သိမ်းပြီး",
