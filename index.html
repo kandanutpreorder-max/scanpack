@@ -357,6 +357,11 @@ table.sum td.n,table.sum th.n{text-align:right;font-variant-numeric:tabular-nums
 .pullbar{display:flex;gap:8px;align-items:center;font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)} .pullbar span{flex:1;min-width:0} .pullbar.bad{border-color:var(--bad);background:var(--bad-soft,#fdecea)}
 .alert.vchg{display:block}
 .chip.dep{background:#e8f0ff;color:#1e3a8a;border-color:#9db4f0}
+  .dep-row{display:flex;flex-direction:column;gap:8px}
+  .dep-top{display:flex;gap:10px;align-items:center}
+  .dep-sp{min-width:48px;height:48px;padding:0 6px;border:2px solid var(--ink);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px}
+  .dep-sp.none{border-style:dashed;color:var(--muted)}
+  .dep-nm{font-size:16px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .alert.dep{display:block;line-height:1.6;background:#eef3ff;border:1px solid #9db4f0;color:#1e3a8a} .alert.dep .x{margin-left:6px;vertical-align:middle}
 .alert.dep .toggle{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;border-radius:10px;padding:6px 10px}
 .chip.reg{background:#fff4d6;color:#8a5a00;border-color:#f0c96a}
@@ -665,7 +670,7 @@ function depTag(o) {
 }
 function depChip(o) {
   const sp = holdSpotOf(o);
-  return isDeposit(o) ? '<span class="chip dep">📦 ฝากของ' + (sp ? ' · ' + esc(sp) : '') + '</span>' + depTag(o) + (o.packStatus !== PACK.done && !o.depCardAt ? '<span class="chip warn">ยังไม่ปริ้นใบฝาก</span>' : '') :
+  return isDeposit(o) ? '<span class="chip dep">📦 ฝากของ' + (sp ? ' · ' + esc(sp) : '') + '</span>' + depTag(o) + depCardChip(o) :
   hasHeld(o) && o.packStatus !== PACK.done ? '<span class="chip dep">📦 มีของฝาก → รวมส่ง' + (sp ? ' · ' + esc(sp) : '') + '</span>' : '';
 }
 /* ---------- ใบฝากของ (A4 8 ใบ/แผ่น) : ลูกค้า 1 คน = 1 ใบ แถวแรกปริ้นมา แถวถัดไปคนงานเขียนเอง ---------- */
@@ -677,9 +682,16 @@ function depGroups() {
   });
   return Object.keys(m).map((k) => m[k].sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.orderNo).localeCompare(String(b.orderNo))));
 }
-const depCardDone = (g) => g.every((o) => !!o.depCardAt);
+const depCardDone = (g) => g.some((o) => !!o.depCardAt);   // ปริ้นใบแล้ว (วันถัดไปคนงานเขียนเพิ่มเองในใบเดิม)
+const depGroupOf = (o) => depGroups().find((x) => x.some((y) => y.orderNo === o.orderNo));
+const depToWrite = (g) => depCardDone(g) ? g.filter((o) => !o.depCardAt) : [];
+function depCardChip(o) {
+  if (o.packStatus === PACK.done || o.depCardAt) return '';
+  const g = depGroupOf(o);if (!g) return '';
+  return depCardDone(g) ? '<span class="chip warn">เขียนลงใบฝาก</span>' : '<span class="chip warn">ยังไม่ปริ้นใบฝาก</span>';
+}
 function depCardBtn(o) {
-  const g = depGroups().find((x) => x.indexOf(o) >= 0);if (!g) return '';
+  const g = depGroupOf(o);if (!g) return '';
   return '<button class="x" data-act="depCardOne" data-no="' + esc(norm(o.orderNo)) + '">' + (depCardDone(g) ? 'ปริ้นใบฝากซ้ำ' : 'ปริ้นใบฝาก') + '</button>';
 }
 async function printDepCards(groups) {
@@ -1952,6 +1964,7 @@ function vMore() {
   if (S.more === 'data') return vData();
   if (S.more === 'slips') return vSlips();
   if (S.more === 'find') return vFind();
+  if (S.more === 'deposit') return vDeposit();
   const ic = (p) => "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\">" + p + "</svg>";
   return "<div class=\"stack\"><div class=\"menu\">\n    <button data-act=\"startImport\">" +
   ic('<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>') + "<div><b>\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32\u0E2D\u0E2D\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E08\u0E32\u0E01 Vrich</b><span>\u0E44\u0E1F\u0E25\u0E4C Excel \u0E17\u0E35\u0E48 export \u0E08\u0E32\u0E01 Vrich (\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E42\u0E2D\u0E19/\u0E40\u0E25\u0E02\u0E1E\u0E31\u0E2A\u0E14\u0E38\u0E44\u0E14\u0E49 \u0E44\u0E21\u0E48\u0E25\u0E49\u0E32\u0E07\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14)</span></div></button>\n    <button data-act=\"more\" data-m=\"find\">" + ic('<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5M11 8v3l2 1.5"/>') + "<div><b>ตามหาสินค้า (เวลาในไลฟ์)</b><span>สินค้าที่ยังไม่จัด/หาไม่เจอ พร้อมเวลา CF และนาทีในวิดีโอไลฟ์</span></div></button>\n    <button data-act=\"more\" data-m=\"slips\">" + ic('<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M7 15v3M9 15v3M11 15v3M14 15v3M16 15v3M7 7h6M7 10h10"/>') + "<div><b>พิมพ์ใบออเดอร์ (รอใบปะหน้า)</b><span>เลขพัสดุ ชื่อ เลขออเดอร์ บาร์โค้ด QR · A4 หลายออเดอร์ต่อแผ่น</span></div></button>\n    <button data-act=\"more\" data-m=\"labels\">" +
@@ -2144,6 +2157,35 @@ async function dataRun(kind) {
     toast((kind === 'a' ? 'เก็บข้อมูลไม่สำเร็จ: ' : 'ล้างข้อมูลไม่สำเร็จ: ') + m + (/permission|สิทธิ์|authoriz/i.test(m) ? ' (เจ้าของร้านต้องกด Run setup ใน Apps Script เพื่อให้สิทธิ์ใหม่)' : ''), 'bad');
   }
   S.dataBusy = false;render();
+}
+/* ---------- หน้าของฝากลูกค้า: ใครฝากอยู่ ปริ้นใบแล้วหรือยัง ---------- */
+function vDeposit() {
+  const gs = depGroups().sort((a, b) => (depCardDone(a) - depCardDone(b)) || String(a[0].date).localeCompare(String(b[0].date)));
+  const over = (g) => g.some(depOver),cnt = { all: gs.length, no: 0, yes: 0, over: 0 };
+  gs.forEach((g) => {depCardDone(g) ? cnt.yes++ : cnt.no++;if (over(g)) cnt.over++;});
+  const tab = S.depTab || 'all';
+  const show = gs.filter((g) => tab === 'no' ? !depCardDone(g) : tab === 'yes' ? depCardDone(g) : tab === 'over' ? over(g) : true);
+  const tb = (k, l) => "<button class=\"seg\" data-act=\"depTab\" data-k=\"" + k + "\" aria-pressed=\"" + (tab === k) + "\">" + l + " · " + cnt[k] + "</button>";
+  const hm = (v) => {const t = String(v || '');return t ? dayLabel(t.slice(0, 10)) + ' ' + t.slice(11, 16) : '';};
+  const row = (g) => {
+    const o = g[0],sp = holdSpotOf(o),done = depCardDone(g),tw = depToWrite(g),d = depState(o);
+    const pcs = g.reduce((n, x) => n + (Number(x.itemQty) || 0), 0);
+    const at = g.map((x) => String(x.depCardAt || '')).filter(Boolean).sort()[0];
+    return "<div class=\"card dep-row\"><div class=\"dep-top\"><div class=\"dep-sp" + (sp ? '' : ' none') + "\">" + esc(sp || '?') + "</div><div style=\"flex:1;min-width:0\">" +
+    "<b class=\"dep-nm\">" + esc(o.fbName || o.customer || '-') + "</b><div class=\"muted\" style=\"font-size:13px\">" + g.length + " ออเดอร์ · " + pcs + " ชิ้น · ฝากตั้งแต่ " + esc(dayLabel(String(o.date || '').slice(0, 10))) + "</div></div>" +
+    (done ? "<span class=\"chip ok\">✓ ปริ้นใบแล้ว</span>" : "<span class=\"chip bad\">ยังไม่ปริ้นใบ</span>") + "</div>" +
+    "<div class=\"chips\">" + (d ? depTag(o) : '') + (done ? "<span class=\"chip\">ปริ้นเมื่อ " + esc(hm(at)) + "</span>" : '') + (sp ? '' : "<span class=\"chip warn\">ยังไม่ตั้งช่องวาง</span>") + "</div>" +
+    "<div class=\"chips\">" + g.map((x) => "<button class=\"chip" + (x.depCardAt ? '' : done ? ' warn' : '') + "\" data-act=\"detail\" data-no=\"" + esc(norm(x.orderNo)) + "\">#" + esc(x.orderNo) + " · " + esc(dayLabel(String(x.date || '').slice(0, 10))) + "</button>").join('') + "</div>" +
+    (tw.length ? "<div class=\"alert warn\" style=\"display:block;font-size:13px\">ออเดอร์ใหม่ยังไม่ได้เขียนลงใบ: #" + tw.map((x) => esc(x.orderNo)).join(', #') + "</div>" : '') +
+    "<div class=\"row\" style=\"gap:8px;flex-wrap:wrap\">" + (done ? "<button class=\"btn\" data-act=\"depCardOne\" data-no=\"" + esc(norm(o.orderNo)) + "\">ปริ้นใบซ้ำ</button>" :
+    "<button class=\"btn primary\" data-act=\"depCardOne\" data-no=\"" + esc(norm(o.orderNo)) + "\">🖨 ปริ้นใบฝาก</button>") +
+    (tw.length ? "<button class=\"btn\" data-act=\"depWrote\" data-nos=\"" + esc(tw.map((x) => x.orderNo).join(',')) + "\">✓ เขียนลงใบแล้ว</button>" : '') + "</div></div>";
+  };
+  return "<div class=\"stack\">" + back() + "<div class=\"card stack\"><h2>📦 ของฝากลูกค้า</h2>" +
+  "<div class=\"muted\" style=\"font-size:13px\">ฝากอยู่ " + cnt.all + " คน · ปริ้นใบแล้ว " + cnt.yes + " · ยังไม่ปริ้น " + cnt.no + (cnt.over ? " · เกินกำหนด " + cnt.over : '') + " · ฝากได้ " + depDays() + " วัน</div>" +
+  (cnt.no ? "<button class=\"btn primary\" data-act=\"depCardAll\">🖨 ปริ้นใบฝากที่ยังไม่ปริ้น · " + cnt.no + " คน</button>" : '') +
+  "<div class=\"segs\" style=\"flex-wrap:wrap\">" + tb('all', 'ทั้งหมด') + tb('no', 'ยังไม่ปริ้น') + tb('yes', 'ปริ้นแล้ว') + tb('over', 'เกินกำหนด') + "</div></div>" +
+  (show.length ? show.map(row).join('') : "<div class=\"card muted\" style=\"text-align:center\">ไม่มีรายการ</div>") + "</div>";
 }
 function back() {return "<button class=\"btn\" data-act=\"more\" data-m=\"\">\u2190 \u0E01\u0E25\u0E31\u0E1A</button>";}
 
@@ -2400,7 +2442,13 @@ const ACT = {
   saleReset: () => {if (S.confirmReset !== 'sale') {S.confirmReset = 'sale';return render();}S.confirmReset = null;saleSet(saleDay(), {});saleNoSet(saleDay(), {});S.saleLast = null;render();},
   dueF: (d) => {S.f.due = d.v;render();},
   depOverF: () => {S.f.dep = 'over';render();},
-  depCardOne: (d) => {const o = S.byNo[d.no];const g = o && depGroups().find((x) => x.indexOf(o) >= 0);if (g) printDepCards([g]);},
+  depCardOne: (d) => {const o = S.byNo[d.no];const g = o && depGroupOf(o);if (g) printDepCards([g]);},
+  depWrote: (d) => {
+    const nos = String(d.nos || '').split(',').filter(Boolean),at = nowStr();
+    nos.forEach((n) => {const o = S.byNo[norm(n)];if (o) o.depCardAt = at;});
+    api('markDepCard', nos, S.staff).then(() => toast('บันทึกแล้ว')).catch(() => toast('บันทึกไม่สำเร็จ ลองใหม่', 'bad'));render();
+  },
+  depTab: (d) => {S.depTab = d.k;render();},
   depCardAll: () => printDepCards(depGroups().filter((g) => !depCardDone(g))),
   trKind: (d) => {S.f.tr.kind = d.v;render();},
   trToday: () => {S.f.tr.date = todayStr();render();},
@@ -2421,7 +2469,7 @@ const ACT = {
     const c = { pullEvery: Number($('cfgPullEvery').value) || 0, pullDays: Number($('cfgPullDays').value) || 3 };
     try {S.cfg = await api('saveConfig', c, S.staff);toast('บันทึกการดึงจาก Vrich แล้ว', 'ok');render();} catch (e) {toast('บันทึกไม่สำเร็จ: ' + errMsg(e), 'bad');}
   },
-  goDeposit: () => {S.f.dep = 'deposit';go('orders');},
+  goDeposit: () => {S.more = 'deposit';go('more');},
   custSpot: (d) => {
     const o = S.byNo[d.no],el = $('custSpot');if (!o || !el) return;
     const v = el.value.trim(),who = spotUsedBy(v, custKey(o));
@@ -2513,7 +2561,7 @@ function lblQtyCtl(p) {
 function moreExtra(ic) {
   const short = shortList().length,open = S.batches.filter((b) => b.status !== BATCH.closed).length;
   return "<button data-act=\"pullNow\">" + ic('<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/>') + "<div><b>ดึงออเดอร์จาก Vrich ตอนนี้</b><span>" + esc(pullLine()) + "</span></div></button>\n    " +
-  "<button data-act=\"goDeposit\">" + ic('<path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/>') + "<div><b>ของฝากลูกค้า</b><span>ออเดอร์ที่ลูกค้าฝากไว้ และตำแหน่งที่วาง</span></div></button>\n    " +
+  "<button data-act=\"goDeposit\">" + ic('<path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/>') + "<div><b>ของฝากลูกค้า</b><span>ออเดอร์ที่ลูกค้าฝากไว้ ใครปริ้นใบแล้ว และช่องที่วาง</span></div></button>\n    " +
   "<button data-act=\"depCardAll\">" + ic('<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>') + "<div><b>ปริ้นใบฝากของ</b><span>A4 8 ใบ/แผ่น · ลูกค้าที่ยังไม่ได้ปริ้น " + depGroups().filter((g) => !depCardDone(g)).length + " คน</span></div></button>\n    " +
   "<button data-act=\"go\" data-v=\"sale\">" + ic('<path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><path d="M8 12l3 3 5-6"/>') + "<div><b>เช็คออก/ไม่ออก</b><span>สแกนสินค้าหลังไลฟ์ บอกทันทีว่าขายออกไหม</span></div></button>\n    <button data-act=\"go\" data-v=\"stock\">" + ic('<path d="M3 8l9-4 9 4v8l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v8"/>') + "<div><b>\u0E2B\u0E22\u0E34\u0E1A\u0E2A\u0E15\u0E47\u0E2D\u0E01</b><span>\u0E19\u0E31\u0E1A\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49 \u0E16\u0E48\u0E32\u0E22\u0E23\u0E39\u0E1B \u0E40\u0E0A\u0E47\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E2D\u0E44\u0E2B\u0E21</span></div></button>\n    <button data-act=\"more\" data-m=\"short\">" +
   ic('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>') + "<div><b>\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E02\u0E32\u0E14 + \u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07" + (short ? " <span class=\"chip bad\">" + short + "</span>" : '') + "</b><span>\u0E2A\u0E23\u0E38\u0E1B\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E1E\u0E2D \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E23\u0E39\u0E1B \u0E41\u0E25\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E2A\u0E31\u0E48\u0E07\u0E02\u0E2D\u0E07</span></div></button>\n    <button data-act=\"go\" data-v=\"batch\">" +
@@ -3818,6 +3866,34 @@ I18N.dict = {
   "ลูกค้ามารับเอง": "ဖောက်သည် ကိုယ်တိုင်လာယူ",
   "ไปรษณีย์ไทย": "ထိုင်းစာတိုက်",
   "วันที่": "ရက်စွဲ",
+  "เขียนลงใบฝาก": "အပ်စာရွက်ထဲ ရေးပါ",
+  "✓ เขียนลงใบแล้ว": "✓ စာရွက်ထဲ ရေးပြီး",
+  "บันทึกแล้ว": "သိမ်းပြီး",
+  "บันทึกไม่สำเร็จ ลองใหม่": "မသိမ်းနိုင် ထပ်စမ်းပါ",
+  "📦 ของฝากลูกค้า": "📦 ဖောက်သည် အပ်ထားသောပစ္စည်း",
+  "{0} ของฝากลูกค้า": "{0} ဖောက်သည် အပ်ထားသောပစ္စည်း",
+  "✓ ปริ้นใบแล้ว": "✓ စာရွက် ပရင့်ပြီး",
+  "{0} ปริ้นใบแล้ว": "{0} စာရွက် ပရင့်ပြီး",
+  "ยังไม่ปริ้นใบ": "စာရွက် မပရင့်ရသေး",
+  "ปริ้นเมื่อ {0} {1}": "ပရင့်ချိန် {0} {1}",
+  "ยังไม่ตั้งช่องวาง": "ထားမည့်နေရာ မသတ်မှတ်ရသေး",
+  "{0} ออเดอร์": "အော်ဒါ {0}",
+  "{0} ชิ้น": "{0} ခု",
+  "ฝากตั้งแต่ {0}": "{0} မှစ၍ အပ်ထား",
+  "ออเดอร์ใหม่ยังไม่ได้เขียนลงใบ": "စာရွက်ထဲ မရေးရသေးသော အော်ဒါအသစ်",
+  "ปริ้นใบซ้ำ": "စာရွက် ထပ်ပရင့်",
+  "{0} ปริ้นใบฝาก": "{0} အပ်စာရွက် ပရင့်",
+  "ฝากอยู่ {0} คน": "အပ်ထားသူ {0} ယောက်",
+  "ปริ้นใบแล้ว {0}": "ပရင့်ပြီး {0}",
+  "ยังไม่ปริ้น {0}": "မပရင့်ရသေး {0}",
+  "เกินกำหนด {0}": "ရက်ကျော် {0}",
+  "ฝากได้ {0} วัน": "{0} ရက် အပ်ထားနိုင်",
+  "ทั้งหมด": "အားလုံး",
+  "ยังไม่ปริ้น": "မပရင့်ရသေး",
+  "ปริ้นแล้ว": "ပရင့်ပြီး",
+  "เกินกำหนด": "ရက်ကျော်",
+  "ไม่มีรายการ": "စာရင်း မရှိ",
+  "ออเดอร์ที่ลูกค้าฝากไว้ ใครปริ้นใบแล้ว และช่องที่วาง": "ဖောက်သည်အပ်ထားသော အော်ဒါ · စာရွက်ပရင့်ပြီးသူ · ထားသည့်နေရာ",
   "ปริ้นใบฝาก": "အပ်စာရွက် ပရင့်",
   "{0} คน": "{0} ယောက်",
   "ปริ้นใบฝากซ้ำ": "အပ်စာရွက် ထပ်ပရင့်",
